@@ -14,9 +14,11 @@
 | B1.1 — Next.js + TypeScript + Tailwind | ✅ Done | `cb5c815` |
 | B1.2 — shadcn/ui + dark mode | ✅ Done | `b50d100` |
 | B1.3 — Supabase schema + RLS | ✅ Done | `b7f378d` + `a667d26` |
-| B1.4 — Authentication | ⬜ Next | — |
-| B1.5 — Admin panel | ⬜ Pending | — |
+| B1.4 — Authentication | ✅ Done | `4ec7ea8` + `8985f95` + `e9ea248` |
+| B1.5 — Admin panel | ⬜ Next | — |
 | B1.6 — Vercel deploy + Sentry + Analytics | ⬜ Pending | — |
+
+**Project location:** `C:\dev\jotaeme` (moved from OneDrive on May 16, 2026 — OneDrive sync conflicts with Next.js `.next` cache).
 
 **Installed versions (locked):**
 - Next.js 15.5.18
@@ -514,3 +516,4 @@ When the user asks for clarification, prioritize explaining the **why** behind d
 | 1.0 | May 2026 | Initial — MVP scope locked, stack confirmed, build order set |
 | 1.1 | May 16, 2026 | B1.1 + B1.2 completed. Project name: Jotaeme. Added progress tracking. |
 | 1.2 | May 16, 2026 | B1.3 completed. Supabase schema applied, RLS policies active, seed loaded, service_role key set. |
+| 1.3 | May 16, 2026 | B1.4 completed. Auth pages, Server Actions, route protection, profile editing. Project moved out of OneDrive to C:\dev\jotaeme. |
