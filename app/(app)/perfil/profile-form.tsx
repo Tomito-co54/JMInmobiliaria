@@ -19,6 +19,8 @@ interface ProfileFormProps {
 export function ProfileForm({ defaultValues, email }: ProfileFormProps) {
   const [isPending, startTransition] = useTransition();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [fullName, setFullName] = useState(defaultValues.fullName);
+  const [phone, setPhone] = useState(defaultValues.phone);
 
   function handleSubmit(formData: FormData) {
     setFieldErrors({});
@@ -59,7 +61,8 @@ export function ProfileForm({ defaultValues, email }: ProfileFormProps) {
           name="fullName"
           type="text"
           autoComplete="name"
-          defaultValue={defaultValues.fullName}
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
           required
           disabled={isPending}
         />
@@ -74,7 +77,8 @@ export function ProfileForm({ defaultValues, email }: ProfileFormProps) {
           type="tel"
           autoComplete="tel"
           placeholder="+54 9 11 ..."
-          defaultValue={defaultValues.phone}
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
           disabled={isPending}
         />
         <FormError message={fieldErrors.phone?.[0]} />
