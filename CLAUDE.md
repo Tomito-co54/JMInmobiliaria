@@ -5,9 +5,42 @@
 
 ---
 
+## Current Progress
+
+**Status:** Block 1 — Technical Foundation (in progress)
+
+| Step | Status | Commit |
+|---|---|---|
+| B1.1 — Next.js + TypeScript + Tailwind | ✅ Done | `cb5c815` |
+| B1.2 — shadcn/ui + dark mode | ✅ Done | `b50d100` |
+| B1.3 — Supabase schema + RLS | ⬜ Next | — |
+| B1.4 — Authentication | ⬜ Pending | — |
+| B1.5 — Admin panel | ⬜ Pending | — |
+| B1.6 — Vercel deploy + Sentry + Analytics | ⬜ Pending | — |
+
+**Installed versions (locked):**
+- Next.js 15.5.18
+- React 19.2.6
+- TypeScript 6.0.3
+- Tailwind CSS 4.3.0
+- shadcn/ui 4.7.0 (13 components: button, input, label, card, dialog, dropdown-menu, sonner, avatar, badge, separator, skeleton, sheet, tabs)
+- react-hook-form + zod + @hookform/resolvers
+- next-themes (dark mode)
+
+**Env configured:** Supabase URL + anon key set in `.env.local`. Service role key placeholder ready (user has key, needs to paste it).
+
+**Pending accounts/keys for next steps:**
+- Supabase service_role key → user has it, paste into `.env.local`
+- Sentry DSN + auth token → needed for B1.6
+- Google OAuth → configure in Supabase dashboard for B1.4
+- MercadoPago credentials → needed for Block 7
+- Resend API key → needed for Block 6
+
+---
+
 ## Project Overview
 
-**Name:** Real Estate Platform (Argentina — Zona Sur GBA)
+**Name:** Jotaeme — Plataforma Inmobiliaria (Argentina — Zona Sur GBA)
 
 **One-liner:** A mobile-first real estate platform that works for the buyer, providing verified data, transparent scoring, and automated services to shift the information asymmetry in favor of the person making the purchase decision.
 
@@ -293,13 +326,13 @@ Notifications sent to users.
 
 Follow this strict order. Do not skip ahead.
 
-### Block 1 — Technical Foundation (Weeks 1-2)
-1. Project setup (Next.js + TypeScript + Tailwind + shadcn/ui)
-2. Supabase project + schema + RLS policies
-3. Authentication (email/password + Google OAuth)
-4. Basic admin panel (protected routes, user list, property list)
-5. Vercel deployment + environments (dev, staging, production)
-6. Sentry + Vercel Analytics integration
+### Block 1 — Technical Foundation (Weeks 1-2) ← CURRENT
+1. ✅ Project setup (Next.js + TypeScript + Tailwind + shadcn/ui)
+2. ⬜ Supabase project + schema + RLS policies ← NEXT
+3. ⬜ Authentication (email/password + Google OAuth)
+4. ⬜ Basic admin panel (protected routes, user list, property list)
+5. ⬜ Vercel deployment + environments (dev, staging, production)
+6. ⬜ Sentry + Vercel Analytics integration
 
 ### Block 2 — Data Ingestion (Weeks 3-6)
 1. Zonaprop scraper for Zona Sur GBA
@@ -470,3 +503,4 @@ When the user asks for clarification, prioritize explaining the **why** behind d
 | Version | Date | Changes |
 |---|---|---|
 | 1.0 | May 2026 | Initial — MVP scope locked, stack confirmed, build order set |
+| 1.1 | May 16, 2026 | B1.1 + B1.2 completed. Project name: Jotaeme. Added progress tracking. |
