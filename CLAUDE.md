@@ -13,8 +13,8 @@
 |---|---|---|
 | B1.1 — Next.js + TypeScript + Tailwind | ✅ Done | `cb5c815` |
 | B1.2 — shadcn/ui + dark mode | ✅ Done | `b50d100` |
-| B1.3 — Supabase schema + RLS | ⬜ Next | — |
-| B1.4 — Authentication | ⬜ Pending | — |
+| B1.3 — Supabase schema + RLS | ✅ Done | `b7f378d` + `a667d26` |
+| B1.4 — Authentication | ⬜ Next | — |
 | B1.5 — Admin panel | ⬜ Pending | — |
 | B1.6 — Vercel deploy + Sentry + Analytics | ⬜ Pending | — |
 
@@ -26,13 +26,22 @@
 - shadcn/ui 4.7.0 (13 components: button, input, label, card, dialog, dropdown-menu, sonner, avatar, badge, separator, skeleton, sheet, tabs)
 - react-hook-form + zod + @hookform/resolvers
 - next-themes (dark mode)
+- @supabase/supabase-js + @supabase/ssr (clients)
+- pg + dotenv (devDeps, for `scripts/db-run.mjs`)
 
-**Env configured:** Supabase URL + anon key set in `.env.local`. Service role key placeholder ready (user has key, needs to paste it).
+**Supabase project:**
+- URL: `https://cjnaxxidigdylnwlpyab.supabase.co`
+- All 7 tables created with RLS enabled
+- Seed loaded (5 sample properties in Zona Sur GBA)
+- Auth triggers active (auto-creates public.users row on signup)
+
+**Env configured in `.env.local`:** Supabase URL + anon key + service_role key all set.
+
+**SQL runner utility:** `node scripts/db-run.mjs <path-to-sql>` runs any SQL file against Supabase. Requires `DATABASE_URL` (Transaction pooler) in `.env.local` — not configured yet, only needed if running future migrations from CLI instead of Supabase SQL Editor.
 
 **Pending accounts/keys for next steps:**
-- Supabase service_role key → user has it, paste into `.env.local`
-- Sentry DSN + auth token → needed for B1.6
 - Google OAuth → configure in Supabase dashboard for B1.4
+- Sentry DSN + auth token → needed for B1.6
 - MercadoPago credentials → needed for Block 7
 - Resend API key → needed for Block 6
 
@@ -328,8 +337,8 @@ Follow this strict order. Do not skip ahead.
 
 ### Block 1 — Technical Foundation (Weeks 1-2) ← CURRENT
 1. ✅ Project setup (Next.js + TypeScript + Tailwind + shadcn/ui)
-2. ⬜ Supabase project + schema + RLS policies ← NEXT
-3. ⬜ Authentication (email/password + Google OAuth)
+2. ✅ Supabase project + schema + RLS policies
+3. ⬜ Authentication (email/password + Google OAuth) ← NEXT
 4. ⬜ Basic admin panel (protected routes, user list, property list)
 5. ⬜ Vercel deployment + environments (dev, staging, production)
 6. ⬜ Sentry + Vercel Analytics integration
@@ -504,3 +513,4 @@ When the user asks for clarification, prioritize explaining the **why** behind d
 |---|---|---|
 | 1.0 | May 2026 | Initial — MVP scope locked, stack confirmed, build order set |
 | 1.1 | May 16, 2026 | B1.1 + B1.2 completed. Project name: Jotaeme. Added progress tracking. |
+| 1.2 | May 16, 2026 | B1.3 completed. Supabase schema applied, RLS policies active, seed loaded, service_role key set. |
