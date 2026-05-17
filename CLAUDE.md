@@ -7,7 +7,7 @@
 
 ## Current Progress
 
-**Status:** Block 2 — Data Ingestion (in progress). B2.1 / B2.1b / B2.2 done; B2.4 started (geocoding_cache table created, Nominatim client pending).
+**Status:** Block 1 — Technical Foundation ✅ COMPLETED. Next: Block 2 — Data Ingestion.
 
 | Step | Status | Commit |
 |---|---|---|
@@ -45,7 +45,7 @@
 
 **Env configured in `.env.local`:** Supabase URL + anon key + service_role key all set.
 
-**SQL runner utility:** `node scripts/db-run.mjs <path-to-sql>` runs any SQL file against Supabase. Uses `DATABASE_URL` (Transaction pooler, region `aws-1-sa-east-1`) which IS configured in `.env.local`. New migrations can be applied from CLI without manual copy-paste.
+**SQL runner utility:** `node scripts/db-run.mjs <path-to-sql>` runs any SQL file against Supabase. Requires `DATABASE_URL` (Transaction pooler) in `.env.local` — not configured yet, only needed if running future migrations from CLI instead of Supabase SQL Editor.
 
 **Pending accounts/keys for next steps:**
 - Google OAuth → configure in Supabase dashboard for B1.4
@@ -355,25 +355,10 @@ Follow this strict order. Do not skip ahead.
 - ✅ B2.1: Zonaprop scraper (Playwright, list pages, persistence, history tracking)
 - ✅ B2.1b: Trezza Propiedades scraper (local agency, infinite scroll, JSON-LD prices)
 - ✅ B2.2: Property deduplication (fuzzy address matching, extensible to ARBA/geo)
-- 🔄 B2.4: OpenStreetMap geocoding ← IN PROGRESS (migration 00005 applied; Nominatim client pending)
-- ⬜ B2.3: ARBA SIC integration (swapped after B2.4 because ARBA WMS GetFeatureInfo needs lat/lng)
-- ⬜ B2.5: Vercel Cron jobs
+- ✅ B2.4: OpenStreetMap geocoding (Nominatim client + 90d cache + ensurePropertyCoordinates)
+- ✅ B2.3: ARBA SIC integration (WFS GeoServer + INTERSECTS/DWITHIN + 180d cache)
+- ⬜ B2.5: Vercel Cron jobs ← NEXT
 - ⬜ B2.6: History tracking helpers
-
-**B2.4 — what's done so far:**
-- `geocoding_cache` table created with provider/query/lat/lng + 90d TTL (migration 00005)
-
-**B2.4 — what's pending:**
-- `lib/services/geocoding/nominatim.ts` — HTTP client with 1 req/s rate limit + identifiable user agent
-- `lib/services/geocoding/cache.ts` — cache read/write helpers
-- `lib/services/geocoding/index.ts` — `geocodeAddress(address)` and `ensurePropertyCoordinates(propertyId)`
-- `scripts/geocode-properties.ts` — CLI to backfill the 54 active properties
-
-**B2.3 — pre-research done (CARTO ARBA):**
-- ARBA uses standard WMS at `https://carto.arba.gov.ar/cartoArba/ProxyMap`
-- Cadastral layer is `carto:Parcelas` (with `carto:Macizos`, `carto:Subparcelas`, etc.)
-- Query approach: WMS `GetFeatureInfo` at lat/lng → returns parcela attributes (partida, nomenclatura, superficie)
-- That's why B2.4 (geocoding) had to come first.
 1. Zonaprop scraper for Zona Sur GBA
 2. Property deduplication logic
 3. ARBA SIC integration (cadastral data fetching by address)
@@ -550,3 +535,5 @@ When the user asks for clarification, prioritize explaining the **why** behind d
 | 1.6 | May 16, 2026 | B2.1 done. Zonaprop scraper working end-to-end: list pages, parsed cards (price, location, features, type), upsert with change detection, history tracking, deactivation of stale listings. Tested with Lomas de Zamora — 25 real properties scraped + persisted. |
 | 1.7 | May 17, 2026 | B2.1b done. Trezza Propiedades scraper added (local agency, infinite scroll, JSON-LD prices). 52 active properties in Lomas across 2 sources. Next up: B2.2 (cross-source dedup). |
 | 1.8 | May 17, 2026 | B2.2 done. property_groups table + fuzzy address matcher + /admin/groups view. Skip departamentos (same address = different units). Extensible for ARBA/geo. Next up: B2.3 (ARBA SIC). |
+| 1.9 | May 17, 2026 | B2.4 done. Nominatim geocoding client (1 req/s, countrycodes=ar) + geocoding_cache table with 90-day TTL + ensurePropertyCoordinates(id) + CLI scripts/geocode-properties.ts. Backfilled all 54 active properties: 47 geocoded, 7 negative-cached (ambiguous addresses). Next up: B2.3 (ARBA SIC, now unblocked since we have coords). |
+| 1.10 | May 17, 2026 | B2.3 done. Discovered ARBA exposes a public unauthenticated GeoServer WFS at geo.arba.gov.ar/geoserver/idera/wfs (no API key, no captcha). Built `lib/services/arba/` with WFS client, INTERSECTS-then-DWITHIN(30m) strategy + closest-by-centroid tiebreaker, `arba_lookups` table with 180-day TTL, and `ensurePropertyCadastral(id)`. Backfilled 47 geocoded properties: 46/47 enriched with partida + nomenclatura_catastral + surface_arba (15 INTERSECTS, 31 DWITHIN, 1 negative-cached). Next up: B2.5 (Vercel Cron — orchestrate scrape→dedup→geocode→ARBA pipeline). |
