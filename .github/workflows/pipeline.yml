@@ -1,0 +1,124 @@
+name: Data pipeline
+
+# Runs the full ingestion pipeline:
+#   scrape (Zonaprop + Trezza) → dedup → geocode (Nominatim) → ARBA cadastral
+#
+# Scheduled daily at 06:00 UTC (= 03:00 ART, off-hours for the target sites).
+# Can also be triggered manually with `workflow_dispatch` to backfill or test.
+#
+# Why GitHub Actions instead of Vercel Cron:
+# Vercel's Hobby plan caps cron invocations at 10 seconds. Our scrapers use
+# Playwright + Chromium and naturally take minutes per partido. GitHub Actions
+# gives us 6 hours of runtime per job at no cost, which is comfortable
+# headroom for the entire pipeline.
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      partido:
+        description: 'Partido to scrape (must match PARTIDOS_SLUGS)'
+        required: false
+        default: 'Lomas de Zamora'
+        type: string
+
+# Avoid two pipeline runs stepping on each other (e.g. manual trigger during
+# scheduled run). The newer one waits for the older one to finish.
+concurrency:
+  group: data-pipeline
+  cancel-in-progress: false
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Identify the bot to scraped sites (defaults inside the code, but we
+      # override here so it includes the GA run URL for accountability).
+      SCRAPER_USER_AGENT: "JotaemeBot/1.0 (+https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}; respectful scraping)"
+      # Partido to scrape. Falls back to "Lomas de Zamora" for the scheduled
+      # run (where github.event.inputs is empty).
+      PARTIDO: ${{ github.event.inputs.partido || 'Lomas de Zamora' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify required secrets are set
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set"
+            exit 1
+          fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set"
+            exit 1
+          fi
+          echo "Secrets OK. Pipeline will run on partido: $PARTIDO"
+
+      - name: Scrape Zonaprop
+        id: scrape_zonaprop
+        continue-on-error: true
+        run: npx tsx scripts/scrape-zonaprop.ts "$PARTIDO"
+
+      - name: Scrape Trezza
+        id: scrape_trezza
+        continue-on-error: true
+        run: npx tsx scripts/scrape-trezza.ts "$PARTIDO"
+
+      - name: Cross-source deduplication
+        id: dedup
+        continue-on-error: true
+        run: npx tsx scripts/dedup-properties.ts
+
+      - name: Geocode missing coordinates (Nominatim)
+        id: geocode
+        continue-on-error: true
+        run: npx tsx scripts/geocode-properties.ts
+
+      - name: Enrich with ARBA cadastral data
+        id: arba
+        continue-on-error: true
+        run: npx tsx scripts/enrich-cadastral.ts
+
+      - name: Summary
+        run: |
+          echo "## Pipeline result" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Scrape Zonaprop | ${{ steps.scrape_zonaprop.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Scrape Trezza | ${{ steps.scrape_trezza.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dedup | ${{ steps.dedup.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Geocode | ${{ steps.geocode.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ARBA | ${{ steps.arba.outcome }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any step failed
+        # Run the pipeline best-effort, but mark the workflow as failed at the
+        # end if anything broke — so we get notified rather than silently
+        # carrying broken data.
+        if: |
+          steps.scrape_zonaprop.outcome == 'failure' ||
+          steps.scrape_trezza.outcome == 'failure' ||
+          steps.dedup.outcome == 'failure' ||
+          steps.geocode.outcome == 'failure' ||
+          steps.arba.outcome == 'failure'
+        run: |
+          echo "::error::One or more pipeline steps failed. See summary above."
+          exit 1
