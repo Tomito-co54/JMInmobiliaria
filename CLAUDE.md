@@ -7,7 +7,7 @@
 
 ## Current Progress
 
-**Status:** Block 1 — Technical Foundation (in progress)
+**Status:** Block 1 — Technical Foundation ✅ COMPLETED. Next: Block 2 — Data Ingestion.
 
 | Step | Status | Commit |
 |---|---|---|
@@ -16,7 +16,13 @@
 | B1.3 — Supabase schema + RLS | ✅ Done | `b7f378d` + `a667d26` |
 | B1.4 — Authentication | ✅ Done | `4ec7ea8` + `8985f95` + `e9ea248` |
 | B1.5 — Admin panel | ✅ Done | `42744ba` |
-| B1.6 — Vercel deploy + Sentry + Analytics | ⬜ Next | — |
+| B1.6 — Vercel deploy + Sentry + Analytics | ✅ Done | `6033210` |
+
+**Live URLs:**
+- Production: https://jotaeme-beryl.vercel.app
+- GitHub repo: https://github.com/Tomito-co54/Jotaeme
+- Supabase project: https://cjnaxxidigdylnwlpyab.supabase.co
+- Sentry project: jotaeme-web
 
 **Project location:** `C:\dev\jotaeme` (moved from OneDrive on May 16, 2026 — OneDrive sync conflicts with Next.js `.next` cache).
 
@@ -337,15 +343,15 @@ Notifications sent to users.
 
 Follow this strict order. Do not skip ahead.
 
-### Block 1 — Technical Foundation (Weeks 1-2) ← CURRENT
+### Block 1 — Technical Foundation (Weeks 1-2) ✅ COMPLETE
 1. ✅ Project setup (Next.js + TypeScript + Tailwind + shadcn/ui)
 2. ✅ Supabase project + schema + RLS policies
-3. ✅ Authentication (email/password + Google OAuth pending Google config)
+3. ✅ Authentication (email/password; Google OAuth pending provider config)
 4. ✅ Basic admin panel (protected routes, user list, property list)
-5. ⬜ Vercel deployment + environments (dev, staging, production) ← NEXT
-6. ⬜ Sentry + Vercel Analytics integration
+5. ✅ Vercel deployment (production + preview)
+6. ✅ Sentry + Vercel Analytics integration
 
-### Block 2 — Data Ingestion (Weeks 3-6)
+### Block 2 — Data Ingestion (Weeks 3-6) ← CURRENT
 1. Zonaprop scraper for Zona Sur GBA
 2. Property deduplication logic
 3. ARBA SIC integration (cadastral data fetching by address)
@@ -518,3 +524,4 @@ When the user asks for clarification, prioritize explaining the **why** behind d
 | 1.2 | May 16, 2026 | B1.3 completed. Supabase schema applied, RLS policies active, seed loaded, service_role key set. |
 | 1.3 | May 16, 2026 | B1.4 completed. Auth pages, Server Actions, route protection, profile editing. Project moved out of OneDrive to C:\dev\jotaeme. |
 | 1.4 | May 16, 2026 | B1.5 completed. Admin panel: dashboard, properties list+detail, users list. is_admin() helper + admin RLS policies. |
+| 1.5 | May 16, 2026 | B1.6 + ENTIRE BLOCK 1 completed. Deployed to Vercel (jotaeme-beryl.vercel.app), Sentry capturing errors in production, Vercel Analytics live. GitHub repo at Tomito-co54/Jotaeme. |
