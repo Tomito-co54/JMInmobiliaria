@@ -13,9 +13,9 @@
 
 UPDATE public.users
 SET role = 'admin'
-WHERE email = 'tu@email.com';
+WHERE email = 'tomymartino54@gmail.com';
 
 -- Verify
 SELECT id, email, full_name, role
 FROM public.users
-WHERE email = 'tu@email.com';
+WHERE email = 'tomymartino54@gmail.com';
