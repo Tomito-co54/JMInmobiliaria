@@ -7,7 +7,7 @@
 
 ## Current Progress
 
-**Status:** Block 1 — Technical Foundation ✅ COMPLETED. Next: Block 2 — Data Ingestion.
+**Status:** Block 2 — Data Ingestion (in progress). B2.1 / B2.1b / B2.2 done; B2.4 started (geocoding_cache table created, Nominatim client pending).
 
 | Step | Status | Commit |
 |---|---|---|
@@ -45,7 +45,7 @@
 
 **Env configured in `.env.local`:** Supabase URL + anon key + service_role key all set.
 
-**SQL runner utility:** `node scripts/db-run.mjs <path-to-sql>` runs any SQL file against Supabase. Requires `DATABASE_URL` (Transaction pooler) in `.env.local` — not configured yet, only needed if running future migrations from CLI instead of Supabase SQL Editor.
+**SQL runner utility:** `node scripts/db-run.mjs <path-to-sql>` runs any SQL file against Supabase. Uses `DATABASE_URL` (Transaction pooler, region `aws-1-sa-east-1`) which IS configured in `.env.local`. New migrations can be applied from CLI without manual copy-paste.
 
 **Pending accounts/keys for next steps:**
 - Google OAuth → configure in Supabase dashboard for B1.4
@@ -355,10 +355,25 @@ Follow this strict order. Do not skip ahead.
 - ✅ B2.1: Zonaprop scraper (Playwright, list pages, persistence, history tracking)
 - ✅ B2.1b: Trezza Propiedades scraper (local agency, infinite scroll, JSON-LD prices)
 - ✅ B2.2: Property deduplication (fuzzy address matching, extensible to ARBA/geo)
-- ⬜ B2.3: ARBA SIC integration ← NEXT
-- ⬜ B2.4: OpenStreetMap geocoding fallback
+- 🔄 B2.4: OpenStreetMap geocoding ← IN PROGRESS (migration 00005 applied; Nominatim client pending)
+- ⬜ B2.3: ARBA SIC integration (swapped after B2.4 because ARBA WMS GetFeatureInfo needs lat/lng)
 - ⬜ B2.5: Vercel Cron jobs
 - ⬜ B2.6: History tracking helpers
+
+**B2.4 — what's done so far:**
+- `geocoding_cache` table created with provider/query/lat/lng + 90d TTL (migration 00005)
+
+**B2.4 — what's pending:**
+- `lib/services/geocoding/nominatim.ts` — HTTP client with 1 req/s rate limit + identifiable user agent
+- `lib/services/geocoding/cache.ts` — cache read/write helpers
+- `lib/services/geocoding/index.ts` — `geocodeAddress(address)` and `ensurePropertyCoordinates(propertyId)`
+- `scripts/geocode-properties.ts` — CLI to backfill the 54 active properties
+
+**B2.3 — pre-research done (CARTO ARBA):**
+- ARBA uses standard WMS at `https://carto.arba.gov.ar/cartoArba/ProxyMap`
+- Cadastral layer is `carto:Parcelas` (with `carto:Macizos`, `carto:Subparcelas`, etc.)
+- Query approach: WMS `GetFeatureInfo` at lat/lng → returns parcela attributes (partida, nomenclatura, superficie)
+- That's why B2.4 (geocoding) had to come first.
 1. Zonaprop scraper for Zona Sur GBA
 2. Property deduplication logic
 3. ARBA SIC integration (cadastral data fetching by address)
