@@ -7,7 +7,7 @@
 
 ## Current Progress
 
-**Status:** Block 1 — Technical Foundation ✅ COMPLETED. Next: Block 2 — Data Ingestion.
+**Status:** Block 1 ✅ + Block 2 — Data Ingestion ✅ COMPLETED. Next: Block 3 — Quality Score.
 
 | Step | Status | Commit |
 |---|---|---|
@@ -351,7 +351,7 @@ Follow this strict order. Do not skip ahead.
 5. ✅ Vercel deployment (production + preview)
 6. ✅ Sentry + Vercel Analytics integration
 
-### Block 2 — Data Ingestion (Weeks 3-6) ← CURRENT
+### Block 2 — Data Ingestion (Weeks 3-6) ✅ COMPLETE
 - ✅ B2.1: Zonaprop scraper (Playwright, list pages, persistence, history tracking)
 - ✅ B2.1b: Trezza Propiedades scraper (local agency, infinite scroll, JSON-LD prices)
 - ✅ B2.2: Property deduplication (fuzzy address matching, extensible to ARBA/geo)
@@ -368,7 +368,7 @@ Follow this strict order. Do not skip ahead.
 5. Vercel Cron job for periodic scraping
 6. Property history tracking (price changes, listing status)
 
-### Block 3 — Quality Score (Weeks 7-8)
+### Block 3 — Quality Score (Weeks 7-8) ← NEXT
 1. Score algorithm (5 variables): price vs comparables, time on market, documentation, ARBA coherence, listing quality
 2. Sub-scores breakdown
 3. Score recalculation triggers
