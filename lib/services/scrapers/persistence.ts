@@ -92,8 +92,9 @@ export async function upsertScrapedProperty(
   const newRow = toDbRow(scraped);
   const now = new Date().toISOString();
 
-  // Look up existing row
-  const { data: existing, error: lookupError } = await supabase
+  // Look up existing row. Result is cast to a permissive shape because we
+  // don't ship generated Database types yet (B2.x todo).
+  const { data: existingRaw, error: lookupError } = await supabase
     .from("properties")
     .select("*")
     .eq("source", scraped.source)
@@ -101,6 +102,7 @@ export async function upsertScrapedProperty(
     .maybeSingle();
 
   if (lookupError) throw lookupError;
+  const existing = existingRaw as (Record<string, unknown> & { id: string }) | null;
 
   if (!existing) {
     // INSERT
@@ -109,7 +111,7 @@ export async function upsertScrapedProperty(
       first_seen_at: now,
       last_seen_at: now,
       is_active: true,
-    });
+    } as never);
     if (insertError) throw insertError;
     return "inserted";
   }
@@ -131,7 +133,7 @@ export async function upsertScrapedProperty(
       ...newRow,
       last_seen_at: now,
       is_active: true,
-    })
+    } as never)
     .eq("id", existing.id);
   if (updateError) throw updateError;
 
@@ -146,7 +148,7 @@ export async function upsertScrapedProperty(
     }));
     const { error: histError } = await supabase
       .from("property_history")
-      .insert(historyRows);
+      .insert(historyRows as never);
     if (histError) {
       // Don't fail the upsert if history fails — just log
       console.error(`History insert failed for ${scraped.externalId}:`, histError.message);
@@ -187,15 +189,16 @@ export async function deactivateStale(
     );
   }
 
-  const { data: toDeactivate, error: selectError } = await query;
+  const { data: toDeactivateRaw, error: selectError } = await query;
   if (selectError) throw selectError;
-  if (!toDeactivate || toDeactivate.length === 0) return 0;
+  const toDeactivate = (toDeactivateRaw ?? []) as Array<{ id: string; external_id: string | null }>;
+  if (toDeactivate.length === 0) return 0;
 
   const ids = toDeactivate.map((r) => r.id);
 
   const { error: updateError } = await supabase
     .from("properties")
-    .update({ is_active: false, last_seen_at: now })
+    .update({ is_active: false, last_seen_at: now } as never)
     .in("id", ids);
   if (updateError) throw updateError;
 
@@ -207,7 +210,7 @@ export async function deactivateStale(
     old_value: "true",
     new_value: "false",
   }));
-  await supabase.from("property_history").insert(historyRows);
+  await supabase.from("property_history").insert(historyRows as never);
 
   return toDeactivate.length;
 }

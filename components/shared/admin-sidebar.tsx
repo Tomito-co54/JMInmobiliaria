@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Home, Building2, Users } from "lucide-react";
+import { LayoutDashboard, Home, Building2, Users, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/properties", label: "Propiedades", icon: Building2 },
+  { href: "/admin/groups", label: "Grupos", icon: Layers },
   { href: "/admin/users", label: "Usuarios", icon: Users },
 ];
 

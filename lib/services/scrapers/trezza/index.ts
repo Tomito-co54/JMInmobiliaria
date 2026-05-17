@@ -4,7 +4,7 @@ import {
   deactivateStale,
   type UpsertResult,
 } from "../persistence";
-import type { ScrapedProperty, ScraperRunResult } from "../types";
+import type { ScraperRunResult } from "../types";
 import { buildListUrl, PARTIDOS_SLUGS } from "./urls";
 import { parseListPage } from "./parser";
 
