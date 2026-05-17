@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, ExternalLink } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ExternalLink } from "lucide-react";
 import { getPropertyDetailAdmin } from "@/lib/db/admin";
+import {
+  classifyHistoryEvent,
+  computeDaysOnMarket,
+  lastPriceChange,
+  type PropertyHistoryRow,
+} from "@/lib/db/property-history";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -28,6 +34,20 @@ function fmt(value: unknown): string {
   return String(value);
 }
 
+/** Format a numeric price (no currency) with es-AR thousands separators. */
+function fmtPrice(amount: number): string {
+  return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(amount);
+}
+
+const EVENT_LABELS: Record<string, string> = {
+  price_change: "Cambio de precio",
+  deactivated: "Listado dado de baja",
+  reactivated: "Listado reactivado",
+  address_change: "Cambio de dirección",
+  surface_change: "Cambio de superficie",
+  other: "Otro cambio",
+};
+
 export default async function AdminPropertyDetailPage({ params }: PageProps) {
   const { id } = await params;
   const { property, history } = await getPropertyDetailAdmin(id);
@@ -35,6 +55,15 @@ export default async function AdminPropertyDetailPage({ params }: PageProps) {
   if (!property) {
     notFound();
   }
+
+  const typedHistory = history as unknown as PropertyHistoryRow[];
+  const daysOnMarket = computeDaysOnMarket({
+    first_seen_at: (property as { first_seen_at: string | null }).first_seen_at,
+    last_seen_at: (property as { last_seen_at: string | null }).last_seen_at,
+    is_active: (property as { is_active: boolean | null }).is_active,
+  });
+  const priceChange = lastPriceChange(typedHistory);
+  const currency = (property as { price_currency: string | null }).price_currency ?? "";
 
   // Order fields meaningfully for display
   const ORDERED_FIELDS = [
@@ -100,6 +129,26 @@ export default async function AdminPropertyDetailPage({ params }: PageProps) {
               <Badge>Activa</Badge>
             ) : (
               <Badge variant="secondary">Inactiva</Badge>
+            )}
+            {daysOnMarket !== null && (
+              <Badge variant="outline">
+                {property.is_active ? "Activa hace" : "Estuvo activa"} {daysOnMarket}{" "}
+                {daysOnMarket === 1 ? "día" : "días"}
+              </Badge>
+            )}
+            {priceChange && priceChange.pctChange !== null && (
+              <Badge
+                variant={priceChange.diff < 0 ? "default" : "destructive"}
+                className="font-mono"
+              >
+                {priceChange.diff < 0 ? (
+                  <ArrowDown className="size-3" />
+                ) : (
+                  <ArrowUp className="size-3" />
+                )}
+                {currency} {fmtPrice(priceChange.oldAmount)} → {fmtPrice(priceChange.newAmount)} (
+                {(priceChange.pctChange * 100).toFixed(1)}%)
+              </Badge>
             )}
             {property.quality_score != null && (
               <Badge variant="outline">
@@ -172,24 +221,79 @@ export default async function AdminPropertyDetailPage({ params }: PageProps) {
               <thead className="bg-muted/40 border-b">
                 <tr>
                   <th className="text-left font-medium p-3">Fecha</th>
-                  <th className="text-left font-medium p-3">Campo</th>
+                  <th className="text-left font-medium p-3">Evento</th>
                   <th className="text-left font-medium p-3">Antes</th>
                   <th className="text-left font-medium p-3">Después</th>
                 </tr>
               </thead>
               <tbody>
-                {history.map((h) => (
-                  <tr key={h.id} className="border-b">
-                    <td className="p-3 text-muted-foreground tabular-nums">
-                      {new Date(h.changed_at).toLocaleString("es-AR")}
-                    </td>
-                    <td className="p-3 font-mono text-xs">{h.field_changed}</td>
-                    <td className="p-3 text-muted-foreground">
-                      {fmt(h.old_value)}
-                    </td>
-                    <td className="p-3">{fmt(h.new_value)}</td>
-                  </tr>
-                ))}
+                {typedHistory.map((h) => {
+                  const kind = classifyHistoryEvent(h);
+                  const label = EVENT_LABELS[kind];
+
+                  // For price changes, render a richer Antes / Después.
+                  let beforeNode = (
+                    <span className="text-muted-foreground">{fmt(h.old_value)}</span>
+                  );
+                  let afterNode = <span>{fmt(h.new_value)}</span>;
+                  if (kind === "price_change") {
+                    const oldN = parseFloat(h.old_value ?? "");
+                    const newN = parseFloat(h.new_value ?? "");
+                    if (Number.isFinite(oldN) && Number.isFinite(newN)) {
+                      const diff = newN - oldN;
+                      const pct = oldN !== 0 ? (diff / oldN) * 100 : null;
+                      beforeNode = (
+                        <span className="font-mono tabular-nums text-muted-foreground">
+                          {currency} {fmtPrice(oldN)}
+                        </span>
+                      );
+                      afterNode = (
+                        <span
+                          className={cn(
+                            "font-mono tabular-nums inline-flex items-center gap-1",
+                            diff < 0 ? "text-emerald-600" : "text-red-600",
+                          )}
+                        >
+                          {currency} {fmtPrice(newN)}
+                          {diff < 0 ? (
+                            <ArrowDown className="size-3" />
+                          ) : (
+                            <ArrowUp className="size-3" />
+                          )}
+                          {pct !== null && (
+                            <span>({pct.toFixed(1)}%)</span>
+                          )}
+                        </span>
+                      );
+                    }
+                  }
+
+                  return (
+                    <tr key={h.id} className="border-b">
+                      <td className="p-3 text-muted-foreground tabular-nums whitespace-nowrap">
+                        {new Date(h.changed_at).toLocaleString("es-AR")}
+                      </td>
+                      <td className="p-3">
+                        <Badge
+                          variant={
+                            kind === "deactivated"
+                              ? "secondary"
+                              : kind === "price_change"
+                                ? "outline"
+                                : "outline"
+                          }
+                        >
+                          {label}
+                        </Badge>
+                        <span className="ml-2 font-mono text-xs text-muted-foreground">
+                          {h.field_changed}
+                        </span>
+                      </td>
+                      <td className="p-3">{beforeNode}</td>
+                      <td className="p-3">{afterNode}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

@@ -358,7 +358,9 @@ Follow this strict order. Do not skip ahead.
 - ✅ B2.4: OpenStreetMap geocoding (Nominatim client + 90d cache + ensurePropertyCoordinates)
 - ✅ B2.3: ARBA SIC integration (WFS GeoServer + INTERSECTS/DWITHIN + 180d cache)
 - ✅ B2.5: GitHub Actions cron pipeline (scrape → dedup → geocode → ARBA, daily 06:00 UTC)
-- ⬜ B2.6: History tracking helpers ← NEXT
+- ✅ B2.6: History tracking helpers (lib/db/property-history.ts + admin UI: días en mercado, diff de precio, clasificación de eventos)
+
+**Bloque 2 — Data Ingestion COMPLETO ✅**
 1. Zonaprop scraper for Zona Sur GBA
 2. Property deduplication logic
 3. ARBA SIC integration (cadastral data fetching by address)
@@ -538,3 +540,4 @@ When the user asks for clarification, prioritize explaining the **why** behind d
 | 1.9 | May 17, 2026 | B2.4 done. Nominatim geocoding client (1 req/s, countrycodes=ar) + geocoding_cache table with 90-day TTL + ensurePropertyCoordinates(id) + CLI scripts/geocode-properties.ts. Backfilled all 54 active properties: 47 geocoded, 7 negative-cached (ambiguous addresses). Next up: B2.3 (ARBA SIC, now unblocked since we have coords). |
 | 1.10 | May 17, 2026 | B2.3 done. Discovered ARBA exposes a public unauthenticated GeoServer WFS at geo.arba.gov.ar/geoserver/idera/wfs (no API key, no captcha). Built `lib/services/arba/` with WFS client, INTERSECTS-then-DWITHIN(30m) strategy + closest-by-centroid tiebreaker, `arba_lookups` table with 180-day TTL, and `ensurePropertyCadastral(id)`. Backfilled 47 geocoded properties: 46/47 enriched with partida + nomenclatura_catastral + surface_arba (15 INTERSECTS, 31 DWITHIN, 1 negative-cached). Next up: B2.5 (Vercel Cron — orchestrate scrape→dedup→geocode→ARBA pipeline). |
 | 1.11 | May 17, 2026 | B2.5 done. Pivoted from Vercel Cron to GitHub Actions because Vercel Hobby caps cron invocations at 10s and our scrapers (Playwright) need minutes. `.github/workflows/pipeline.yml` runs the full chain (scrape Zonaprop + Trezza → dedup → geocode → ARBA) daily at 06:00 UTC and on-demand via `workflow_dispatch`. Each step has continue-on-error so a transient block doesn't stop the rest, but the workflow fails at the end if any step failed (alerting). Secrets `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` configured in repo. First successful end-to-end run: 14m30s. Caveat: setting GH secrets via PowerShell stdin pipes can inject a UTF-8 BOM into the value — use `gh secret set --env-file` with a `[System.Text.UTF8Encoding]::new($false)` written file instead. Next up: B2.6 (history tracking helpers). |
+| 1.12 | May 17, 2026 | B2.6 done. **Bloque 2 cerrado.** `lib/db/property-history.ts` con helpers reusables: getPropertyHistory, lastPriceChange, computeDaysOnMarket, classifyHistoryEvent. Admin detail page enriquecida: badges con días-en-mercado y último diff de precio (con flecha + %), tabla de historial con clasificación visual de eventos (Cambio de precio / Listado dado de baja / Reactivado / etc.) + render rico de precio con colores (verde si bajó, rojo si subió). Próximo bloque: Block 3 — Quality Score. |
