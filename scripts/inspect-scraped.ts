@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 /**
- * Quick read-only inspection of recently scraped properties.
+ * Read-only inspection of properties by source/partido.
  */
-
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
-
 import { createClient } from "@supabase/supabase-js";
 
 async function main() {
@@ -14,28 +12,49 @@ async function main() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  const { data, error } = await supabase
-    .from("properties")
-    .select(
-      "external_id, address, partido, property_type, price_amount, price_currency, surface_total, rooms, is_active, first_seen_at",
-    )
-    .eq("source", "zonaprop")
-    .eq("is_active", true)
-    .order("first_seen_at", { ascending: false })
-    .limit(10);
-
-  if (error) {
-    console.error("Error:", error.message);
-    process.exit(1);
+  // Counts by source + status
+  const sources = ["zonaprop", "argenprop", "trezza", "owner_direct", "agency"] as const;
+  console.log("\n=== Propiedades por fuente ===");
+  for (const source of sources) {
+    const { count: active } = await supabase
+      .from("properties")
+      .select("*", { count: "exact", head: true })
+      .eq("source", source)
+      .eq("is_active", true);
+    const { count: total } = await supabase
+      .from("properties")
+      .select("*", { count: "exact", head: true })
+      .eq("source", source);
+    if ((total ?? 0) > 0) {
+      console.log(`  ${source.padEnd(15)} ${active ?? 0} activas / ${total ?? 0} totales`);
+    }
   }
 
-  console.log(`\nActive Zonaprop properties (${data?.length ?? 0} found):\n`);
-  for (const p of data ?? []) {
+  // Per partido
+  console.log("\n=== Activas por partido ===");
+  const { data: partidoRows } = await supabase
+    .from("properties")
+    .select("partido")
+    .eq("is_active", true);
+  const partidoCounts = new Map<string, number>();
+  for (const r of partidoRows ?? []) {
+    if (r.partido) partidoCounts.set(r.partido, (partidoCounts.get(r.partido) ?? 0) + 1);
+  }
+  for (const [partido, count] of [...partidoCounts.entries()].sort((a, b) => b[1] - a[1])) {
+    console.log(`  ${partido.padEnd(20)} ${count}`);
+  }
+
+  // Sample 5 most recent
+  console.log("\n=== Últimas 5 cargadas ===");
+  const { data: recent } = await supabase
+    .from("properties")
+    .select("external_id, source, property_type, address, partido, price_amount, price_currency, rooms")
+    .eq("is_active", true)
+    .order("first_seen_at", { ascending: false })
+    .limit(5);
+  for (const p of recent ?? []) {
     console.log(
-      `[${p.external_id}] ${p.property_type ?? "?"} - ${p.address ?? "(no address)"}`,
-    );
-    console.log(
-      `  ${p.partido} - ${p.price_currency ?? "?"} ${p.price_amount?.toLocaleString("es-AR") ?? "?"} - ${p.surface_total ?? "?"}m² - ${p.rooms ?? "?"} amb`,
+      `  [${p.source}/${p.external_id}] ${p.property_type ?? "?"} ${p.address ?? "(sin dir.)"} - ${p.price_currency ?? "?"} ${p.price_amount?.toLocaleString("es-AR") ?? "?"}`,
     );
   }
 }

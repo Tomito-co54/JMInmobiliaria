@@ -34,7 +34,13 @@ const TRACKED_FIELDS = [
 
 type TrackedField = (typeof TRACKED_FIELDS)[number];
 
+// Singleton: avoids re-creating the Supabase client (and its internal fetch
+// agent) for every upsert in a scraper run.
+let cachedAdminClient: ReturnType<typeof createClient> | null = null;
+
 function getAdminClient() {
+  if (cachedAdminClient) return cachedAdminClient;
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceKey) {
@@ -42,9 +48,10 @@ function getAdminClient() {
       "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in env",
     );
   }
-  return createClient(url, serviceKey, {
+  cachedAdminClient = createClient(url, serviceKey, {
     auth: { persistSession: false },
   });
+  return cachedAdminClient;
 }
 
 /**

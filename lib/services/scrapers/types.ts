@@ -8,6 +8,7 @@ export type PropertySource =
   | "zonaprop"
   | "argenprop"
   | "mercadolibre"
+  | "trezza"
   | "owner_direct"
   | "agency";
 
