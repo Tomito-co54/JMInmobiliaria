@@ -15,8 +15,8 @@
 | B1.2 — shadcn/ui + dark mode | ✅ Done | `b50d100` |
 | B1.3 — Supabase schema + RLS | ✅ Done | `b7f378d` + `a667d26` |
 | B1.4 — Authentication | ✅ Done | `4ec7ea8` + `8985f95` + `e9ea248` |
-| B1.5 — Admin panel | ⬜ Next | — |
-| B1.6 — Vercel deploy + Sentry + Analytics | ⬜ Pending | — |
+| B1.5 — Admin panel | ✅ Done | `42744ba` |
+| B1.6 — Vercel deploy + Sentry + Analytics | ⬜ Next | — |
 
 **Project location:** `C:\dev\jotaeme` (moved from OneDrive on May 16, 2026 — OneDrive sync conflicts with Next.js `.next` cache).
 
@@ -340,9 +340,9 @@ Follow this strict order. Do not skip ahead.
 ### Block 1 — Technical Foundation (Weeks 1-2) ← CURRENT
 1. ✅ Project setup (Next.js + TypeScript + Tailwind + shadcn/ui)
 2. ✅ Supabase project + schema + RLS policies
-3. ⬜ Authentication (email/password + Google OAuth) ← NEXT
-4. ⬜ Basic admin panel (protected routes, user list, property list)
-5. ⬜ Vercel deployment + environments (dev, staging, production)
+3. ✅ Authentication (email/password + Google OAuth pending Google config)
+4. ✅ Basic admin panel (protected routes, user list, property list)
+5. ⬜ Vercel deployment + environments (dev, staging, production) ← NEXT
 6. ⬜ Sentry + Vercel Analytics integration
 
 ### Block 2 — Data Ingestion (Weeks 3-6)
@@ -517,3 +517,4 @@ When the user asks for clarification, prioritize explaining the **why** behind d
 | 1.1 | May 16, 2026 | B1.1 + B1.2 completed. Project name: Jotaeme. Added progress tracking. |
 | 1.2 | May 16, 2026 | B1.3 completed. Supabase schema applied, RLS policies active, seed loaded, service_role key set. |
 | 1.3 | May 16, 2026 | B1.4 completed. Auth pages, Server Actions, route protection, profile editing. Project moved out of OneDrive to C:\dev\jotaeme. |
+| 1.4 | May 16, 2026 | B1.5 completed. Admin panel: dashboard, properties list+detail, users list. is_admin() helper + admin RLS policies. |
