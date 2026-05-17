@@ -354,8 +354,8 @@ Follow this strict order. Do not skip ahead.
 ### Block 2 — Data Ingestion (Weeks 3-6) ← CURRENT
 - ✅ B2.1: Zonaprop scraper (Playwright, list pages, persistence, history tracking)
 - ✅ B2.1b: Trezza Propiedades scraper (local agency, infinite scroll, JSON-LD prices)
-- ⬜ B2.2: Property deduplication (across sources) ← NEXT
-- ⬜ B2.3: ARBA SIC integration
+- ✅ B2.2: Property deduplication (fuzzy address matching, extensible to ARBA/geo)
+- ⬜ B2.3: ARBA SIC integration ← NEXT
 - ⬜ B2.4: OpenStreetMap geocoding fallback
 - ⬜ B2.5: Vercel Cron jobs
 - ⬜ B2.6: History tracking helpers
@@ -534,3 +534,4 @@ When the user asks for clarification, prioritize explaining the **why** behind d
 | 1.5 | May 16, 2026 | B1.6 + ENTIRE BLOCK 1 completed. Deployed to Vercel (jotaeme-beryl.vercel.app), Sentry capturing errors in production, Vercel Analytics live. GitHub repo at Tomito-co54/Jotaeme. |
 | 1.6 | May 16, 2026 | B2.1 done. Zonaprop scraper working end-to-end: list pages, parsed cards (price, location, features, type), upsert with change detection, history tracking, deactivation of stale listings. Tested with Lomas de Zamora — 25 real properties scraped + persisted. |
 | 1.7 | May 17, 2026 | B2.1b done. Trezza Propiedades scraper added (local agency, infinite scroll, JSON-LD prices). 52 active properties in Lomas across 2 sources. Next up: B2.2 (cross-source dedup). |
+| 1.8 | May 17, 2026 | B2.2 done. property_groups table + fuzzy address matcher + /admin/groups view. Skip departamentos (same address = different units). Extensible for ARBA/geo. Next up: B2.3 (ARBA SIC). |
