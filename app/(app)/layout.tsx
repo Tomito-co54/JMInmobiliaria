@@ -41,8 +41,8 @@ export default async function AppLayout({
       <header className="border-b bg-background sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link
-            href="/dashboard"
-            aria-label="Jotaeme — ir al dashboard"
+            href="/buscar"
+            aria-label="Jotaeme — ver propiedades"
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             <BrandLogo variant="isotipo" size={28} />
