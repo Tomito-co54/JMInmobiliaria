@@ -48,6 +48,7 @@ next-env.d.ts
 
 # Claude Code (user-specific)
 .claude/settings.local.json
+.claude/launch.json
 
 # Temporary git commit message files
 .git-commit-msg*.txt
