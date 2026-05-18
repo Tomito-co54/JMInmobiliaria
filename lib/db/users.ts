@@ -46,3 +46,15 @@ export async function getUserCount() {
   if (error) throw error;
   return count ?? 0;
 }
+
+/**
+ * Returns just the auth user id without a DB roundtrip. Useful when an
+ * action only needs the id to filter another query.
+ */
+export async function getCurrentUserId(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}

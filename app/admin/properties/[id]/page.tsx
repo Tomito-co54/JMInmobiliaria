@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowDown, ArrowUp, ChevronLeft, ExternalLink } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, ExternalLink, Eye } from "lucide-react";
 import { getPropertyDetailAdmin } from "@/lib/db/admin";
 import {
   classifyHistoryEvent,
@@ -160,17 +160,28 @@ export default async function AdminPropertyDetailPage({ params }: PageProps) {
             )}
           </div>
         </div>
-        {property.url && (
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
           <a
-            href={property.url}
+            href={`/p/${property.id}`}
             target="_blank"
             rel="noreferrer"
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            className={cn(buttonVariants({ size: "sm" }))}
           >
-            <ExternalLink className="size-3.5" />
-            Ver listado original
+            <Eye className="size-3.5" />
+            Ver como comprador
           </a>
-        )}
+          {property.url && (
+            <a
+              href={property.url}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              <ExternalLink className="size-3.5" />
+              Ver listado original
+            </a>
+          )}
+        </div>
       </header>
 
       <Card>

@@ -2,7 +2,22 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    // CDNs we scrape photos from. Adding a hostname here lets next/image
+    // optimize and serve them through /_next/image; without it we'd be forced
+    // to use plain <img> tags and lose lazy-loading + responsive sizing.
+    remotePatterns: [
+      // Zonaprop + portales Navent (la empresa madre)
+      { protocol: "https", hostname: "imgar.zonapropcdn.com" },
+      { protocol: "https", hostname: "img10.naventcdn.com" },
+      // Trezza Propiedades (usa staticbp como CDN, no su dominio propio)
+      { protocol: "https", hostname: "staticbp.com" },
+      { protocol: "https", hostname: "trezzapropiedades.com.ar" },
+      { protocol: "https", hostname: "www.trezzapropiedades.com.ar" },
+      // Placeholders del seed inicial — eliminar cuando se reemplacen
+      { protocol: "https", hostname: "via.placeholder.com" },
+    ],
+  },
 };
 
 export default withSentryConfig(nextConfig, {

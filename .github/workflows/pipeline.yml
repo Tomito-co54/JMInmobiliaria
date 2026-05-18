@@ -37,6 +37,11 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Resend — when these aren't set, the alert detector still inserts
+      # in-app alerts; email sending degrades to a logged skip.
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_FROM: ${{ secrets.RESEND_FROM }}
+      NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
       # Identify the bot to scraped sites (defaults inside the code, but we
       # override here so it includes the GA run URL for accountability).
       SCRAPER_USER_AGENT: "JotaemeBot/1.0 (+https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}; respectful scraping)"
@@ -106,6 +111,14 @@ jobs:
         continue-on-error: true
         run: npx tsx scripts/score-properties.ts
 
+      - name: Detect and emit alerts
+        # New-match + price-drop detection. Runs last because it depends on
+        # the freshest property + history + score data. Inserts in-app alerts;
+        # email delivery (Resend) is wired separately in B6.7.
+        id: alerts
+        continue-on-error: true
+        run: npx tsx scripts/detect-alerts.ts
+
       - name: Summary
         run: |
           echo "## Pipeline result" >> $GITHUB_STEP_SUMMARY
@@ -118,6 +131,7 @@ jobs:
           echo "| Geocode | ${{ steps.geocode.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| ARBA | ${{ steps.arba.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Quality scoring | ${{ steps.score.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Alert detection | ${{ steps.alerts.outcome }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Fail if any step failed
         # Run the pipeline best-effort, but mark the workflow as failed at the
@@ -129,7 +143,8 @@ jobs:
           steps.dedup.outcome == 'failure' ||
           steps.geocode.outcome == 'failure' ||
           steps.arba.outcome == 'failure' ||
-          steps.score.outcome == 'failure'
+          steps.score.outcome == 'failure' ||
+          steps.alerts.outcome == 'failure'
         run: |
           echo "::error::One or more pipeline steps failed. See summary above."
           exit 1

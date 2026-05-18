@@ -7,6 +7,14 @@
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
+    --color-brand-navy: var(--brand-navy);
+    --color-brand-gold: var(--brand-gold);
+    --color-score-red: var(--score-red);
+    --color-score-orange: var(--score-orange);
+    --color-score-yellow: var(--score-yellow);
+    --color-score-lime: var(--score-lime);
+    --color-score-green: var(--score-green);
+    --color-score-gold: var(--score-gold);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,20 +56,33 @@
 }
 
 :root {
+    /* Brand — Jotaeme (slogan: Oportunidades Inmobiliarias) */
+    --brand-navy: #1A1B5C;
+    --brand-gold: #D4A24C;
+
+    /* Score bands (continuous gradient 0-100; dorado from 95+). See
+       lib/scoring/bands.ts for the band boundaries used by the UI. */
+    --score-red: #DC2626;
+    --score-orange: #F97316;
+    --score-yellow: #EAB308;
+    --score-lime: #84CC16;
+    --score-green: #16A34A;
+    --score-gold: #D4A24C;
+
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
+    --primary: var(--brand-navy);
+    --primary-foreground: #FFFFFF;
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
     --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --accent: var(--brand-gold);
+    --accent-foreground: var(--brand-navy);
     --destructive: oklch(0.577 0.245 27.325);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
@@ -83,47 +104,54 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    /* Dark mode = inverted brand palette. The brand navy becomes the base
+       background; cards step up to a slightly lighter navy for separation;
+       primary buttons flip to white-on-navy so they still pop. Gold accent
+       stays the same — it works on both light and dark navy. */
+    --background: #1A1B5C;            /* brand navy */
+    --foreground: #FFFFFF;
+    --card: #25267A;                  /* slightly lighter navy for cards */
+    --card-foreground: #FFFFFF;
+    --popover: #25267A;
+    --popover-foreground: #FFFFFF;
+    --primary: #FFFFFF;               /* white CTAs on navy */
+    --primary-foreground: var(--brand-navy);
+    --secondary: #2D2E83;
+    --secondary-foreground: #FFFFFF;
+    --muted: #2D2E83;
+    --muted-foreground: oklch(1 0 0 / 70%);
+    --accent: var(--brand-gold);
+    --accent-foreground: var(--brand-navy);
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --border: oklch(1 0 0 / 14%);
+    --input: oklch(1 0 0 / 18%);
+    --ring: var(--brand-gold);
+    --chart-1: #FFFFFF;
+    --chart-2: oklch(1 0 0 / 70%);
+    --chart-3: oklch(1 0 0 / 55%);
+    --chart-4: oklch(1 0 0 / 40%);
+    --chart-5: oklch(1 0 0 / 25%);
+    --sidebar: var(--brand-navy);
+    --sidebar-foreground: #FFFFFF;
+    --sidebar-primary: var(--brand-gold);
+    --sidebar-primary-foreground: var(--brand-navy);
+    --sidebar-accent: #2D2E83;
+    --sidebar-accent-foreground: #FFFFFF;
+    --sidebar-border: oklch(1 0 0 / 14%);
+    --sidebar-ring: var(--brand-gold);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
     }
+  /* Apply the theme background to <html> *and* <body> so the bounce/pull
+     area on mobile doesn't expose the browser's default (black) background.
+     The html element also needs `font-sans` so descendants inherit it. */
+  html {
+    @apply bg-background text-foreground font-sans;
+    }
   body {
     @apply bg-background text-foreground;
-    }
-  html {
-    @apply font-sans;
     }
 }

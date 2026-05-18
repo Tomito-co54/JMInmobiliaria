@@ -2,6 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { UserMenu } from "@/components/shared/user-menu";
+import { BrandLogo } from "@/components/shared/BrandLogo";
+import { NotificationBell } from "@/components/shared/NotificationBell";
+import { getUnreadAlertsCount, getUserAlerts } from "@/lib/db/alerts";
 
 /**
  * Layout for authenticated app routes (/dashboard, /perfil, etc.).
@@ -27,17 +30,30 @@ export default async function AppLayout({
     .eq("id", user.id)
     .maybeSingle();
 
+  // Load alerts up front so the bell renders with real data on first paint.
+  const [alerts, unreadCount] = await Promise.all([
+    getUserAlerts(20),
+    getUnreadAlertsCount(),
+  ]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b bg-background sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link
             href="/dashboard"
-            className="text-lg font-semibold tracking-tight"
+            aria-label="Jotaeme — ir al dashboard"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            Jotaeme
+            <BrandLogo variant="isotipo" size={28} />
+            <span className="text-base font-semibold tracking-tight text-foreground hidden sm:inline">
+              Jotaeme
+            </span>
           </Link>
-          <UserMenu email={user.email ?? ""} fullName={profile?.full_name} />
+          <div className="flex items-center gap-1">
+            <NotificationBell alerts={alerts} unreadCount={unreadCount} />
+            <UserMenu email={user.email ?? ""} fullName={profile?.full_name} />
+          </div>
         </div>
       </header>
 

@@ -7,7 +7,7 @@
 
 ## Current Progress
 
-**Status:** Block 1 ✅ + Block 2 — Data Ingestion ✅ + Block 3 — Quality Score ✅ COMPLETED. Next: Block 4 — Vista de propiedad mobile-first (incluye UI del score).
+**Status:** Block 1 ✅ + Block 2 ✅ + Block 3 ✅ + Block 4 ✅ + Block 5 ✅ + Block 6 — Listas y Alertas ✅ COMPLETED. Next: Block 7 — Servicios automatizados (MercadoPago + informes).
 
 | Step | Status | Commit |
 |---|---|---|
@@ -383,32 +383,48 @@ Follow this strict order. Do not skip ahead.
 
 **Bloque 3 — Quality Score COMPLETO ✅**
 
-### Block 4 — Property View (Weeks 9-11) ← NEXT
-1. Mobile-first property page
-2. Progressive content loading (info in layers)
-3. Fullscreen photo gallery with swipe
-4. Score visualization (big number + breakdown bars)
-5. Verified data icons (✅⚠️🚨)
-6. Cadastral plan embed
-7. Map with exact location
-8. Educational tooltips
+### Block 4 — Property View (Weeks 9-11) ✅ COMPLETE
+- ✅ B4.1: Ruta pública `/p/[id]` + `getPropertyForPublicView` helper
+- ✅ B4.2: Componentes base (PropertyTopBar con logo, PropertyCover, PropertyPriceBlock)
+- ✅ B4.3: Sistema de tooltips educativos (`TermDefinition` + `lib/glossary.ts`)
+- ✅ B4.4: Score visualization (anillo SVG con gradiente continuo + barras + sheet de desglose, compartido entre admin y público)
+- ✅ B4.5: Sección "Datos oficiales" con íconos ✅⚠️🚨 derivados de los datos ARBA
+- ✅ B4.6: Mapa Leaflet con marker + polígono ARBA (GeoJSON desde `arba_lookups.raw_response`)
+- ✅ B4.7: Descripción con toggle "ver más" + sección Historial con timeline visual
+- ✅ B4.8: CTAs Guardar/Contactar (placeholders B6/B7) + link al listing original
+- ✅ B4.9: Link "Ver como comprador" desde admin a la vista pública
+- ✅ B4.10: Tests + docs
+- ⏭ Galería fullscreen con swipe → diferido hasta que scraper traiga fotos múltiples (hoy solo portada)
+- ⏭ Plano catastral PDF (cédula) → entra en Block 7 (servicios pagos)
 
-### Block 5 — Search Profile + Match Score (Weeks 12-13)
-1. Onboarding flow for first profile
-2. Profile management (CRUD)
-3. Match score algorithm
-4. Match visualization in property cards
-5. Match explanation (what fits, what doesn't)
+**Bloque 4 — Property View COMPLETO ✅**
 
-### Block 6 — Lists and Alerts (Weeks 14-16)
-1. Search page with filters
-2. Mobile-optimized property list
-3. Favorites system
-4. Email alerts (new matches, price drops)
-5. In-app notification center
-6. User dashboard
+### Block 5 — Search Profile + Match Score (Weeks 12-13) ✅ COMPLETE
+- ✅ B5.0: Brand consistency en home/(app)/admin layouts (logo en vez de texto)
+- ✅ B5.1: Algoritmo `lib/matching/match.ts` con 7 sub-scores (zone, price, type, operation, rooms, surface, must_haves) + bandas (No encaja / Encaja parcialmente / Buen match / Match perfecto) + interpolación de color compartida con quality. Sin hard-zero cliffs. 38 tests.
+- ✅ B5.2: Migración `00007_search_profile_operation_type.sql` aplicada. `lib/db/search-profiles.ts` con CRUD completo + límite hardcodeado 2 perfiles (free tier).
+- ✅ B5.3: Onboarding `/onboarding` con `SearchProfileForm` reusable. Redirige a `/dashboard` si ya tiene perfil.
+- ✅ B5.4: `/busquedas` (lista + nueva + editar). Server actions con Zod validation. Soft-disable del CTA cuando se llega al límite.
+- ✅ B5.5: `MatchScoreCard` en `/p/[id]` cuando el usuario está logueado y tiene perfil primario. Sheet lateral con desglose por sub-score + verdict icons (✅⚠️❌).
+- ✅ B5.6: Dashboard redirige a `/onboarding` si el user no tiene perfiles (catch-all para nuevos signups + usuarios pre-existentes).
+- ✅ B5.7: Dashboard con resumen del perfil primario (zonas, precio, mínimos, no-negociables) + cards más chicas de otras búsquedas + atajos a administrar/nueva.
+- ✅ B5.8: 104 tests passing (66 anteriores + 38 nuevos de match)
 
-### Block 7 — Automated Services (Weeks 17-18)
+**Bloque 5 — Search Profile + Match Score COMPLETO ✅**
+
+### Block 6 — Lists and Alerts (Weeks 14-16) ✅ COMPLETE
+- ✅ B6.1: `lib/db/matched-properties.ts` con `getMatchedProperties(profile, filters)` — sort por match desc, drop "No encaja" (<26), push de filtros básicos al DB
+- ✅ B6.2: Ruta `/buscar` con chips de filtros (tipo, ambientes), toggle entre perfiles, empty state amable
+- ✅ B6.3: `<PropertyCard>` reusable (foto + precio + meta + Match+Quality badges + heart) con click → /p/[id]
+- ✅ B6.4: Sistema de favoritos: `getFavoritedPropertyIds` batch, `toggleFavoriteAction` con optimistic UI + rollback, cableado del corazón en `/p/[id]`, página `/favoritos`
+- ✅ B6.5: Alertas in-app: `<NotificationBell>` en header con badge de unread + sheet con timeline (✨ new_match / ⬇ price_drop) + marcar leída individual o todas
+- ✅ B6.6: `scripts/detect-alerts.ts` con detección new_match (match ≥70 en últimas 24h) + price_drop (en favoritos del user, en últimas 24h) + dedup por ventana de 14d. Step nuevo en GH Actions pipeline
+- ✅ B6.7: `lib/services/email/` con Resend SDK. Templates HTML+texto plano hechos a mano (sin React Email/MJML — solo 2 templates). Brand-aligned (header navy, dorado highlights en price drops, CTA navy). Gracefully off si faltan RESEND_API_KEY o RESEND_FROM
+- ✅ B6.8: 13 tests nuevos sobre email templates (escape XSS, recipiente sin nombre, cover opcional, etc.). **117 tests passing**
+
+**Bloque 6 — Listas y Alertas COMPLETO ✅**
+
+### Block 7 — Automated Services (Weeks 17-18) ← NEXT
 1. Service catalog component
 2. Mercado Pago integration (checkout + webhooks)
 3. Service order management
@@ -551,3 +567,6 @@ When the user asks for clarification, prioritize explaining the **why** behind d
 | 1.11 | May 17, 2026 | B2.5 done. Pivoted from Vercel Cron to GitHub Actions because Vercel Hobby caps cron invocations at 10s and our scrapers (Playwright) need minutes. `.github/workflows/pipeline.yml` runs the full chain (scrape Zonaprop + Trezza → dedup → geocode → ARBA) daily at 06:00 UTC and on-demand via `workflow_dispatch`. Each step has continue-on-error so a transient block doesn't stop the rest, but the workflow fails at the end if any step failed (alerting). Secrets `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` configured in repo. First successful end-to-end run: 14m30s. Caveat: setting GH secrets via PowerShell stdin pipes can inject a UTF-8 BOM into the value — use `gh secret set --env-file` with a `[System.Text.UTF8Encoding]::new($false)` written file instead. Next up: B2.6 (history tracking helpers). |
 | 1.12 | May 17, 2026 | B2.6 done. **Bloque 2 cerrado.** `lib/db/property-history.ts` con helpers reusables: getPropertyHistory, lastPriceChange, computeDaysOnMarket, classifyHistoryEvent. Admin detail page enriquecida: badges con días-en-mercado y último diff de precio (con flecha + %), tabla de historial con clasificación visual de eventos (Cambio de precio / Listado dado de baja / Reactivado / etc.) + render rico de precio con colores (verde si bajó, rojo si subió). Próximo bloque: Block 3 — Quality Score. |
 | 1.13 | May 17, 2026 | **Bloque 3 cerrado.** `lib/scoring/` con 5 sub-scores (Documentación, Precio vs comparables, Calidad del aviso, Tiempo en mercado, Coherencia ARBA), `computeQualityScore` puro + `recomputeQualityScore` I/O. Renormalización por confianza: sub-scores sin data se skipean en lugar de penalizar; `effective_weight_ratio < 0.30` ⇒ `insufficient_data: true` y score=null. Documentación modelada como **lista extensible de componentes** lista para Fase 2 (escritura subida, plano, dominio reciente, titular verificado). Versionado del algoritmo (`v1`) en cada breakdown. Persistencia en columnas `quality_score` + `quality_score_breakdown` (ya existían). `scripts/score-properties.ts` con `ComparablesCache.warmUp()` que pre-carga medianas por (partido, tipo) y evita N+1. Vitest setup como primer test runner del proyecto: **34 tests passing** cubriendo cada sub-score (high/low/skip), agregación, renormalización, y `insufficient_data`. Step `Recompute quality scores` agregado al final del pipeline en GH Actions. **Primera corrida sobre 54 propiedades activas**: 11 verdes (70+), 37 amarillos (40-69), 6 rojos (<40), 0 insufficient. La mayoría con `effective_weight_ratio` 54-90% porque (a) muchas no tienen `surface_total` declarado → Coherencia ARBA cae a confianza 0.3, (b) clusters chicos (Avellaneda casa n=1, Lanús ph n=1) hacen que Precio-vs-comparables se skipee. Ambos mejoran solos con más data. Próximo: Block 4 — Property View (incluye UI del score). |
+| 1.14 | May 17, 2026 | **Bloque 4 cerrado.** Vista pública mobile-first `/p/[id]` con carga progresiva en capas. **Marca lockeada**: navy `#1A1B5C` + dorado `#D4A24C` (slogan: "Oportunidades Inmobiliarias"). Logo + isotipo en `public/brand/` (4 variantes: PNG + SVG x navy + white). Bandas del score (`Insuficiente / Mejorable / Aceptable / Bueno / Muy bueno / Excepcional`) con gradiente continuo rojo→verde de 0-94 y dorado hard-step en 95+. **Componentes compartidos** entre admin y público: `QualityScoreRing` (SVG con interpolación de color), `SubScoresList`, `ScoreBreakdownSheet`, `VerifiedDataList` (✅⚠️🚨 derivados del breakdown). **Mapa Leaflet** client-side con marker + polígono ARBA dibujado en navy semi-transparente desde `arba_lookups.raw_response`. **Tooltips educativos** (`<TermDefinition>` con popover) sobre términos catastrales — diccionario centralizado en `lib/glossary.ts`. **Descripción** con toggle "ver más" colapsado a 450ch (avg 806ch en data). **Historial visual** reusando helpers de B2.6 (`classifyHistoryEvent`, `computeDaysOnMarket`, render rico de price-transition con flechas + colores). **CTAs** Guardar/Contactar como placeholders (se cablean en B6/B7). Link "Ver como comprador" desde `/admin/properties/[id]`. Dark mode CSS vars ajustadas para que el navy quede legible. 21 tests nuevos sobre `bands.ts` + 11 nuevos sobre `verified-data.ts` (**66 tests passing**). Pendientes anotados: galería fullscreen con swipe (espera que el scraper traiga fotos múltiples — hoy solo portada) y plano catastral PDF (servicio pago, entra en Block 7). Próximo: Block 5 — Perfil de búsqueda + Match Score. |
+| 1.15 | May 17, 2026 | **Bloque 5 cerrado.** Match score subjetivo por usuario, complementa al quality score objetivo. `lib/matching/` con 7 sub-scores (zone con 3 niveles preferido/aceptable/descarte, price con cliff, type, operation, rooms, surface, must_haves con detección por regex + sinónimos). Sin hard-zero cliffs — los mismatches caen al 5-10 pero se muestran en escala. Bandas de match: No encaja / Encaja parcialmente / Buen match / Match perfecto. Color de anillo reusa interpolación de quality. Migración 00007 agrega `operation_type` a `search_profiles` (aplicada vía `node scripts/db-run.mjs`). `lib/db/search-profiles.ts` con CRUD completo + límite hardcoded de 2 perfiles para free tier (`SearchProfileLimitError` para bumpearlo en B7 cuando salgan suscripciones). Form único reusable `<SearchProfileForm>` con `initialValues` opcional + `action` prop — sirve tanto a `/onboarding` (primer perfil) como a `/busquedas/nueva` y `/busquedas/[id]/editar`. Server actions con Zod, soft-disable del CTA "nueva" cuando se llega al límite. `MatchScoreCard` en `/p/[id]` sólo cuando hay sesión + perfil primario (anónimos no lo ven). Border lateral coloreado + badge con banda + sheet con desglose por sub-score (✅⚠️❌). Dashboard reformeado: redirige a `/onboarding` si no hay perfiles (catch-all post-signup), muestra perfil primario destacado + otras búsquedas + atajos. B5.0 housekeeping: brand consistency — todos los layouts (home, app, admin) ahora muestran el isotipo Jotaeme en vez de texto plano. 38 tests nuevos sobre match algorithm (**104 tests passing**). Próximo: Block 6 — Listas + Alertas (la vista filtrable de matches, favoritos, alertas por email). |
+| 1.16 | May 18, 2026 | **Bloque 6 cerrado.** Discovery + retención: `/buscar` (matches del perfil primario ordenados por match desc, drop de "No encaja" <26, chips de filtros que estrechan no ensanchan), `/favoritos` con cards reusables, `<PropertyCard>` mobile-first con badges Match+Quality iguales en prominencia (o solo Quality cuando no hay perfil), corazón con optimistic UI y rollback. `<NotificationBell>` en el header `(app)`: campana con badge de unread + sheet con timeline + marcar leída individual o todas. `scripts/detect-alerts.ts` corre como step nuevo en el pipeline diario: detecta new_match (≥70 + first_seen <24h) y price_drop (en favoritos del user, en últimas 24h), dedup vía `hasRecentAlert` en ventana 14d. Envío de emails con Resend (`lib/services/email/`): templates HTML+texto hechos a mano, brand-aligned (header navy, dorado en price drops, CTA navy), gracefully off si faltan `RESEND_API_KEY` o `RESEND_FROM`. Pipeline.yml pasa las 3 env vars (key + from + APP_URL). 13 tests nuevos sobre email templates incluyendo escape XSS (**117 tests passing**). Theme fixes paralelos: BrandLogo ahora swap automático navy/white según tema; dark mode usa brand navy como background en vez del charcoal genérico de shadcn; meta theme-color + html bg para que mobile no muestre negro en el bounce area. Próximo: Block 7 — Servicios automatizados (MercadoPago + informes ARBA/dominio + PDFs). |
