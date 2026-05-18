@@ -97,6 +97,15 @@ jobs:
         continue-on-error: true
         run: npx tsx scripts/enrich-cadastral.ts
 
+      - name: Recompute quality scores
+        # Runs after every enrichment step so the score reflects the latest
+        # data: new price/surface from scrape, fresh ARBA match, etc. The
+        # CLI pre-fetches the comparables cache once and re-scores every
+        # active property — fast even at thousands of rows.
+        id: score
+        continue-on-error: true
+        run: npx tsx scripts/score-properties.ts
+
       - name: Summary
         run: |
           echo "## Pipeline result" >> $GITHUB_STEP_SUMMARY
@@ -108,6 +117,7 @@ jobs:
           echo "| Dedup | ${{ steps.dedup.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Geocode | ${{ steps.geocode.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| ARBA | ${{ steps.arba.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality scoring | ${{ steps.score.outcome }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Fail if any step failed
         # Run the pipeline best-effort, but mark the workflow as failed at the
@@ -118,7 +128,8 @@ jobs:
           steps.scrape_trezza.outcome == 'failure' ||
           steps.dedup.outcome == 'failure' ||
           steps.geocode.outcome == 'failure' ||
-          steps.arba.outcome == 'failure'
+          steps.arba.outcome == 'failure' ||
+          steps.score.outcome == 'failure'
         run: |
           echo "::error::One or more pipeline steps failed. See summary above."
           exit 1

@@ -7,7 +7,7 @@
 
 ## Current Progress
 
-**Status:** Block 1 ✅ + Block 2 — Data Ingestion ✅ COMPLETED. Next: Block 3 — Quality Score.
+**Status:** Block 1 ✅ + Block 2 — Data Ingestion ✅ + Block 3 — Quality Score ✅ COMPLETED. Next: Block 4 — Vista de propiedad mobile-first (incluye UI del score).
 
 | Step | Status | Commit |
 |---|---|---|
@@ -368,13 +368,22 @@ Follow this strict order. Do not skip ahead.
 5. Vercel Cron job for periodic scraping
 6. Property history tracking (price changes, listing status)
 
-### Block 3 — Quality Score (Weeks 7-8) ← NEXT
-1. Score algorithm (5 variables): price vs comparables, time on market, documentation, ARBA coherence, listing quality
-2. Sub-scores breakdown
-3. Score recalculation triggers
-4. Admin tool to inspect/debug scores
+### Block 3 — Quality Score (Weeks 7-8) ✅ COMPLETE
+- ✅ B3.1: `lib/scoring/` module — types, `gatherScoringInputs`, `computeQualityScore` (pure), `recomputeQualityScore` (I/O)
+- ✅ B3.2: Sub-score Calidad del aviso (description + photos + field completeness + "consultar precio" penalty)
+- ✅ B3.3: Sub-score Documentación (extensible component model — ready for Fase 2 owner-uploaded docs)
+- ✅ B3.4: Sub-score Coherencia ARBA (declared vs ARBA surface diff bands)
+- ✅ B3.5: Sub-score Tiempo en mercado (days-tracked curve + price-drop bonus + confidence ramp)
+- ✅ B3.6: Sub-score Precio vs comparables (per-cluster median price/m² with sample-size confidence)
+- ✅ B3.7: Persistence + `algorithm_version` + insufficient_data flag + `effective_weight_ratio`
+- ✅ B3.8: `scripts/score-properties.ts` CLI with `ComparablesCache` batch warmup
+- ✅ B3.9: Vitest setup + 34 unit tests (sub-scores + aggregation + renormalization)
+- ✅ B3.10: GH Actions pipeline step (scrape → dedup → geocode → ARBA → score)
+- ⏭ Admin UI for inspecting scores → deferred to Block 4 (junto con vista comprador)
 
-### Block 4 — Property View (Weeks 9-11)
+**Bloque 3 — Quality Score COMPLETO ✅**
+
+### Block 4 — Property View (Weeks 9-11) ← NEXT
 1. Mobile-first property page
 2. Progressive content loading (info in layers)
 3. Fullscreen photo gallery with swipe
@@ -541,3 +550,4 @@ When the user asks for clarification, prioritize explaining the **why** behind d
 | 1.10 | May 17, 2026 | B2.3 done. Discovered ARBA exposes a public unauthenticated GeoServer WFS at geo.arba.gov.ar/geoserver/idera/wfs (no API key, no captcha). Built `lib/services/arba/` with WFS client, INTERSECTS-then-DWITHIN(30m) strategy + closest-by-centroid tiebreaker, `arba_lookups` table with 180-day TTL, and `ensurePropertyCadastral(id)`. Backfilled 47 geocoded properties: 46/47 enriched with partida + nomenclatura_catastral + surface_arba (15 INTERSECTS, 31 DWITHIN, 1 negative-cached). Next up: B2.5 (Vercel Cron — orchestrate scrape→dedup→geocode→ARBA pipeline). |
 | 1.11 | May 17, 2026 | B2.5 done. Pivoted from Vercel Cron to GitHub Actions because Vercel Hobby caps cron invocations at 10s and our scrapers (Playwright) need minutes. `.github/workflows/pipeline.yml` runs the full chain (scrape Zonaprop + Trezza → dedup → geocode → ARBA) daily at 06:00 UTC and on-demand via `workflow_dispatch`. Each step has continue-on-error so a transient block doesn't stop the rest, but the workflow fails at the end if any step failed (alerting). Secrets `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` configured in repo. First successful end-to-end run: 14m30s. Caveat: setting GH secrets via PowerShell stdin pipes can inject a UTF-8 BOM into the value — use `gh secret set --env-file` with a `[System.Text.UTF8Encoding]::new($false)` written file instead. Next up: B2.6 (history tracking helpers). |
 | 1.12 | May 17, 2026 | B2.6 done. **Bloque 2 cerrado.** `lib/db/property-history.ts` con helpers reusables: getPropertyHistory, lastPriceChange, computeDaysOnMarket, classifyHistoryEvent. Admin detail page enriquecida: badges con días-en-mercado y último diff de precio (con flecha + %), tabla de historial con clasificación visual de eventos (Cambio de precio / Listado dado de baja / Reactivado / etc.) + render rico de precio con colores (verde si bajó, rojo si subió). Próximo bloque: Block 3 — Quality Score. |
+| 1.13 | May 17, 2026 | **Bloque 3 cerrado.** `lib/scoring/` con 5 sub-scores (Documentación, Precio vs comparables, Calidad del aviso, Tiempo en mercado, Coherencia ARBA), `computeQualityScore` puro + `recomputeQualityScore` I/O. Renormalización por confianza: sub-scores sin data se skipean en lugar de penalizar; `effective_weight_ratio < 0.30` ⇒ `insufficient_data: true` y score=null. Documentación modelada como **lista extensible de componentes** lista para Fase 2 (escritura subida, plano, dominio reciente, titular verificado). Versionado del algoritmo (`v1`) en cada breakdown. Persistencia en columnas `quality_score` + `quality_score_breakdown` (ya existían). `scripts/score-properties.ts` con `ComparablesCache.warmUp()` que pre-carga medianas por (partido, tipo) y evita N+1. Vitest setup como primer test runner del proyecto: **34 tests passing** cubriendo cada sub-score (high/low/skip), agregación, renormalización, y `insufficient_data`. Step `Recompute quality scores` agregado al final del pipeline en GH Actions. **Primera corrida sobre 54 propiedades activas**: 11 verdes (70+), 37 amarillos (40-69), 6 rojos (<40), 0 insufficient. La mayoría con `effective_weight_ratio` 54-90% porque (a) muchas no tienen `surface_total` declarado → Coherencia ARBA cae a confianza 0.3, (b) clusters chicos (Avellaneda casa n=1, Lanús ph n=1) hacen que Precio-vs-comparables se skipee. Ambos mejoran solos con más data. Próximo: Block 4 — Property View (incluye UI del score). |
