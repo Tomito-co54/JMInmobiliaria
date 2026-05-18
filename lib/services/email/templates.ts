@@ -43,6 +43,13 @@ interface PriceDropContext extends CommonContext {
   coverUrl: string | null;
 }
 
+interface ServiceDeliveryContext extends CommonContext {
+  serviceTitle: string;
+  propertyAddress: string | null;
+  folio: string;
+  downloadUrl: string;
+}
+
 function escape(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -143,5 +150,46 @@ export function renderPriceDropEmail(ctx: PriceDropContext): { subject: string; 
     `Antes: ${ctx.oldPriceFormatted}\n` +
     `Ahora: ${ctx.newPriceFormatted} (-${ctx.dropPctFormatted})\n\n` +
     `Ver en Jotaeme: ${ctx.propertyUrl}\n`;
+  return { subject, html: shell(inner), text };
+}
+
+// ---------------------------------------------------------------------------
+// service_delivery
+// ---------------------------------------------------------------------------
+
+export function renderServiceDeliveryEmail(ctx: ServiceDeliveryContext): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const greeting = ctx.recipientName ? `Hola ${escape(ctx.recipientName)},` : "Hola,";
+  const subject = `Tu informe está listo — Folio ${ctx.folio}`;
+  const inner = `
+    ${header()}
+    <tr><td style="padding:24px;">
+      <p style="margin:0 0 8px;color:${MUTED};font-size:13px;">${greeting}</p>
+      <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;color:${TEXT};line-height:1.3;">Tu informe está listo</h1>
+      <p style="margin:0 0 20px;color:${MUTED};font-size:14px;">${escape(ctx.serviceTitle)}</p>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${BORDER};border-bottom:1px solid ${BORDER};margin-bottom:20px;">
+        ${ctx.propertyAddress ? metaRow("Propiedad", ctx.propertyAddress) : ""}
+        ${metaRow("Folio", ctx.folio)}
+        ${metaRow("Servicio", ctx.serviceTitle)}
+      </table>
+
+      ${ctaButton("Descargar PDF", ctx.downloadUrl)}
+
+      <p style="margin:20px 0 0;color:${MUTED};font-size:12px;line-height:18px;">
+        El enlace de descarga es válido por 30 días. Si vence, podés generar uno nuevo desde
+        <a href="${escape(ctx.appOrigin)}/mis-servicios" style="color:${NAVY};">tus servicios</a>.
+      </p>
+    </td></tr>
+  `;
+  const text =
+    `${greeting}\n\nTu informe ${ctx.serviceTitle} está listo.\n\n` +
+    (ctx.propertyAddress ? `Propiedad: ${ctx.propertyAddress}\n` : "") +
+    `Folio: ${ctx.folio}\n\n` +
+    `Descargá el PDF: ${ctx.downloadUrl}\n\n` +
+    `El enlace es válido por 30 días. Si vence, generá uno nuevo desde ${ctx.appOrigin}/mis-servicios\n`;
   return { subject, html: shell(inner), text };
 }

@@ -1,17 +1,18 @@
-import { MessageCircle, ExternalLink } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import Link from "next/link";
+import { FileText, ExternalLink } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { FavoriteButton } from "./FavoriteButton";
 import { cn } from "@/lib/utils";
 
 /**
  * Call-to-action footer of the property view.
  *
- *   [Guardar (♡)]    [Contactar]
+ *   [Guardar (♡)]    [Servicios]
  *   ──────────────────────────
  *   → Ver listing original (zonaprop)
  *
- * Save is wired to the favorites system (B6.4). Contact stays as a
- * placeholder until Block 7 brings the service catalog.
+ * Save is wired to favorites (B6.4). Servicios opens the paid-services
+ * catalog (B7.7) — informes catastrales, dominio, etc.
  *
  * The source link is the honesty CTA: every property page links back to
  * its origin so the buyer can cross-check anything we display.
@@ -53,15 +54,16 @@ export function PropertyCTAs({
           variant="full"
           signedOut={signedOut}
         />
-        <Button
-          size="lg"
-          className="h-12"
-          aria-label="Contactar (próximamente)"
-          title="Disponible cuando esté el catálogo de servicios"
+        <Link
+          href={`/p/${propertyId}/servicios`}
+          className={cn(
+            buttonVariants({ size: "lg" }),
+            "h-12 gap-2",
+          )}
         >
-          <MessageCircle className="size-5" />
-          Contactar
-        </Button>
+          <FileText className="size-5" />
+          Servicios
+        </Link>
       </div>
 
       {sourceUrl && (

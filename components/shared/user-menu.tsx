@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, User as UserIcon, FileText, Heart, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,6 +61,30 @@ export function UserMenu({ email, fullName }: UserMenuProps) {
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        <DropdownMenuItem
+          render={
+            <Link href="/buscar" className="cursor-pointer">
+              <Search className="mr-2 size-4" />
+              <span>Buscar</span>
+            </Link>
+          }
+        />
+        <DropdownMenuItem
+          render={
+            <Link href="/favoritos" className="cursor-pointer">
+              <Heart className="mr-2 size-4" />
+              <span>Favoritos</span>
+            </Link>
+          }
+        />
+        <DropdownMenuItem
+          render={
+            <Link href="/mis-servicios" className="cursor-pointer">
+              <FileText className="mr-2 size-4" />
+              <span>Mis servicios</span>
+            </Link>
+          }
+        />
         <DropdownMenuItem
           render={
             <Link href="/perfil" className="cursor-pointer">
