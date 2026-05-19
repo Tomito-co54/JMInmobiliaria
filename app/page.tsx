@@ -53,23 +53,34 @@ export default async function Home() {
           >
             <BrandLogo variant="isotipo" size={32} priority />
           </Link>
-          {user ? (
-            <Link href="/dashboard" className={buttonVariants({ size: "sm" })}>
-              Ir al dashboard
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Link
+              href="/guia-de-compra"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "hidden sm:inline-flex",
+              )}
+            >
+              Guía de compra
             </Link>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/login"
-                className={buttonVariants({ variant: "ghost", size: "sm" })}
-              >
-                Iniciar sesión
+            {user ? (
+              <Link href="/dashboard" className={buttonVariants({ size: "sm" })}>
+                Ir al dashboard
               </Link>
-              <Link href="/register" className={buttonVariants({ size: "sm" })}>
-                Crear cuenta
-              </Link>
-            </div>
-          )}
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className={buttonVariants({ variant: "ghost", size: "sm" })}
+                >
+                  Iniciar sesión
+                </Link>
+                <Link href="/register" className={buttonVariants({ size: "sm" })}>
+                  Crear cuenta
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
