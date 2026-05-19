@@ -29,10 +29,25 @@ const COLS = [
   "rooms_min",
   "surface_min",
   "must_haves",
+  "current_stage",
   "is_primary",
   "created_at",
   "updated_at",
 ].join(", ");
+
+/** Slugs of the 6 etapas in the buying process. Mirrors the step.slug
+ * values in lib/education/buying-process.ts. The DB has a CHECK
+ * constraint on this set, so adding new values requires a migration. */
+export const BUYING_PROCESS_STAGES = [
+  "pre-busqueda",
+  "busqueda",
+  "reserva",
+  "due-diligence",
+  "boleto-y-escritura",
+  "post-escritura",
+] as const;
+
+export type BuyingProcessStage = (typeof BUYING_PROCESS_STAGES)[number];
 
 interface RawProfileRow {
   id: string;
@@ -47,6 +62,7 @@ interface RawProfileRow {
   rooms_min: number | null;
   surface_min: number | string | null;
   must_haves: string[] | null;
+  current_stage: BuyingProcessStage | null;
   is_primary: boolean;
   created_at: string;
   updated_at: string;
@@ -54,6 +70,7 @@ interface RawProfileRow {
 
 export interface SearchProfileRow extends SearchProfileForMatching {
   user_id: string;
+  current_stage: BuyingProcessStage | null;
   is_primary: boolean;
   created_at: string;
   updated_at: string;
@@ -95,6 +112,7 @@ function rowToProfile(row: RawProfileRow): SearchProfileRow {
     rooms_min: row.rooms_min,
     surface_min: toNumber(row.surface_min),
     must_haves: row.must_haves ?? [],
+    current_stage: row.current_stage ?? null,
     is_primary: row.is_primary,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -186,6 +204,7 @@ export interface SearchProfileInput {
   rooms_min: number | null;
   surface_min: number | null;
   must_haves: string[];
+  current_stage: BuyingProcessStage | null;
   is_primary?: boolean;
 }
 
@@ -238,6 +257,7 @@ export async function createSearchProfile(
       rooms_min: input.rooms_min,
       surface_min: input.surface_min,
       must_haves: input.must_haves,
+      current_stage: input.current_stage,
       is_primary: shouldBePrimary,
     } as never)
     .select(COLS)
@@ -277,6 +297,7 @@ export async function updateSearchProfile(
     rooms_min: input.rooms_min,
     surface_min: input.surface_min,
     must_haves: input.must_haves,
+    current_stage: input.current_stage,
   };
   if (typeof input.is_primary === "boolean") {
     updatePayload.is_primary = input.is_primary;

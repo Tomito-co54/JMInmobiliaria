@@ -2,7 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createSearchProfile, SearchProfileLimitError } from "@/lib/db/search-profiles";
+import {
+  BUYING_PROCESS_STAGES,
+  createSearchProfile,
+  SearchProfileLimitError,
+} from "@/lib/db/search-profiles";
 import { getCurrentUserId } from "@/lib/db/users";
 import { KNOWN_MUST_HAVES } from "@/lib/matching";
 import { PARTIDOS_ZONA_SUR } from "@/lib/zona-sur/partidos";
@@ -37,6 +41,7 @@ const InputSchema = z.object({
   rooms_min: z.number().int().min(0).max(20).nullable(),
   surface_min: z.number().int().min(0).max(10000).nullable(),
   must_haves: z.array(z.enum(KNOWN_MUST_HAVES)),
+  current_stage: z.enum(BUYING_PROCESS_STAGES).nullable(),
 });
 
 export async function createOnboardingProfile(

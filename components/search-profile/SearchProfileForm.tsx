@@ -31,6 +31,14 @@ import { cn } from "@/lib/utils";
  * own state never needs to reset.
  */
 
+export type BuyingStageSlug =
+  | "pre-busqueda"
+  | "busqueda"
+  | "reserva"
+  | "due-diligence"
+  | "boleto-y-escritura"
+  | "post-escritura";
+
 export interface SearchProfileFormValues {
   name: string;
   zones: Array<{ partido: PartidoZonaSur; priority: "preferido" | "aceptable" | "descarte" }>;
@@ -42,6 +50,7 @@ export interface SearchProfileFormValues {
   rooms_min: number | null;
   surface_min: number | null;
   must_haves: (typeof KNOWN_MUST_HAVES)[number][];
+  current_stage: BuyingStageSlug | null;
 }
 
 export type SearchProfileActionResult = { ok: true } | { ok: false; error: string };
@@ -74,6 +83,48 @@ const MUST_HAVE_LABELS: Record<string, string> = {
   amenities: "Amenities",
   seguridad: "Seguridad",
 };
+
+const STAGE_OPTIONS: {
+  value: BuyingStageSlug | "none";
+  label: string;
+  hint?: string;
+}[] = [
+  {
+    value: "none",
+    label: "Todavía no estoy seguro",
+    hint: "Estamos viendo opciones, sin compromiso.",
+  },
+  {
+    value: "pre-busqueda",
+    label: "Pre-búsqueda",
+    hint: "Definiendo presupuesto, financiación, qué busco.",
+  },
+  {
+    value: "busqueda",
+    label: "Búsqueda y visitas",
+    hint: "Mirando avisos y visitando propiedades.",
+  },
+  {
+    value: "reserva",
+    label: "Hice o estoy por hacer una reserva",
+    hint: "Encontré una propiedad y la quiero apartar.",
+  },
+  {
+    value: "due-diligence",
+    label: "Pidiendo informes (due diligence)",
+    hint: "Dominio, inhibiciones, catastro, libres deuda.",
+  },
+  {
+    value: "boleto-y-escritura",
+    label: "Boleto firmado / camino a escritura",
+    hint: "Falta poco para ser dueño.",
+  },
+  {
+    value: "post-escritura",
+    label: "Ya escrituré",
+    hint: "Tareas administrativas finales.",
+  },
+];
 
 type ZonePriorityState = "none" | "preferido" | "aceptable" | "descarte";
 
@@ -117,6 +168,9 @@ export function SearchProfileForm({
   const [surfaceMin, setSurfaceMin] = useState(initialValues.surface_min?.toString() ?? "");
   const [mustHaves, setMustHaves] = useState<Set<string>>(
     () => new Set(initialValues.must_haves ?? []),
+  );
+  const [currentStage, setCurrentStage] = useState<BuyingStageSlug | "none">(
+    initialValues.current_stage ?? "none",
   );
 
   function toggleType(value: string) {
@@ -166,6 +220,7 @@ export function SearchProfileForm({
         rooms_min: parseIntOrNull(roomsMin),
         surface_min: parseIntOrNull(surfaceMin),
         must_haves: Array.from(mustHaves) as SearchProfileFormValues["must_haves"],
+        current_stage: currentStage === "none" ? null : currentStage,
       });
       if (result && !result.ok) {
         toast.error(result.error);
@@ -403,6 +458,56 @@ export function SearchProfileForm({
                 <span className="text-sm">{MUST_HAVE_LABELS[tag] ?? tag}</span>
               </label>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">¿En qué etapa estás?</CardTitle>
+          <CardDescription>
+            Opcional. Si nos contás dónde estás en tu proceso, cuando entres a
+            una propiedad te mostramos qué documentos te faltan y cuál es tu
+            próximo paso. Podés cambiarlo cuando quieras.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {STAGE_OPTIONS.map((opt) => {
+              const active = currentStage === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setCurrentStage(opt.value)}
+                  className={cn(
+                    "flex items-start gap-2 rounded-md border px-3 py-2.5 text-left transition-colors",
+                    active
+                      ? "border-primary bg-primary/5"
+                      : "hover:bg-muted/60",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "mt-0.5 size-4 rounded-full border-2 shrink-0 grid place-items-center",
+                      active ? "border-primary" : "border-muted-foreground/40",
+                    )}
+                  >
+                    {active && (
+                      <span className="size-2 rounded-full bg-primary" />
+                    )}
+                  </span>
+                  <span className="text-sm leading-snug">
+                    <span className="font-medium">{opt.label}</span>
+                    {opt.hint && (
+                      <span className="block text-xs text-muted-foreground mt-0.5">
+                        {opt.hint}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

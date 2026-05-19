@@ -78,6 +78,7 @@ export default async function EditarBusquedaPage({ params }: PageProps) {
               ] as const
             ).includes(m as KnownMustHave),
           ),
+          current_stage: profile.current_stage,
         }}
       />
     </div>

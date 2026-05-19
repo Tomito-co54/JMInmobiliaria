@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
+  BUYING_PROCESS_STAGES,
   createSearchProfile,
   deleteSearchProfile,
   setPrimarySearchProfile,
@@ -34,6 +35,7 @@ const InputSchema = z.object({
   rooms_min: z.number().int().min(0).max(20).nullable(),
   surface_min: z.number().int().min(0).max(10000).nullable(),
   must_haves: z.array(z.enum(KNOWN_MUST_HAVES)),
+  current_stage: z.enum(BUYING_PROCESS_STAGES).nullable(),
 });
 
 type ValidationResult =

@@ -14,6 +14,7 @@ import { PropertyHistory } from "@/components/property/PropertyHistory";
 import { PropertyCTAs } from "@/components/property/PropertyCTAs";
 import { QualityScoreCard } from "@/components/scoring/QualityScoreCard";
 import { MatchScoreCard } from "@/components/matching/MatchScoreCard";
+import { BuyingProcessAdvisor } from "@/components/property/BuyingProcessAdvisor";
 
 /**
  * Public property view — the "wow moment" page (Block 4).
@@ -112,6 +113,14 @@ export default async function PublicPropertyPage({ params }: PageProps) {
 
         {matchBreakdown && profile && (
           <MatchScoreCard breakdown={matchBreakdown} profileName={profile.name} />
+        )}
+
+        {userId && (
+          <BuyingProcessAdvisor
+            propertyId={property.id}
+            currentStage={profile?.current_stage ?? null}
+            showSetupPrompt={!profile?.current_stage}
+          />
         )}
 
         <QualityScoreCard breakdown={property.quality_score_breakdown} />
