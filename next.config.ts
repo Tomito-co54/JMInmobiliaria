@@ -2,6 +2,32 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
+  // Force-include the woff fonts used by @react-pdf/renderer for the
+  // service deliverable PDFs. The fonts.ts module resolves them with
+  // path.join(process.cwd(), "node_modules", ...) which Next.js's
+  // build-time tracer can't follow, so without this declaration Vercel
+  // ships a serverless function without the font files and PDF
+  // generation fails at runtime with ENOENT.
+  outputFileTracingIncludes: {
+    "/api/admin/orders/[id]/fulfill": [
+      "./node_modules/@fontsource/inter/files/inter-latin-400-normal.woff",
+      "./node_modules/@fontsource/inter/files/inter-latin-700-normal.woff",
+      "./node_modules/@fontsource/fraunces/files/fraunces-latin-400-normal.woff",
+      "./node_modules/@fontsource/fraunces/files/fraunces-latin-700-normal.woff",
+    ],
+    "/api/mercadopago/webhook": [
+      "./node_modules/@fontsource/inter/files/inter-latin-400-normal.woff",
+      "./node_modules/@fontsource/inter/files/inter-latin-700-normal.woff",
+      "./node_modules/@fontsource/fraunces/files/fraunces-latin-400-normal.woff",
+      "./node_modules/@fontsource/fraunces/files/fraunces-latin-700-normal.woff",
+    ],
+    "/api/dev/test-arba-pdf": [
+      "./node_modules/@fontsource/inter/files/inter-latin-400-normal.woff",
+      "./node_modules/@fontsource/inter/files/inter-latin-700-normal.woff",
+      "./node_modules/@fontsource/fraunces/files/fraunces-latin-400-normal.woff",
+      "./node_modules/@fontsource/fraunces/files/fraunces-latin-700-normal.woff",
+    ],
+  },
   images: {
     // CDNs we scrape photos from. Adding a hostname here lets next/image
     // optimize and serve them through /_next/image; without it we'd be forced
