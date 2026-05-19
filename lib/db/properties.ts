@@ -185,6 +185,64 @@ export async function getProperties(options?: {
 }
 
 /**
+ * Default reference point for proximity sort when the buyer has no
+ * search profile yet. Roughly the geographic center of our service
+ * area (Zona Sur GBA — close to the Lomas / Lanús partido border).
+ * Used by the home catalog and any other anon listing surface that
+ * wants "near me" ordering without asking for geolocation.
+ */
+export const ZONA_SUR_CENTER = {
+  lat: -34.762,
+  lng: -58.4,
+} as const;
+
+/**
+ * Fetch active properties sorted by Euclidean distance from a reference
+ * point. Properties without coordinates fall to the bottom.
+ *
+ * For the small dataset we work with (50-500 properties), fetching all
+ * active rows and sorting in JS is simpler than building an RPC. If
+ * the catalog grows past a few thousand active rows this will need to
+ * move to a Postgres function using ST_Distance.
+ */
+export async function getPropertiesByProximity(
+  ref: { lat: number; lng: number },
+  options?: { limit?: number },
+) {
+  const supabase = await createClient();
+  const { data, error, count } = await supabase
+    .from("properties")
+    .select("*", { count: "exact" })
+    .eq("is_active", true);
+  if (error) throw error;
+
+  const limit = options?.limit ?? 20;
+  const rows = (data ?? []) as Array<{ lat: number | null; lng: number | null }>;
+
+  // Adjust lng span by cos(lat) so 1 unit of lng is visually equivalent
+  // to 1 unit of lat — without this, distances near the equator are
+  // overweighted in longitude. Negligible at this scale but cheap and
+  // correct.
+  const cosLat = Math.cos((ref.lat * Math.PI) / 180);
+
+  const sorted = rows
+    .map((p, i) => {
+      const hasCoords = typeof p.lat === "number" && typeof p.lng === "number";
+      const dlng = hasCoords ? ((p.lng as number) - ref.lng) * cosLat : 0;
+      const dlat = hasCoords ? (p.lat as number) - ref.lat : 0;
+      // Push uncoordinated rows after every coordinated one by giving
+      // them an effectively-infinite distance.
+      const d2 = hasCoords ? dlat * dlat + dlng * dlng : Number.POSITIVE_INFINITY;
+      return { row: rows[i], d2 };
+    })
+    .sort((a, b) => a.d2 - b.d2)
+    .slice(0, limit)
+    .map((r) => r.row);
+
+  return { data: sorted, count: count ?? 0 };
+}
+
+/**
  * Counts properties by status (for admin dashboard).
  */
 export async function getPropertyCounts() {

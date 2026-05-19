@@ -106,7 +106,7 @@ export default async function BuscarPage({ searchParams }: PageProps) {
   const hasAnyFilter = filters.propertyType || filters.priceMax !== undefined || filters.roomsMin !== undefined;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
       <header className="space-y-2">
         <h1 className="text-2xl font-bold tracking-tight">Buscar</h1>
         <p className="text-sm text-muted-foreground">
@@ -226,7 +226,7 @@ export default async function BuscarPage({ searchParams }: PageProps) {
               Ordenadas por match
             </Badge>
           </div>
-          <ul className="space-y-3">
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {matched.map(({ property, match }) => (
               <li key={property.id}>
                 <PropertyCard

@@ -95,7 +95,7 @@ export default async function FavoritosPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       <header>
         <h1 className="text-2xl font-bold tracking-tight">Favoritos</h1>
         <p className="text-muted-foreground mt-1 text-sm">
@@ -104,7 +104,7 @@ export default async function FavoritosPage() {
         </p>
       </header>
 
-      <ul className="space-y-3">
+      <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         {favorites.map((fav) => {
           const p = fav.properties;
           if (!p) return null;

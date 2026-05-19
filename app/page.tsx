@@ -4,7 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { BrandLogo } from "@/components/shared/BrandLogo";
-import { getProperties } from "@/lib/db/properties";
+import { getPropertiesByProximity, ZONA_SUR_CENTER } from "@/lib/db/properties";
 import { getFavoritedPropertyIds } from "@/lib/db/favorites";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { HomeFeatures } from "@/components/home/HomeFeatures";
@@ -32,13 +32,16 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Pull a slice of recent properties to seed the catalog right on the
-  // landing. We don't run match scoring here (no profile context for
-  // anons, and we don't want to slow down the first paint of the home).
+  // Pull a slice of properties to seed the catalog on the landing. With
+  // no profile context for anons we order by proximity to the geographic
+  // center of our service area (ZONA_SUR_CENTER), so visitors see
+  // properties clustered in the most-covered part of GBA first. Match
+  // scoring is not run here (no profile, and we want first paint fast).
   // For match-scored discovery the buyer goes to /buscar after signup.
-  const { data: rows, count: totalProperties } = await getProperties({
-    limit: HOME_CATALOG_LIMIT,
-  });
+  const { data: rows, count: totalProperties } = await getPropertiesByProximity(
+    ZONA_SUR_CENTER,
+    { limit: HOME_CATALOG_LIMIT },
+  );
   const properties = rows as unknown as PropertyRow[];
   const favoritedIds = user ? await getFavoritedPropertyIds(user.id) : new Set<string>();
 
@@ -126,7 +129,7 @@ export default async function Home() {
         id="catalogo"
         className="px-4 pb-16 border-t bg-muted/30 scroll-mt-16 pt-10 sm:pt-12"
       >
-        <div className="max-w-3xl mx-auto space-y-6">
+        <div className="max-w-5xl mx-auto space-y-6">
           <header className="space-y-1">
             <h2 className="text-2xl font-bold tracking-tight">
               Propiedades disponibles
@@ -146,7 +149,7 @@ export default async function Home() {
             </div>
           ) : (
             <>
-              <ul className="space-y-3">
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 {properties.map((p) => (
                   <li key={p.id}>
                     <PropertyCard
