@@ -41,9 +41,8 @@ export function DocumentCard({ doc }: { doc: DocumentInfo }) {
         <div
           className="size-10 shrink-0 rounded-lg grid place-items-center"
           style={{
-            backgroundColor:
-              "color-mix(in srgb, var(--brand-navy) 8%, transparent)",
-            color: "var(--brand-navy)",
+            backgroundColor: "var(--brand-icon-bg)",
+            color: "var(--brand-icon-fg)",
           }}
         >
           <Icon className="size-5" />
@@ -52,7 +51,7 @@ export function DocumentCard({ doc }: { doc: DocumentInfo }) {
           <div className="flex items-center justify-between gap-3">
             <h4
               className="font-bold font-heading text-base sm:text-lg leading-tight"
-              style={{ color: "var(--brand-navy)" }}
+              style={{ color: "var(--brand-heading)" }}
             >
               {doc.title}
             </h4>
@@ -130,9 +129,8 @@ export function DocumentCard({ doc }: { doc: DocumentInfo }) {
           <div className="pt-1">
             <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full"
               style={{
-                backgroundColor:
-                  "color-mix(in srgb, var(--brand-navy) 8%, transparent)",
-                color: "var(--brand-navy)",
+                backgroundColor: "var(--brand-icon-bg)",
+                color: "var(--brand-icon-fg)",
               }}
             >
               ✓ Disponible como servicio en Jotaeme

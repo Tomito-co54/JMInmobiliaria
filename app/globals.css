@@ -60,6 +60,30 @@
     --brand-navy: #1A1B5C;
     --brand-gold: #D4A24C;
 
+    /* Theme-aware brand tokens. The bare --brand-navy / --brand-gold above
+       are the FIXED colors of the brand and don't change. The tokens below
+       are derived "use-cases" — they swap their value in dark mode so the
+       same component code keeps producing correct contrast on both
+       backgrounds.
+
+       --brand-heading       big titles + numbers (navy on white, white on navy)
+       --brand-accent        small accent labels + dividers (gold both modes)
+       --brand-icon-bg       soft chip / icon-circle background
+       --brand-icon-fg       icon glyph color inside that chip
+       --brand-soft-tint-1   decorative blob in section backgrounds
+       --brand-soft-tint-2   second decorative blob (always gold)
+       --brand-circle-bg     solid filled circle (numbered timeline marker)
+       --brand-circle-fg     text color inside that circle
+    */
+    --brand-heading: var(--brand-navy);
+    --brand-accent: var(--brand-gold);
+    --brand-icon-bg: color-mix(in srgb, var(--brand-navy) 8%, transparent);
+    --brand-icon-fg: var(--brand-navy);
+    --brand-soft-tint-1: var(--brand-navy);
+    --brand-soft-tint-2: var(--brand-gold);
+    --brand-circle-bg: var(--brand-navy);
+    --brand-circle-fg: #FFFFFF;
+
     /* Score bands (continuous gradient 0-100; dorado from 95+). See
        lib/scoring/bands.ts for the band boundaries used by the UI. */
     --score-red: #DC2626;
@@ -108,6 +132,23 @@
        background; cards step up to a slightly lighter navy for separation;
        primary buttons flip to white-on-navy so they still pop. Gold accent
        stays the same — it works on both light and dark navy. */
+
+    /* Theme-aware brand tokens — flipped from light. Navy on navy is
+       unreadable, so:
+         - headings use white (high contrast on the navy bg);
+         - icon chips swap to a gold-tinted background with gold icons
+           (the gold against navy is the strongest contrast we have);
+         - timeline circles swap to gold (so the numbered marker pops);
+         - decorative blobs lean on white + gold so they don't fade in. */
+    --brand-heading: #FFFFFF;
+    --brand-accent: var(--brand-gold);
+    --brand-icon-bg: color-mix(in srgb, var(--brand-gold) 16%, transparent);
+    --brand-icon-fg: var(--brand-gold);
+    --brand-soft-tint-1: #FFFFFF;
+    --brand-soft-tint-2: var(--brand-gold);
+    --brand-circle-bg: var(--brand-gold);
+    --brand-circle-fg: var(--brand-navy);
+
     --background: #1A1B5C;            /* brand navy */
     --foreground: #FFFFFF;
     --card: #25267A;                  /* slightly lighter navy for cards */

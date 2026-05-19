@@ -14,7 +14,7 @@ export function GlossarySection({ entries }: { entries: readonly GlossaryEntry[]
             <summary className="cursor-pointer px-4 py-3 list-none flex items-center justify-between gap-3 select-none">
               <span
                 className="font-bold font-heading text-sm"
-                style={{ color: "var(--brand-navy)" }}
+                style={{ color: "var(--brand-heading)" }}
               >
                 {entry.term}
               </span>

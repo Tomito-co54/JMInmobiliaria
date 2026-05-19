@@ -24,7 +24,7 @@ export default async function PagoPendientePage({ searchParams }: PageProps) {
       icon={
         <Clock
           className="size-9"
-          style={{ color: "var(--brand-navy)" }}
+          style={{ color: "var(--brand-heading)" }}
           aria-hidden="true"
         />
       }

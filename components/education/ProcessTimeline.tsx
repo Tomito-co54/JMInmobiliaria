@@ -24,7 +24,7 @@ export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
         className="absolute left-6 top-6 bottom-6 w-px"
         style={{
           background:
-            "linear-gradient(to bottom, var(--brand-navy) 0%, color-mix(in srgb, var(--brand-navy) 30%, transparent) 50%, transparent 100%)",
+            "linear-gradient(to bottom, var(--brand-accent) 0%, color-mix(in srgb, var(--brand-accent) 30%, transparent) 50%, transparent 100%)",
         }}
       />
 
@@ -38,8 +38,8 @@ export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
           <div
             className="absolute left-0 top-0 size-12 rounded-full grid place-items-center font-bold font-heading text-lg shadow-lg ring-4 ring-background"
             style={{
-              backgroundColor: "var(--brand-navy)",
-              color: "white",
+              backgroundColor: "var(--brand-circle-bg)",
+              color: "var(--brand-circle-fg)",
             }}
           >
             {step.number}
@@ -55,7 +55,7 @@ export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
               </p>
               <h3
                 className="text-xl sm:text-2xl font-bold font-heading leading-tight"
-                style={{ color: "var(--brand-navy)" }}
+                style={{ color: "var(--brand-heading)" }}
               >
                 {step.title}
               </h3>

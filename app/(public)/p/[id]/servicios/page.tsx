@@ -93,7 +93,7 @@ export default async function ServiceCatalogPage({ params }: PageProps) {
 
         {/* Intro */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold font-heading" style={{ color: "var(--brand-navy)" }}>
+          <h1 className="text-2xl font-bold font-heading" style={{ color: "var(--brand-heading)" }}>
             Servicios disponibles
           </h1>
           <p className="text-sm text-muted-foreground">

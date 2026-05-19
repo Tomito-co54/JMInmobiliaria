@@ -76,7 +76,7 @@ export async function HomeFeatures() {
       <div
         aria-hidden
         className="pointer-events-none absolute -top-24 -left-24 size-72 rounded-full opacity-20 blur-3xl"
-        style={{ backgroundColor: "var(--brand-navy)" }}
+        style={{ backgroundColor: "var(--brand-soft-tint-1)" }}
       />
       <div
         aria-hidden
@@ -90,7 +90,7 @@ export async function HomeFeatures() {
           <div className="space-y-1">
             <p
               className="text-3xl sm:text-5xl font-bold font-heading tabular-nums leading-none"
-              style={{ color: "var(--brand-navy)" }}
+              style={{ color: "var(--brand-heading)" }}
             >
               {stats.total}
             </p>
@@ -101,7 +101,7 @@ export async function HomeFeatures() {
           <div className="space-y-1 border-x border-border/60">
             <p
               className="text-3xl sm:text-5xl font-bold font-heading tabular-nums leading-none"
-              style={{ color: "var(--brand-navy)" }}
+              style={{ color: "var(--brand-heading)" }}
             >
               {PARTIDOS_ZONA_SUR.length}
             </p>
@@ -132,7 +132,7 @@ export async function HomeFeatures() {
           </p>
           <h2
             className="text-2xl sm:text-4xl font-bold font-heading tracking-tight"
-            style={{ color: "var(--brand-navy)" }}
+            style={{ color: "var(--brand-heading)" }}
           >
             La información que necesitás{" "}
             <span className="italic">antes</span> de comprar
@@ -157,15 +157,15 @@ export async function HomeFeatures() {
                 <div
                   className="inline-flex size-11 items-center justify-center rounded-lg mb-4 transition-colors duration-300"
                   style={{
-                    backgroundColor: "color-mix(in srgb, var(--brand-navy) 8%, transparent)",
-                    color: "var(--brand-navy)",
+                    backgroundColor: "var(--brand-icon-bg)",
+                    color: "var(--brand-icon-fg)",
                   }}
                 >
                   <Icon className="size-5" />
                 </div>
                 <h3
                   className="text-lg font-bold font-heading mb-2 leading-tight"
-                  style={{ color: "var(--brand-navy)" }}
+                  style={{ color: "var(--brand-heading)" }}
                 >
                   {feature.title}
                 </h3>

@@ -63,7 +63,7 @@ export function ServiceCard({ service, propertyId, signedIn }: ServiceCardProps)
       <div className="flex items-end justify-between pt-2 border-t">
         <div>
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Precio</p>
-          <p className="text-2xl font-bold tabular-nums" style={{ color: "var(--brand-navy)" }}>
+          <p className="text-2xl font-bold tabular-nums" style={{ color: "var(--brand-heading)" }}>
             {fmtPrice(service.price, service.currency)}
           </p>
           <p className="text-xs text-muted-foreground mt-1">{service.sla}</p>

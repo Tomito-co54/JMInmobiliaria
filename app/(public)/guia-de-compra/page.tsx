@@ -78,7 +78,7 @@ export default function GuiaDeCompraPage() {
           </div>
           <h1
             className="text-3xl sm:text-5xl font-bold font-heading leading-tight"
-            style={{ color: "var(--brand-navy)" }}
+            style={{ color: "var(--brand-heading)" }}
           >
             Comprar una propiedad en Argentina,{" "}
             <span className="italic">explicado</span>
@@ -104,7 +104,7 @@ export default function GuiaDeCompraPage() {
           <div className="rounded-lg border bg-muted/30 p-4 sm:p-5 space-y-3">
             <p
               className="text-xs uppercase tracking-wider font-medium"
-              style={{ color: "var(--brand-navy)" }}
+              style={{ color: "var(--brand-heading)" }}
             >
               <FileText className="inline size-3.5 mr-1 -mt-0.5" />
               Saltá directo a una etapa
@@ -122,8 +122,8 @@ export default function GuiaDeCompraPage() {
                   <span
                     className="inline-block size-5 rounded-full text-[0.65rem] font-bold grid place-items-center mr-1.5"
                     style={{
-                      backgroundColor: "var(--brand-navy)",
-                      color: "white",
+                      backgroundColor: "var(--brand-circle-bg)",
+                      color: "var(--brand-circle-fg)",
                     }}
                   >
                     {s.number}
@@ -174,7 +174,7 @@ export default function GuiaDeCompraPage() {
             </div>
             <h2
               className="text-2xl sm:text-4xl font-bold font-heading"
-              style={{ color: "var(--brand-navy)" }}
+              style={{ color: "var(--brand-heading)" }}
             >
               Términos que vas a escuchar
             </h2>
@@ -194,7 +194,7 @@ export default function GuiaDeCompraPage() {
         <div className="max-w-3xl mx-auto text-center space-y-4">
           <h2
             className="text-xl sm:text-2xl font-bold font-heading"
-            style={{ color: "var(--brand-navy)" }}
+            style={{ color: "var(--brand-heading)" }}
           >
             ¿Ya estás buscando?
           </h2>

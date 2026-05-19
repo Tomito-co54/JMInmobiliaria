@@ -49,7 +49,7 @@ export function PaymentReturnLayout({
           <div className="space-y-2">
             <h1
               className="text-2xl font-bold font-heading"
-              style={{ color: "var(--brand-navy)" }}
+              style={{ color: "var(--brand-heading)" }}
             >
               {title}
             </h1>

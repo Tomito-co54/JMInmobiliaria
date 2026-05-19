@@ -180,7 +180,7 @@ export default async function MisServiciosPage() {
                   <Link
                     href={`/p/${order.property_id}/servicios`}
                     className="underline hover:no-underline"
-                    style={{ color: "var(--brand-navy)" }}
+                    style={{ color: "var(--brand-heading)" }}
                   >
                     contratar de nuevo
                   </Link>
