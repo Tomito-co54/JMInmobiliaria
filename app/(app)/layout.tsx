@@ -46,9 +46,6 @@ export default async function AppLayout({
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             <BrandLogo variant="isotipo" size={28} />
-            <span className="text-base font-semibold tracking-tight text-foreground hidden sm:inline">
-              Jotaeme
-            </span>
           </Link>
           <div className="flex items-center gap-1">
             <NotificationBell alerts={alerts} unreadCount={unreadCount} />

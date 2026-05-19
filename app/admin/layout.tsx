@@ -45,9 +45,6 @@ export default async function AdminLayout({
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               <BrandLogo variant="isotipo" size={28} />
-              <span className="text-base font-semibold tracking-tight text-foreground hidden sm:inline">
-                Jotaeme
-              </span>
             </Link>
             <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
               Admin

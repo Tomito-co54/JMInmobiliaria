@@ -40,7 +40,6 @@ export default async function OnboardingPage() {
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             <BrandLogo variant="isotipo" size={28} />
-            <span className="text-base font-semibold tracking-tight">Jotaeme</span>
           </Link>
           <span className="text-xs text-muted-foreground">Paso 1 de 1</span>
         </div>

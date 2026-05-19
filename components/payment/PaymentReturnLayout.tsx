@@ -37,9 +37,6 @@ export function PaymentReturnLayout({
             className="inline-flex items-center gap-2"
           >
             <BrandLogo variant="isotipo" size={28} />
-            <span className="text-base font-semibold tracking-tight text-foreground">
-              Jotaeme
-            </span>
           </Link>
         </div>
       </header>

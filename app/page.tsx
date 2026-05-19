@@ -19,7 +19,6 @@ export default async function Home() {
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             <BrandLogo variant="isotipo" size={32} priority />
-            <span className="text-lg font-semibold tracking-tight">Jotaeme</span>
           </Link>
           {user ? (
             <Link href="/dashboard" className={buttonVariants({ size: "sm" })}>
