@@ -7,6 +7,7 @@ import { BrandLogo } from "@/components/shared/BrandLogo";
 import { getProperties } from "@/lib/db/properties";
 import { getFavoritedPropertyIds } from "@/lib/db/favorites";
 import { PropertyCard } from "@/components/property/PropertyCard";
+import { HomeFeatures } from "@/components/home/HomeFeatures";
 import type { QualityBreakdown } from "@/lib/scoring";
 
 const HOME_CATALOG_LIMIT = 12;
@@ -105,6 +106,9 @@ export default async function Home() {
           )}
         </div>
       </section>
+
+      {/* Features — explains the product before showing inventory */}
+      <HomeFeatures />
 
       {/* Catalog */}
       <section
