@@ -40,6 +40,33 @@ type ValidationResult =
   | { ok: true; data: z.infer<typeof InputSchema> }
   | { ok: false; error: string };
 
+/**
+ * Format an unknown thrown value into a human-readable string.
+ *
+ * Supabase JS errors are plain objects with shape:
+ *   { message, details, hint, code }
+ * They are NOT instances of Error. A naive `err instanceof Error`
+ * check misses them and we end up surfacing "Error desconocido"
+ * to the user when the real cause was an RLS violation, a check
+ * constraint, a missing column, etc.
+ */
+function errMsg(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object") {
+    const obj = err as {
+      message?: unknown;
+      details?: unknown;
+      hint?: unknown;
+      code?: unknown;
+    };
+    const parts = [obj.message, obj.details, obj.hint, obj.code]
+      .filter((v) => typeof v === "string" && v.length > 0)
+      .map(String);
+    if (parts.length) return parts.join(" — ");
+  }
+  return "Error desconocido";
+}
+
 function validate(raw: SearchProfileFormValues): ValidationResult {
   const parsed = InputSchema.safeParse(raw);
   if (!parsed.success) {
@@ -71,7 +98,7 @@ export async function createBusquedaAction(
     if (err instanceof SearchProfileLimitError) {
       return { ok: false, error: err.message };
     }
-    const msg = err instanceof Error ? err.message : "Error desconocido";
+    const msg = errMsg(err);
     return { ok: false, error: `No se pudo crear: ${msg}` };
   }
 
@@ -93,7 +120,7 @@ export async function updateBusquedaAction(
   try {
     await updateSearchProfile(id, userId, validation.data);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Error desconocido";
+    const msg = errMsg(err);
     return { ok: false, error: `No se pudo actualizar: ${msg}` };
   }
 

@@ -228,7 +228,11 @@ export async function updateSearchProfile(
 ): Promise<SearchProfileRow> {
   const supabase = await createClient();
 
-  if (input.is_primary) {
+  // Only touch is_primary when the caller explicitly sets it. Editing the
+  // name / zones / price / etc. should NOT silently demote a primary
+  // profile to non-primary — earlier versions of this function used
+  // `is_primary: input.is_primary ?? false`, which is exactly that bug.
+  if (input.is_primary === true) {
     await supabase
       .from("search_profiles")
       .update({ is_primary: false } as never)
@@ -237,21 +241,25 @@ export async function updateSearchProfile(
       .neq("id", id);
   }
 
+  const updatePayload: Record<string, unknown> = {
+    name: input.name,
+    zones: input.zones,
+    price_min: input.price_min,
+    price_max: input.price_max,
+    price_currency: input.price_currency,
+    property_types: input.property_types,
+    operation_type: input.operation_type,
+    rooms_min: input.rooms_min,
+    surface_min: input.surface_min,
+    must_haves: input.must_haves,
+  };
+  if (typeof input.is_primary === "boolean") {
+    updatePayload.is_primary = input.is_primary;
+  }
+
   const { data, error } = await supabase
     .from("search_profiles")
-    .update({
-      name: input.name,
-      zones: input.zones,
-      price_min: input.price_min,
-      price_max: input.price_max,
-      price_currency: input.price_currency,
-      property_types: input.property_types,
-      operation_type: input.operation_type,
-      rooms_min: input.rooms_min,
-      surface_min: input.surface_min,
-      must_haves: input.must_haves,
-      is_primary: input.is_primary ?? false,
-    } as never)
+    .update(updatePayload as never)
     .eq("id", id)
     .select(COLS)
     .single();
