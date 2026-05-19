@@ -103,13 +103,32 @@ function rowToProfile(row: RawProfileRow): SearchProfileRow {
 
 // ---------------------------------------------------------------------------
 // Reads
+//
+// All buyer-facing reads filter explicitly by user_id (not just RLS). Why:
+// migration 00002 added an admin SELECT policy on search_profiles ("admins
+// can read all"), which means an admin user querying through these helpers
+// would see *every* profile in the DB. That's fine for /admin pages but
+// wrong for /busquedas, /dashboard, /onboarding, /p/[id], etc. — those
+// surfaces always mean "current user's profile(s)". An explicit user_id
+// filter keeps the scope right for both roles.
 // ---------------------------------------------------------------------------
 
+async function currentAuthUserId(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
+
 export async function getUserSearchProfiles(): Promise<SearchProfileRow[]> {
+  const userId = await currentAuthUserId();
+  if (!userId) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("search_profiles")
     .select(COLS)
+    .eq("user_id", userId)
     .order("is_primary", { ascending: false })
     .order("created_at", { ascending: true });
   if (error) throw error;
@@ -121,10 +140,13 @@ export async function getUserSearchProfiles(): Promise<SearchProfileRow[]> {
  * none is marked primary (which can happen for legacy rows).
  */
 export async function getPrimarySearchProfile(): Promise<SearchProfileRow | null> {
+  const userId = await currentAuthUserId();
+  if (!userId) return null;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("search_profiles")
     .select(COLS)
+    .eq("user_id", userId)
     .order("is_primary", { ascending: false })
     .order("created_at", { ascending: true })
     .limit(1)
@@ -135,11 +157,14 @@ export async function getPrimarySearchProfile(): Promise<SearchProfileRow | null
 }
 
 export async function getSearchProfileById(id: string): Promise<SearchProfileRow | null> {
+  const userId = await currentAuthUserId();
+  if (!userId) return null;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("search_profiles")
     .select(COLS)
     .eq("id", id)
+    .eq("user_id", userId)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
