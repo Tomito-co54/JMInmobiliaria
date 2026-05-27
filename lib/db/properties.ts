@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import type { QualityBreakdown } from "@/lib/scoring";
 import type { PropertyHistoryRow } from "@/lib/db/property-history";
-import { PUBLIC_PROPERTY_SOURCES } from "@/lib/db/property-sources";
+import {
+  PUBLIC_LISTING_STATUS,
+  PUBLIC_PROPERTY_SOURCES,
+} from "@/lib/db/property-sources";
 
 /**
  * Fetches a single property by ID.
@@ -114,9 +117,11 @@ export async function getPropertyForPublicView(id: string): Promise<PublicProper
     .from("properties")
     .select(PUBLIC_PROPERTY_COLS)
     .eq("id", id)
-    // Public surfaces NEVER show scraped properties — return null so the
-    // page treats it as 404. Scraped properties stay reachable from /admin.
+    // Two-gate public filter (see lib/db/property-sources.ts):
+    //   - source: must be MINE (owner_direct / agency)
+    //   - listing_status: must be DECIDED to show (publicada)
     .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+    .eq("listing_status", PUBLIC_LISTING_STATUS)
     .maybeSingle();
   if (propErr) throw propErr;
   if (!rawProperty) return null;
@@ -166,8 +171,10 @@ export async function getProperties(options?: {
     .from("properties")
     .select("*", { count: "exact" })
     .eq("is_active", true)
-    // Public-only by default; the admin uses lib/db/admin.ts for unscoped reads.
+    // Two-gate public filter (source = mine, listing_status = decidí mostrar).
+    // Admin reads go through lib/db/admin.ts and skip these gates.
     .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+    .eq("listing_status", PUBLIC_LISTING_STATUS)
     .order("created_at", { ascending: false });
 
   if (options?.partido) {
@@ -220,8 +227,9 @@ export async function getPropertiesByProximity(
     .from("properties")
     .select("*", { count: "exact" })
     .eq("is_active", true)
-    // Public-only — the home catalog must never surface scraped listings.
-    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[]);
+    // Two-gate public filter (source = mine, listing_status = decidí mostrar).
+    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+    .eq("listing_status", PUBLIC_LISTING_STATUS);
   if (error) throw error;
 
   const limit = options?.limit ?? 20;

@@ -40,6 +40,13 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "staticbp.com" },
       { protocol: "https", hostname: "trezzapropiedades.com.ar" },
       { protocol: "https", hostname: "www.trezzapropiedades.com.ar" },
+      // Supabase Storage — fotos propias subidas vía el cargador
+      // (bucket `property-photos`, public read).
+      {
+        protocol: "https",
+        hostname: "cjnaxxidigdylnwlpyab.supabase.co",
+        pathname: "/storage/v1/object/public/property-photos/**",
+      },
       // Placeholders del seed inicial — eliminar cuando se reemplacen
       { protocol: "https", hostname: "via.placeholder.com" },
     ],

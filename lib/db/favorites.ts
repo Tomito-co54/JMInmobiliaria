@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { PUBLIC_PROPERTY_SOURCES } from "@/lib/db/property-sources";
+import {
+  PUBLIC_LISTING_STATUS,
+  PUBLIC_PROPERTY_SOURCES,
+} from "@/lib/db/property-sources";
 
 /**
  * Fetches all favorites for the current user, restricted to favorites
@@ -18,10 +21,13 @@ export async function getUserFavorites(userId: string) {
     .from("favorites")
     .select("*, properties!inner(*)")
     .eq("user_id", userId)
+    // Two-gate public filter on the joined property
+    // (source = mine, listing_status = decidí mostrar).
     .in(
       "properties.source",
       PUBLIC_PROPERTY_SOURCES as unknown as string[],
     )
+    .eq("properties.listing_status", PUBLIC_LISTING_STATUS)
     .order("created_at", { ascending: false });
 
   if (error) throw error;

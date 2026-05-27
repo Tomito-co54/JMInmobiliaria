@@ -18,7 +18,13 @@ export interface LookupResult {
   nomenclatura: string;
   surfaceM2: number | null;
   tipo: string | null;
-  matchStrategy: "intersects" | "dwithin";
+  /**
+   * The geo lookup path only emits the first two — `by_partida` is reserved
+   * for the by-partida bridge and shows up here only via the shared
+   * ParcelResult type from wfs.ts. At runtime lookupParcel() never returns
+   * `by_partida`; keeping the union wide just avoids a cast.
+   */
+  matchStrategy: "intersects" | "dwithin" | "by_partida";
   distanceMeters: number;
   source: "cache" | "arba";
 }

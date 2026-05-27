@@ -40,7 +40,16 @@ export interface ParcelResult {
   nomenclatura: string;
   surfaceM2: number | null;
   tipo: string | null;
-  matchStrategy: "intersects" | "dwithin";
+  /**
+   * How the parcel was found:
+   *   - intersects: point fell inside the polygon (geographic lookup).
+   *   - dwithin:    point was within N meters; we picked the closest.
+   *   - by_partida: direct attribute filter on `pda = '...'`. No geometry
+   *                 involved; exact match by tax ID. Used when the owner
+   *                 enters the partida by hand from paper records.
+   */
+  matchStrategy: "intersects" | "dwithin" | "by_partida";
+  /** Always 0 for by_partida (no geographic offset to report). */
   distanceMeters: number;
   rawResponse: WfsFeatureCollection;
 }
@@ -164,7 +173,7 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
 
 function featureToResult(
   feature: WfsFeature,
-  matchStrategy: "intersects" | "dwithin",
+  matchStrategy: "intersects" | "dwithin" | "by_partida",
   distanceMeters: number,
   rawResponse: WfsFeatureCollection,
 ): ParcelResult | null {
@@ -217,3 +226,28 @@ export async function getParcelByPoint(
 
   return featureToResult(best.feature, "dwithin", best.distance, dwithin);
 }
+
+/**
+ * Looks up the parcel that owns a given partida (tax ID) directly, via the
+ * `pda` attribute filter — no geometry involved, no PKCE-style fuzzy match.
+ *
+ * Used by the admin loader where the owner has the exact partida from paper
+ * records. Either the partida exists in ARBA or it doesn't; there is no
+ * "near enough" middle ground here.
+ *
+ * Caller is expected to pre-validate the partida (9 digits, prefix matches
+ * partido). This function only escapes the value defensively — the WFS
+ * tolerates extra single quotes via doubling but we should never get there.
+ */
+export async function getParcelByPartida(
+  partida: string,
+): Promise<ParcelResult | null> {
+  // Defense in depth — the caller validates, but a stray quote shouldn't
+  // crash the query. ARBA's CQL accepts doubled single quotes as the escape.
+  const safe = partida.replace(/'/g, "''");
+  const filter = `pda='${safe}'`;
+  const result = await fetchWfs(filter, 1);
+  if (result.numberReturned === 0 || result.features.length === 0) return null;
+  return featureToResult(result.features[0], "by_partida", 0, result);
+}
+
