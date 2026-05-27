@@ -11,7 +11,7 @@ const PROTECTED_PREFIXES = ["/dashboard", "/perfil", "/admin", "/onboarding"];
  * Routes only accessible to anonymous users.
  * Authenticated requests are redirected to /dashboard.
  */
-const ANON_ONLY_PREFIXES = ["/login", "/register"];
+const ANON_ONLY_PREFIXES = ["/login"];
 
 function isProtected(path: string) {
   return PROTECTED_PREFIXES.some((p) => path === p || path.startsWith(p + "/"));
@@ -69,7 +69,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Authenticated user trying to access /login or /register → /dashboard
+  // Authenticated user trying to access /login → /dashboard
   if (user && isAnonOnly(path)) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";

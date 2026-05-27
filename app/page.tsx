@@ -66,22 +66,10 @@ export default async function Home() {
             >
               Guía de compra
             </Link>
-            {user ? (
+            {user && (
               <Link href="/dashboard" className={buttonVariants({ size: "sm" })}>
                 Ir al dashboard
               </Link>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className={buttonVariants({ variant: "ghost", size: "sm" })}
-                >
-                  Iniciar sesión
-                </Link>
-                <Link href="/register" className={buttonVariants({ size: "sm" })}>
-                  Crear cuenta
-                </Link>
-              </>
             )}
           </div>
         </div>
@@ -104,20 +92,15 @@ export default async function Home() {
           <p className="text-sm text-muted-foreground">
             Zona Sur GBA: Lomas, Banfield, Lanús, Avellaneda, Quilmes.
           </p>
-          {!user && (
-            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
-              <Link href="/register" className={buttonVariants({ size: "lg" })}>
-                Empezar gratis
-              </Link>
-              <a
-                href="#catalogo"
-                className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "gap-1")}
-              >
-                Ver propiedades
-                <ArrowRight className="size-4" />
-              </a>
-            </div>
-          )}
+          <div className="pt-2 flex justify-center">
+            <a
+              href="#catalogo"
+              className={cn(buttonVariants({ size: "lg" }), "gap-1")}
+            >
+              Ver propiedades
+              <ArrowRight className="size-4" />
+            </a>
+          </div>
         </div>
       </section>
 

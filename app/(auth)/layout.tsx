@@ -1,7 +1,8 @@
 import Link from "next/link";
 
 /**
- * Shared layout for all auth pages (/login, /register, /forgot-password, etc.).
+ * Shared layout for all auth pages (/login, /forgot-password,
+ * /reset-password, /verify-email).
  * Mobile-first: centered card on a neutral background.
  */
 export default function AuthLayout({

@@ -203,15 +203,9 @@ export default function GuiaDeCompraPage() {
             propiedades que te encajen — con scoring de calidad y datos
             verificados con ARBA.
           </p>
-          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+          <div className="flex justify-center pt-2">
             <Link href="/buscar" className={buttonVariants({ size: "lg" })}>
               Ver propiedades
-            </Link>
-            <Link
-              href="/register"
-              className={buttonVariants({ variant: "outline", size: "lg" })}
-            >
-              Crear cuenta gratis
             </Link>
           </div>
         </div>

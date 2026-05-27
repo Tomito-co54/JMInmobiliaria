@@ -6,13 +6,17 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import {
   loginSchema,
-  registerSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
 } from "@/lib/validators/auth";
 
 /**
  * Server Actions for authentication flows.
+ *
+ * Public registration was removed in the pivot to the personal-broker
+ * model — there is no `signUp` or OAuth here anymore. The owner logs in
+ * with email + password via /login (`signIn`), can reset their password
+ * via /forgot-password → /reset-password, and signs out via `signOut`.
  *
  * All actions return { ok: true } or { ok: false, error: string }.
  * Errors are user-friendly Spanish messages.
@@ -74,53 +78,6 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
 }
 
 /**
- * Register a new user with email + password.
- * Sends a confirmation email (managed by Supabase).
- */
-export async function signUp(formData: FormData): Promise<ActionResult> {
-  const parsed = registerSchema.safeParse({
-    fullName: formData.get("fullName"),
-    email: formData.get("email"),
-    password: formData.get("password"),
-    confirmPassword: formData.get("confirmPassword"),
-  });
-
-  if (!parsed.success) {
-    return {
-      ok: false,
-      error: "Datos inválidos",
-      fieldErrors: parsed.error.flatten().fieldErrors,
-    };
-  }
-
-  const supabase = await createClient();
-  const origin = await getOrigin();
-
-  const { error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: {
-      emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
-      data: {
-        full_name: parsed.data.fullName,
-      },
-    },
-  });
-
-  if (error) {
-    if (error.message.includes("already registered")) {
-      return {
-        ok: false,
-        error: "Ya existe una cuenta con ese email. Probá iniciar sesión.",
-      };
-    }
-    return { ok: false, error: "No pudimos crear tu cuenta. Intentá de nuevo." };
-  }
-
-  redirect("/verify-email");
-}
-
-/**
  * Sign out the current user.
  */
 export async function signOut(): Promise<ActionResult> {
@@ -128,31 +85,6 @@ export async function signOut(): Promise<ActionResult> {
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/login");
-}
-
-/**
- * Trigger Google OAuth flow.
- */
-export async function signInWithGoogle(): Promise<ActionResult> {
-  const supabase = await createClient();
-  const origin = await getOrigin();
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${origin}/auth/callback?next=/dashboard`,
-    },
-  });
-
-  if (error) {
-    return { ok: false, error: "No pudimos iniciar el login con Google" };
-  }
-
-  if (data.url) {
-    redirect(data.url);
-  }
-
-  return { ok: false, error: "No se recibió la URL de Google" };
 }
 
 /**
