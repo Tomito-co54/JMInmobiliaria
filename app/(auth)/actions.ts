@@ -108,10 +108,13 @@ export async function requestPasswordReset(
   const supabase = await createClient();
   const origin = await getOrigin();
 
+  // Route through /auth/callback so the recovery `code` is exchanged for
+  // a session BEFORE the user lands on the form. Without this, the form
+  // submits without a session and updateUser() silently fails.
   const { error } = await supabase.auth.resetPasswordForEmail(
     parsed.data.email,
     {
-      redirectTo: `${origin}/reset-password`,
+      redirectTo: `${origin}/auth/callback?next=/reset-password`,
     },
   );
 
