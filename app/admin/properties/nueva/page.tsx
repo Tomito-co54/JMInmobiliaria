@@ -1,18 +1,49 @@
-import { createOwnerPropertyAction } from "@/app/admin/properties/actions";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
 /**
- * Trigger route for "+ Nueva propiedad". Renders nothing — the server
- * action creates a fresh draft row and redirects to the editor.
+ * "+ Nueva propiedad" target. Creates a fresh draft owner property
+ * inline (no Server Action) and redirects to the editor.
  *
- * Implemented as a page (not a button-action wired from the list) so:
- *   - The URL is shareable / bookmarkable.
- *   - The admin layout's auth guard runs before any DB write.
- *   - Refreshing creates exactly one new draft per visit (idempotent
- *     enough; the broker can delete stray drafts from the list).
+ * Why inline and not via a Server Action: Server Actions invoked from
+ * a render context (a Server Component body) can't call revalidatePath
+ * — Next.js 15 explicitly forbids that. We don't actually need to
+ * revalidate /admin/properties here anyway:
+ *
+ *   - The redirect takes the broker to the editor, not back to the list.
+ *   - The list page is dynamically rendered (no `revalidate` / no cache),
+ *     so the next visit re-fetches and shows the new draft.
+ *
+ * Auth: the parent /admin/layout.tsx already redirects unauthenticated
+ * or non-admin users — we re-check here only to satisfy the type narrow
+ * before the insert.
  */
 export default async function NewPropertyPage() {
-  await createOwnerPropertyAction();
-  // The action redirects internally; we never get here. Returning null
-  // keeps Next.js happy about the page signature.
-  return null;
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login?redirect=/admin/properties");
+  }
+
+  const { data, error } = await supabase
+    .from("properties")
+    .insert({
+      source: "owner_direct",
+      listing_status: "borrador",
+      is_active: true,
+      operation_type: "venta",
+      price_currency: "USD",
+    } as never)
+    .select("id")
+    .single();
+
+  if (error) {
+    throw new Error(`No pudimos crear la propiedad: ${error.message}`);
+  }
+
+  const id = (data as { id: string }).id;
+  redirect(`/admin/properties/${id}/editar`);
 }

@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   canPublishProperty,
@@ -55,39 +54,11 @@ async function requireAdmin() {
   return { supabase, userId: user.id };
 }
 
-/**
- * Creates a fresh draft property (source = owner_direct, listing_status =
- * borrador). Redirects to the editor on success.
- *
- * Server action invoked from the "+ Nueva propiedad" button. Doesn't take
- * any params — the editor is where the actual fields get filled in.
- */
-export async function createOwnerPropertyAction(): Promise<void> {
-  const ctx = await requireAdmin();
-  if (!ctx) {
-    redirect("/login?redirect=/admin/properties");
-  }
-
-  const { data, error } = await ctx.supabase
-    .from("properties")
-    .insert({
-      source: "owner_direct",
-      listing_status: "borrador",
-      is_active: true,
-      operation_type: "venta",
-      price_currency: "USD",
-    } as never)
-    .select("id")
-    .single();
-
-  if (error) {
-    throw new Error(`No pudimos crear la propiedad: ${error.message}`);
-  }
-
-  const id = (data as { id: string }).id;
-  revalidatePath("/admin/properties");
-  redirect(`/admin/properties/${id}/editar`);
-}
+// Note: creation of a new draft is NOT a Server Action — it happens
+// inline in app/admin/properties/nueva/page.tsx so we don't hit the
+// "revalidatePath during render" prohibition that Next.js 15 enforces.
+// All other mutations below are invoked from client components (button
+// transitions, form submissions), so revalidatePath is valid in them.
 
 /**
  * Updates the editable fields of an owner property. Used for autosaving
