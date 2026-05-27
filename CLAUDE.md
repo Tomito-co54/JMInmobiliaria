@@ -135,6 +135,26 @@ These are settled. Do not propose changes without explicit user confirmation.
 - Never log passwords, tokens, payment data, or personal IDs (DNI).
 - Follow Argentina's Personal Data Protection Law (Ley 25.326).
 
+### 5.1 Handling `SUPABASE_MANAGEMENT_TOKEN`
+
+The owner keeps a Supabase Personal Access Token in `.env.local` as
+`SUPABASE_MANAGEMENT_TOKEN`. It's needed for Management API calls (auth
+config, project settings) that the regular `SUPABASE_SERVICE_ROLE_KEY`
+can't perform.
+
+Rules I follow in every session:
+- **Never** `cat .env.local`, `grep` it for the token, or `echo` the
+  variable. The value must never appear in tool output, commit
+  messages, or chat.
+- **Use only via shell substitution**: `curl -H "Authorization: Bearer
+  $SUPABASE_MANAGEMENT_TOKEN" ...`. The command string I write contains
+  the literal `$VAR`, not the value; the shell substitutes at exec time
+  and the value goes directly to curl without being printed.
+- To verify it exists without leaking: `[ -n "$SUPABASE_MANAGEMENT_TOKEN" ] && echo OK` — only prints "OK", never the contents.
+- If the user pastes the token in chat by accident, treat it as
+  compromised: tell them to revoke it, generate a new one, and put the
+  new one in `.env.local`.
+
 ### 6. Performance budget
 - Mobile First Contentful Paint < 1.5s on 4G.
 - Largest Contentful Paint < 2.5s.
