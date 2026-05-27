@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PARTIDOS_ZONA_SUR } from "@/lib/zona-sur/partidos";
+import { PUBLIC_PROPERTY_SOURCES } from "@/lib/db/property-sources";
 
 /**
  * Mid-landing transition section between the hero and the property
@@ -20,14 +21,20 @@ import { PARTIDOS_ZONA_SUR } from "@/lib/zona-sur/partidos";
 async function getLandingStats() {
   try {
     const supabase = await createClient();
+    // Public stats — only counts properties from our own catalog
+    // (owner_direct + agency). Scraped market-intel listings stay
+    // hidden from public-facing numbers.
+    const publicSources = PUBLIC_PROPERTY_SOURCES as unknown as string[];
     const { count: total } = await supabase
       .from("properties")
       .select("*", { count: "exact", head: true })
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .in("source", publicSources);
     const { count: withArba } = await supabase
       .from("properties")
       .select("*", { count: "exact", head: true })
       .eq("is_active", true)
+      .in("source", publicSources)
       .not("partida", "is", null);
     const t = total ?? 0;
     const a = withArba ?? 0;

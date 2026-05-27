@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { QualityBreakdown } from "@/lib/scoring";
 import type { PropertyHistoryRow } from "@/lib/db/property-history";
+import { PUBLIC_PROPERTY_SOURCES } from "@/lib/db/property-sources";
 
 /**
  * Fetches a single property by ID.
@@ -113,6 +114,9 @@ export async function getPropertyForPublicView(id: string): Promise<PublicProper
     .from("properties")
     .select(PUBLIC_PROPERTY_COLS)
     .eq("id", id)
+    // Public surfaces NEVER show scraped properties — return null so the
+    // page treats it as 404. Scraped properties stay reachable from /admin.
+    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
     .maybeSingle();
   if (propErr) throw propErr;
   if (!rawProperty) return null;
@@ -162,6 +166,8 @@ export async function getProperties(options?: {
     .from("properties")
     .select("*", { count: "exact" })
     .eq("is_active", true)
+    // Public-only by default; the admin uses lib/db/admin.ts for unscoped reads.
+    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
     .order("created_at", { ascending: false });
 
   if (options?.partido) {
@@ -213,7 +219,9 @@ export async function getPropertiesByProximity(
   const { data, error, count } = await supabase
     .from("properties")
     .select("*", { count: "exact" })
-    .eq("is_active", true);
+    .eq("is_active", true)
+    // Public-only — the home catalog must never surface scraped listings.
+    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[]);
   if (error) throw error;
 
   const limit = options?.limit ?? 20;

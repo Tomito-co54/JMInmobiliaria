@@ -1,14 +1,27 @@
 import { createClient } from "@/lib/supabase/server";
+import { PUBLIC_PROPERTY_SOURCES } from "@/lib/db/property-sources";
 
 /**
- * Fetches all favorites for the current user.
+ * Fetches all favorites for the current user, restricted to favorites
+ * whose underlying property is publicly listed (owner_direct or agency).
+ *
+ * Why filter here too: a user could theoretically have favorited a
+ * scraped property when the catalog was still mixed; we don't want
+ * stale favorites pointing at market-intel listings to leak through
+ * the buyer-facing /favoritos page. The `!inner` modifier turns the
+ * embedded join into an inner join so the source filter actually
+ * removes the parent row, not just nulls the embed.
  */
 export async function getUserFavorites(userId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("favorites")
-    .select("*, properties(*)")
+    .select("*, properties!inner(*)")
     .eq("user_id", userId)
+    .in(
+      "properties.source",
+      PUBLIC_PROPERTY_SOURCES as unknown as string[],
+    )
     .order("created_at", { ascending: false });
 
   if (error) throw error;

@@ -10,6 +10,7 @@ import {
   setOrderPreferenceId,
 } from "@/lib/db/service-orders";
 import { createPreference } from "@/lib/services/mercadopago";
+import { PUBLIC_PROPERTY_SOURCES } from "@/lib/db/property-sources";
 
 export type CreateOrderResult =
   | { ok: true; orderId: string; redirectUrl: string }
@@ -44,12 +45,16 @@ export async function createServiceOrderAction(
     return { ok: false, error: "Este servicio todavía no está disponible." };
   }
 
-  // Validate the property exists (we don't want orphan orders pointing at
-  // a missing property).
+  // Validate the property exists AND is publicly listed (owner/agency).
+  // Scraped market-intel listings are not orderable — we never want a
+  // user to pay for a service against a property we don't actually
+  // represent. Defense in depth: the public detail page already 404s
+  // for scraped sources, but a crafted POST shouldn't bypass that.
   const { data: property, error: pErr } = await supabase
     .from("properties")
     .select("id, address")
     .eq("id", propertyId)
+    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
     .maybeSingle();
   if (pErr) {
     return { ok: false, error: "No pudimos verificar la propiedad." };

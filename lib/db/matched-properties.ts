@@ -6,6 +6,7 @@ import {
   type SearchProfileForMatching,
 } from "@/lib/matching";
 import type { QualityBreakdown } from "@/lib/scoring";
+import { PUBLIC_PROPERTY_SOURCES } from "@/lib/db/property-sources";
 
 /**
  * Compute matches between the user's search profile and all active
@@ -109,7 +110,10 @@ export async function getMatchedProperties(
   let query = supabase
     .from("properties")
     .select(PROPERTY_COLS)
-    .eq("is_active", true);
+    .eq("is_active", true)
+    // /buscar is a buyer-facing surface — match only against published
+    // owner/agency listings, never the scraped market-intelligence pool.
+    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[]);
 
   // Push as much filtering as we can to the DB before computing match —
   // the in-memory pass is cheap, but loading rows we'd drop anyway isn't.
