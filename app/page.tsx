@@ -75,20 +75,12 @@ export default async function Home() {
         </div>
       </header>
 
-      {/* Hero */}
+      {/* Hero — copy del H1 y pitch removidos a la espera del nuevo. */}
       <section className="px-4 pt-12 pb-10 sm:pt-16 sm:pb-14">
         <div className="max-w-2xl mx-auto text-center space-y-6">
           <div className="flex justify-center">
             <BrandLogo variant="full" size={140} />
           </div>
-          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight">
-            Comprá tu propiedad con información{" "}
-            <span className="text-primary">verificada</span>
-          </h1>
-          <p className="text-base sm:text-lg text-muted-foreground">
-            Datos catastrales cruzados con ARBA, scoring transparente de cada
-            propiedad y servicios automatizados para que decidas con seguridad.
-          </p>
           <p className="text-sm text-muted-foreground">
             Zona Sur GBA: Lomas, Banfield, Lanús, Avellaneda, Quilmes.
           </p>
