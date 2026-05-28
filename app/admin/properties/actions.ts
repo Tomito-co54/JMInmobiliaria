@@ -87,9 +87,23 @@ export async function updateOwnerPropertyAction(
   const guard = await guardOwnerProperty(ctx.supabase, propertyId);
   if (!guard.ok) return guard;
 
+  // Persist ONLY the keys that were explicitly in the input patch.
+  // Zod validates the full schema and fills in `null`/defaults for missing
+  // fields — if we pass parsed.data straight to UPDATE, saving any one
+  // section would stomp on values that belong to other sections (e.g.
+  // saving "Publicación" would null out `partido` set by the ARBA card
+  // and `address` set by Ubicación). Section saves must be additive.
+  const patchKeys = new Set(Object.keys(patch));
+  const persistable: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(parsed.data)) {
+    if (patchKeys.has(key)) {
+      persistable[key] = value;
+    }
+  }
+
   const { error } = await ctx.supabase
     .from("properties")
-    .update(parsed.data as never)
+    .update(persistable as never)
     .eq("id", propertyId);
 
   if (error) return { ok: false, error: error.message };

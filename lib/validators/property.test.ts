@@ -17,6 +17,48 @@ const COMPLETE_ROW = {
   photos: ["https://example.com/a.jpg"],
 } as const;
 
+/**
+ * Documents the surface area of fields Zod returns after parsing a partial
+ * patch — so the action layer can correctly filter persistable keys to
+ * "only what the user actually submitted". If this set ever changes, the
+ * action-side filter logic must be revisited.
+ */
+describe("ownerPropertyDraftSchema — partial-patch shape", () => {
+  it("fills in null/defaults for fields not in the input, by design", () => {
+    // The schema is intentionally permissive (drafts can be empty), so an
+    // empty input parses to a full object with nulls + defaults. The
+    // server action is responsible for filtering this back down to the
+    // keys actually present in the user's patch — otherwise saving any
+    // section would overwrite values set by other sections.
+    const result = ownerPropertyDraftSchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.partido).toBeNull();
+      expect(result.data.address).toBeNull();
+      expect(result.data.surface_total).toBeNull();
+      expect(result.data.operation_type).toBe("venta");
+      expect(result.data.price_currency).toBe("USD");
+    }
+  });
+
+  it("a patch with only price-related fields still returns nulls for ARBA/location fields", () => {
+    // Regression guard for the bug where saving the Publicación section
+    // returned a parsed object with partido=null and address=null, which
+    // (if blindly passed to UPDATE) clobbered the values from other
+    // sections. The schema returning nulls is correct — the action must
+    // filter by patch keys before persisting.
+    const result = ownerPropertyDraftSchema.safeParse({
+      property_type: "casa",
+      price_amount: 100000,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.partido).toBeNull();
+      expect(result.data.address).toBeNull();
+    }
+  });
+});
+
 describe("ownerPropertyDraftSchema", () => {
   it("accepts an entirely empty payload (draft can be incomplete)", () => {
     const result = ownerPropertyDraftSchema.safeParse({});
