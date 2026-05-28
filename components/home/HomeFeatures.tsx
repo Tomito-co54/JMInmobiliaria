@@ -5,7 +5,6 @@ import {
   FileText,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { PARTIDOS_ZONA_SUR } from "@/lib/zona-sur/partidos";
 import {
   PUBLIC_LISTING_STATUS,
   PUBLIC_PROPERTY_SOURCES,
@@ -40,12 +39,28 @@ async function getLandingStats() {
       .in("source", publicSources)
       .eq("listing_status", PUBLIC_LISTING_STATUS)
       .not("partida", "is", null);
+    // Distinct partidos with at least one published property — refleja la
+    // cobertura REAL del catálogo, no el largo del array maestro de Zona Sur.
+    // Cuando hay una sola propiedad, dice "1". Cuando no hay ninguna, "0".
+    const { data: partidoRows } = await supabase
+      .from("properties")
+      .select("partido")
+      .eq("is_active", true)
+      .in("source", publicSources)
+      .eq("listing_status", PUBLIC_LISTING_STATUS)
+      .not("partido", "is", null);
+    const partidosCount = new Set(
+      (partidoRows ?? [])
+        .map((r) => (r as { partido: string | null }).partido)
+        .filter((p): p is string => p !== null && p.trim() !== ""),
+    ).size;
+
     const t = total ?? 0;
     const a = withArba ?? 0;
     const pct = t > 0 ? Math.round((a / t) * 100) : 0;
-    return { total: t, arbaPct: pct };
+    return { total: t, arbaPct: pct, partidosCount };
   } catch {
-    return { total: 0, arbaPct: 0 };
+    return { total: 0, arbaPct: 0, partidosCount: 0 };
   }
 }
 
@@ -114,7 +129,7 @@ export async function HomeFeatures() {
               className="text-3xl sm:text-5xl font-bold font-heading tabular-nums leading-none"
               style={{ color: "var(--brand-heading)" }}
             >
-              {PARTIDOS_ZONA_SUR.length}
+              {stats.partidosCount}
             </p>
             <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wider">
               partidos cubiertos
