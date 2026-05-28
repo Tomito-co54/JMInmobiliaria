@@ -32,6 +32,12 @@ export async function getPropertyById(id: string) {
 export interface PublicPropertyRow {
   id: string;
   source: string;
+  /**
+   * Editorial state — NULL for scraped properties (which never appear on
+   * public surfaces anyway). Surfaced here so the admin preview can show
+   * a "Vista previa" banner with the current state.
+   */
+  listing_status: "borrador" | "publicada" | "vendida" | null;
   url: string | null;
   partido: string | null;
   partida: string | null;
@@ -75,6 +81,7 @@ export interface PublicPropertyView {
 const PUBLIC_PROPERTY_COLS = [
   "id",
   "source",
+  "listing_status",
   "url",
   "partido",
   "partida",
@@ -109,20 +116,34 @@ const PUBLIC_PROPERTY_COLS = [
  *
  * Returns null when the property doesn't exist — let the caller decide
  * whether that's a notFound() or an error.
+ *
+ * @param options.allowDrafts  When true, skips the listing_status filter so
+ *   the row is returned regardless of its editorial state (still requires
+ *   the source gate). Used by the admin "Ver como comprador" preview flow
+ *   so the broker can see how a borrador / vendida property would render
+ *   before flipping it publicada. Anonymous visitors keep the strict
+ *   filter — they 404 on anything not 'publicada'.
  */
-export async function getPropertyForPublicView(id: string): Promise<PublicPropertyView | null> {
+export async function getPropertyForPublicView(
+  id: string,
+  options: { allowDrafts?: boolean } = {},
+): Promise<PublicPropertyView | null> {
   const supabase = await createClient();
 
-  const { data: rawProperty, error: propErr } = await supabase
+  let query = supabase
     .from("properties")
     .select(PUBLIC_PROPERTY_COLS)
     .eq("id", id)
     // Two-gate public filter (see lib/db/property-sources.ts):
     //   - source: must be MINE (owner_direct / agency)
     //   - listing_status: must be DECIDED to show (publicada)
-    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
-    .eq("listing_status", PUBLIC_LISTING_STATUS)
-    .maybeSingle();
+    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[]);
+
+  if (!options.allowDrafts) {
+    query = query.eq("listing_status", PUBLIC_LISTING_STATUS);
+  }
+
+  const { data: rawProperty, error: propErr } = await query.maybeSingle();
   if (propErr) throw propErr;
   if (!rawProperty) return null;
 

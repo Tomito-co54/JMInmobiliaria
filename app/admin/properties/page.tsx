@@ -15,7 +15,9 @@ interface PageProps {
     search?: string;
     partido?: string;
     propertyType?: string;
-    status?: string;
+    sourceClass?: string;
+    listingStatus?: string;
+    marketStatus?: string;
     page?: string;
   }>;
 }
@@ -50,9 +52,22 @@ function ListingStatusBadge({ status }: { status: string | null }) {
 export default async function AdminPropertiesPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = params.page ? parseInt(params.page, 10) : 1;
-  const status =
-    params.status === "active" || params.status === "inactive"
-      ? params.status
+
+  const marketStatus =
+    params.marketStatus === "active" || params.marketStatus === "inactive"
+      ? params.marketStatus
+      : "all";
+
+  const listingStatus =
+    params.listingStatus === "borrador" ||
+    params.listingStatus === "publicada" ||
+    params.listingStatus === "vendida"
+      ? params.listingStatus
+      : "all";
+
+  const sourceClass =
+    params.sourceClass === "mias" || params.sourceClass === "scrapeadas"
+      ? params.sourceClass
       : "all";
 
   const [result, partidos] = await Promise.all([
@@ -60,7 +75,9 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
       search: params.search,
       partido: params.partido,
       propertyType: params.propertyType,
-      status,
+      marketStatus,
+      listingStatus,
+      sourceClass,
       page,
       pageSize: 25,
     }),

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Eye, RefreshCw } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -15,24 +17,33 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { PARTIDOS_ZONA_SUR_ENTRIES } from "@/lib/zona-sur/partidos";
+import {
+  PARTIDOS_ZONA_SUR_ENTRIES,
+  validatePartida,
+} from "@/lib/zona-sur/partidos";
 import { canPublishProperty } from "@/lib/validators/property";
 import {
   changeListingStatusAction,
+  clearArbaDataAction,
   deleteOwnerPropertyAction,
   lookupArbaByPartidaAction,
   updateOwnerPropertyAction,
 } from "@/app/admin/properties/actions";
+import { useAutoSave } from "@/hooks/use-autosave";
 import { PhotoUploader } from "./photo-uploader";
+import { SectionSaveIndicator } from "./section-save-indicator";
 import type { PropertyRowFromDb } from "./page";
 
 /**
  * Single-screen property loader. All sections live side-by-side; the broker
- * can fill them in any order. Each card has its own "Guardar sección"
- * button — explicit, so the broker knows exactly when data is committed.
+ * can fill them in any order. Each card autosaves silently 800ms after the
+ * last edit — no explicit "Guardar" button. A small indicator next to the
+ * section title tells you when changes are persisting.
  *
  * Status bar at the top: badge + transition buttons. Publish is gated by
- * the canPublishProperty() check.
+ * the canPublishProperty() check. Includes a "Ver como comprador" link so
+ * the broker can preview the public-facing detail page (drafts allowed
+ * for admins; anonymous visitors still 404 on non-publicada properties).
  */
 export function PropertyEditor({ initial }: { initial: PropertyRowFromDb }) {
   const [row, setRow] = useState(initial);
@@ -44,7 +55,11 @@ export function PropertyEditor({ initial }: { initial: PropertyRowFromDb }) {
 
   return (
     <div className="space-y-4">
-      <StatusBar row={row} onPatch={applyRowPatch} onDeleted={() => router.push("/admin/properties")} />
+      <StatusBar
+        row={row}
+        onPatch={applyRowPatch}
+        onDeleted={() => router.push("/admin/properties")}
+      />
 
       <ArbaSection row={row} onPatch={applyRowPatch} />
 
@@ -132,6 +147,17 @@ function StatusBar({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href={`/p/${row.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          title="Abre la vista pública en una pestaña nueva"
+        >
+          <Eye className="size-3.5" />
+          Ver como comprador
+        </Link>
+        <Separator orientation="vertical" className="h-6" />
         {status !== "publicada" && (
           <Button
             size="sm"
@@ -209,6 +235,9 @@ function StatusBadge({
 
 // ===========================================================================
 // Section 1 — ARBA (partido + partida + lookup)
+//
+// This section is NOT autosaved — the only writes happen through the ARBA
+// lookup action (which is a button click) or the "Re-consultar" action.
 // ===========================================================================
 
 function ArbaSection({
@@ -223,11 +252,20 @@ function ArbaSection({
   const [pending, startTransition] = useTransition();
   const [warning, setWarning] = useState<string | null>(null);
 
-  // If ARBA hasn't been pulled yet, lock-in is partido + partida.
-  // Once pulled, all four fields are read-only and the user has to clear
-  // the cadastral data to re-pull (we don't expose that today — just edit
-  // partida and re-pull, which will fail because nomenclatura is set).
   const hasArbaData = !!row.nomenclatura_catastral;
+
+  // Inline validation — runs on every keystroke once both fields have
+  // something. While either is empty we show no error (clean state).
+  // The button enables only when validation passes.
+  const inlineValidation = useMemo(() => {
+    if (!partido || partida.trim() === "") return null;
+    return validatePartida(partido, partida);
+  }, [partido, partida]);
+  const canLookup =
+    !pending &&
+    partido !== "" &&
+    partida.trim() !== "" &&
+    (inlineValidation?.ok ?? false);
 
   function handleLookup() {
     setWarning(null);
@@ -250,6 +288,33 @@ function ArbaSection({
       } else {
         toast.success("Datos de ARBA cargados");
       }
+    });
+  }
+
+  function handleReConsult() {
+    if (
+      !confirm(
+        "Esto limpia los datos catastrales actuales para volver a consultar ARBA. ¿Continuar?",
+      )
+    ) {
+      return;
+    }
+    setWarning(null);
+    startTransition(async () => {
+      const result = await clearArbaDataAction(row.id);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      // Clear local state too so the inputs become editable.
+      onPatch({
+        partida: null,
+        nomenclatura_catastral: null,
+        surface_arba: null,
+        tpa: null,
+      });
+      setPartida("");
+      toast.success("Datos catastrales limpiados — re-ingresá la partida.");
     });
   }
 
@@ -290,45 +355,66 @@ function ArbaSection({
               disabled={hasArbaData || pending}
               placeholder="063-056-604"
               onChange={(e) => setPartida(e.target.value)}
+              aria-invalid={
+                inlineValidation && !inlineValidation.ok ? "true" : undefined
+              }
+              className={
+                inlineValidation && !inlineValidation.ok
+                  ? "border-destructive focus-visible:ring-destructive"
+                  : undefined
+              }
             />
+            {inlineValidation && !inlineValidation.ok && (
+              <p className="text-xs text-destructive">
+                {inlineValidation.message}
+              </p>
+            )}
           </div>
         </div>
 
         {!hasArbaData && (
-          <Button
-            size="sm"
-            disabled={pending || !partido || !partida}
-            onClick={handleLookup}
-          >
+          <Button size="sm" disabled={!canLookup} onClick={handleLookup}>
             {pending ? "Consultando ARBA…" : "Traer datos de ARBA"}
           </Button>
         )}
 
         {hasArbaData && (
-          <div className="rounded-md border bg-muted/40 p-3 space-y-1.5 text-sm">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-muted-foreground">Partida</span>
-              <span className="font-mono tabular-nums">{row.partida ?? "—"}</span>
+          <>
+            <div className="rounded-md border bg-muted/40 p-3 space-y-1.5 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Partida</span>
+                <span className="font-mono tabular-nums">
+                  {row.partida ?? "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Nomenclatura</span>
+                <span className="font-mono text-xs">
+                  {row.nomenclatura_catastral ?? "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Superficie ARBA</span>
+                <span className="tabular-nums">
+                  {row.surface_arba !== null ? `${row.surface_arba} m²` : "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">Tipo</span>
+                <span>{row.tpa ?? "—"}</span>
+              </div>
             </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-muted-foreground">Nomenclatura</span>
-              <span className="font-mono text-xs">
-                {row.nomenclatura_catastral ?? "—"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-muted-foreground">Superficie ARBA</span>
-              <span className="tabular-nums">
-                {row.surface_arba !== null
-                  ? `${row.surface_arba} m²`
-                  : "—"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-muted-foreground">Tipo</span>
-              <span>{row.tpa ?? "—"}</span>
-            </div>
-          </div>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={handleReConsult}
+              title="Limpia los datos catastrales y permite volver a consultar"
+            >
+              <RefreshCw className="size-3.5" />
+              Re-consultar ARBA
+            </Button>
+          </>
         )}
 
         {warning && (
@@ -342,7 +428,7 @@ function ArbaSection({
 }
 
 // ===========================================================================
-// Section 2 — Publicación (tipo, operación, precio, descripción)
+// Section 2 — Publicación (autosaved)
 // ===========================================================================
 
 function PublicacionSection({
@@ -353,43 +439,47 @@ function PublicacionSection({
   onPatch: (patch: Partial<PropertyRowFromDb>) => void;
 }) {
   const [propertyType, setPropertyType] = useState(row.property_type ?? "");
-  const [operationType, setOperationType] = useState(row.operation_type ?? "venta");
+  const [operationType, setOperationType] = useState(
+    row.operation_type ?? "venta",
+  );
   const [priceAmount, setPriceAmount] = useState(
     row.price_amount !== null ? String(row.price_amount) : "",
   );
-  const [priceCurrency, setPriceCurrency] = useState(row.price_currency ?? "USD");
+  const [priceCurrency, setPriceCurrency] = useState(
+    row.price_currency ?? "USD",
+  );
   const [description, setDescription] = useState(row.description ?? "");
-  const [pending, startTransition] = useTransition();
 
-  function save() {
-    startTransition(async () => {
-      const patch = {
-        property_type: propertyType,
-        operation_type: operationType,
-        price_amount: priceAmount,
-        price_currency: priceCurrency,
-        description,
-      };
-      const result = await updateOwnerPropertyAction(row.id, patch);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      onPatch({
-        property_type: propertyType || null,
-        operation_type: operationType,
-        price_amount: priceAmount ? parseFloat(priceAmount) : null,
-        price_currency: priceCurrency as "USD" | "ARS",
-        description: description || null,
-      });
-      toast.success("Publicación guardada");
+  const values = useMemo(
+    () => ({
+      property_type: propertyType,
+      operation_type: operationType,
+      price_amount: priceAmount,
+      price_currency: priceCurrency,
+      description,
+    }),
+    [propertyType, operationType, priceAmount, priceCurrency, description],
+  );
+
+  const { status, lastError } = useAutoSave(values, async () => {
+    const result = await updateOwnerPropertyAction(row.id, values);
+    if (!result.ok) throw new Error(result.error);
+    onPatch({
+      property_type: propertyType || null,
+      operation_type: operationType,
+      price_amount: priceAmount ? parseFloat(priceAmount) : null,
+      price_currency: priceCurrency as "USD" | "ARS",
+      description: description || null,
     });
-  }
+  });
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Publicación</CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base">Publicación</CardTitle>
+          <SectionSaveIndicator status={status} lastError={lastError} />
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
@@ -450,16 +540,13 @@ function PublicacionSection({
             placeholder="Detalle de la propiedad — descripción comercial…"
           />
         </div>
-        <Button size="sm" disabled={pending} onClick={save}>
-          {pending ? "Guardando…" : "Guardar sección"}
-        </Button>
       </CardContent>
     </Card>
   );
 }
 
 // ===========================================================================
-// Section 3 — Datos técnicos
+// Section 3 — Datos técnicos (autosaved)
 // ===========================================================================
 
 function TecnicosSection({
@@ -485,61 +572,92 @@ function TecnicosSection({
   const [garages, setGarages] = useState(
     row.garages !== null ? String(row.garages) : "",
   );
-  const [pending, startTransition] = useTransition();
 
-  function save() {
-    startTransition(async () => {
-      const patch = {
-        surface_total: surfaceTotal,
-        surface_covered: surfaceCovered,
-        rooms,
-        bedrooms,
-        bathrooms,
-        garages,
-      };
-      const result = await updateOwnerPropertyAction(row.id, patch);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      const toInt = (s: string) => (s ? parseInt(s, 10) : null);
-      const toNum = (s: string) => (s ? parseFloat(s) : null);
-      onPatch({
-        surface_total: toNum(surfaceTotal),
-        surface_covered: toNum(surfaceCovered),
-        rooms: toInt(rooms),
-        bedrooms: toInt(bedrooms),
-        bathrooms: toInt(bathrooms),
-        garages: toInt(garages),
-      });
-      toast.success("Datos técnicos guardados");
+  const values = useMemo(
+    () => ({
+      surface_total: surfaceTotal,
+      surface_covered: surfaceCovered,
+      rooms,
+      bedrooms,
+      bathrooms,
+      garages,
+    }),
+    [surfaceTotal, surfaceCovered, rooms, bedrooms, bathrooms, garages],
+  );
+
+  const { status, lastError } = useAutoSave(values, async () => {
+    const result = await updateOwnerPropertyAction(row.id, values);
+    if (!result.ok) throw new Error(result.error);
+    const toInt = (s: string) => (s ? parseInt(s, 10) : null);
+    const toNum = (s: string) => (s ? parseFloat(s) : null);
+    onPatch({
+      surface_total: toNum(surfaceTotal),
+      surface_covered: toNum(surfaceCovered),
+      rooms: toInt(rooms),
+      bedrooms: toInt(bedrooms),
+      bathrooms: toInt(bathrooms),
+      garages: toInt(garages),
     });
-  }
+  });
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Datos técnicos</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
-          <NumberField id="surface_total" label="m² total" value={surfaceTotal} onChange={setSurfaceTotal} />
-          <NumberField id="surface_covered" label="m² cubierto" value={surfaceCovered} onChange={setSurfaceCovered} />
-          <NumberField id="rooms" label="Ambientes" value={rooms} onChange={setRooms} integer />
-          <NumberField id="bedrooms" label="Dormitorios" value={bedrooms} onChange={setBedrooms} integer />
-          <NumberField id="bathrooms" label="Baños" value={bathrooms} onChange={setBathrooms} integer />
-          <NumberField id="garages" label="Cocheras" value={garages} onChange={setGarages} integer />
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base">Datos técnicos</CardTitle>
+          <SectionSaveIndicator status={status} lastError={lastError} />
         </div>
-        <Button size="sm" disabled={pending} onClick={save}>
-          {pending ? "Guardando…" : "Guardar sección"}
-        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+          <NumberField
+            id="surface_total"
+            label="m² total"
+            value={surfaceTotal}
+            onChange={setSurfaceTotal}
+          />
+          <NumberField
+            id="surface_covered"
+            label="m² cubierto"
+            value={surfaceCovered}
+            onChange={setSurfaceCovered}
+          />
+          <NumberField
+            id="rooms"
+            label="Ambientes"
+            value={rooms}
+            onChange={setRooms}
+            integer
+          />
+          <NumberField
+            id="bedrooms"
+            label="Dormitorios"
+            value={bedrooms}
+            onChange={setBedrooms}
+            integer
+          />
+          <NumberField
+            id="bathrooms"
+            label="Baños"
+            value={bathrooms}
+            onChange={setBathrooms}
+            integer
+          />
+          <NumberField
+            id="garages"
+            label="Cocheras"
+            value={garages}
+            onChange={setGarages}
+            integer
+          />
+        </div>
       </CardContent>
     </Card>
   );
 }
 
 // ===========================================================================
-// Section 4 — Ubicación
+// Section 4 — Ubicación (autosaved)
 // ===========================================================================
 
 function UbicacionSection({
@@ -550,29 +668,27 @@ function UbicacionSection({
   onPatch: (patch: Partial<PropertyRowFromDb>) => void;
 }) {
   const [address, setAddress] = useState(row.address ?? "");
-  const [pending, startTransition] = useTransition();
 
-  function save() {
-    startTransition(async () => {
-      const result = await updateOwnerPropertyAction(row.id, { address });
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
-      }
-      onPatch({ address: address || null });
-      toast.success("Ubicación guardada");
-    });
-  }
+  const values = useMemo(() => ({ address }), [address]);
+
+  const { status, lastError } = useAutoSave(values, async () => {
+    const result = await updateOwnerPropertyAction(row.id, { address });
+    if (!result.ok) throw new Error(result.error);
+    onPatch({ address: address || null });
+  });
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Ubicación</CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base">Ubicación</CardTitle>
+          <SectionSaveIndicator status={status} lastError={lastError} />
+        </div>
         <CardDescription>
           El partido vive en la sección ARBA (vincula con catastro).
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent>
         <div className="space-y-1.5">
           <Label htmlFor="address">Dirección</Label>
           <Input
@@ -582,16 +698,13 @@ function UbicacionSection({
             placeholder="Calle Nombre 1234"
           />
         </div>
-        <Button size="sm" disabled={pending} onClick={save}>
-          {pending ? "Guardando…" : "Guardar sección"}
-        </Button>
       </CardContent>
     </Card>
   );
 }
 
 // ===========================================================================
-// Section 5 — Fotos
+// Section 5 — Fotos (not autosaved — its own upload/reorder pipeline)
 // ===========================================================================
 
 function PhotosSection({
@@ -683,3 +796,4 @@ function NumberField({
     </div>
   );
 }
+

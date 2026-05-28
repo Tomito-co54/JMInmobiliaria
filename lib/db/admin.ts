@@ -49,15 +49,33 @@ export async function getDashboardMetrics() {
 
 /**
  * Paginated property list for the admin table, with optional filters.
+ *
+ * Two orthogonal status filters:
+ *   - `marketStatus` filters `is_active` (relevant to scraped listings —
+ *     is the aviso still alive on its source portal?).
+ *   - `listingStatus` filters `listing_status` (relevant to owner-managed
+ *     listings — the broker's editorial state).
+ *
+ * Both can be combined; e.g. `marketStatus=active, listingStatus=publicada`
+ * narrows to publicly-shown listings.
  */
 export interface AdminPropertyFilters {
   search?: string;
   partido?: string;
   propertyType?: string;
-  status?: "all" | "active" | "inactive";
+  marketStatus?: "all" | "active" | "inactive";
+  listingStatus?: "all" | "borrador" | "publicada" | "vendida";
+  /**
+   * Convenience filter by source class:
+   *   - "mias"        → source IN ('owner_direct','agency')
+   *   - "scrapeadas"  → source NOT IN ('owner_direct','agency')
+   */
+  sourceClass?: "all" | "mias" | "scrapeadas";
   page?: number;
   pageSize?: number;
 }
+
+const OWNER_SOURCES = ["owner_direct", "agency"];
 
 export async function getPropertiesAdmin(filters: AdminPropertyFilters = {}) {
   const supabase = await createClient();
@@ -84,10 +102,21 @@ export async function getPropertiesAdmin(filters: AdminPropertyFilters = {}) {
   if (filters.propertyType) {
     query = query.eq("property_type", filters.propertyType);
   }
-  if (filters.status === "active") {
+  if (filters.marketStatus === "active") {
     query = query.eq("is_active", true);
-  } else if (filters.status === "inactive") {
+  } else if (filters.marketStatus === "inactive") {
     query = query.eq("is_active", false);
+  }
+  if (
+    filters.listingStatus &&
+    filters.listingStatus !== "all"
+  ) {
+    query = query.eq("listing_status", filters.listingStatus);
+  }
+  if (filters.sourceClass === "mias") {
+    query = query.in("source", OWNER_SOURCES);
+  } else if (filters.sourceClass === "scrapeadas") {
+    query = query.not("source", "in", `(${OWNER_SOURCES.map((s) => `"${s}"`).join(",")})`);
   }
 
   query = query.range(from, to);

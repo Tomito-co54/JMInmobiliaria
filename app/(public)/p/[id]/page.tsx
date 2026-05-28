@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { getPropertyForPublicView } from "@/lib/db/properties";
 import { getPrimarySearchProfile } from "@/lib/db/search-profiles";
 import { computeMatchScore, type PropertyForMatching } from "@/lib/matching";
 import { getCurrentUserId } from "@/lib/db/users";
 import { isFavorited } from "@/lib/db/favorites";
+import { PreviewBanner } from "./preview-banner";
 import { PropertyTopBar } from "@/components/property/PropertyTopBar";
 import { PropertyCover } from "@/components/property/PropertyCover";
 import { PropertyPriceBlock } from "@/components/property/PropertyPriceBlock";
@@ -39,9 +41,29 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+/**
+ * Decides whether the current request is an admin previewing a draft.
+ * Admins can see borrador/vendida; anonymous and non-admin users can't.
+ * Defined once and reused by both generateMetadata and the page itself.
+ */
+async function isAdminPreview() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data: profile } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  return (profile as { role?: string } | null)?.role === "admin";
+}
+
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params;
-  const view = await getPropertyForPublicView(id);
+  const allowDrafts = await isAdminPreview();
+  const view = await getPropertyForPublicView(id, { allowDrafts });
   if (!view) return { title: "Propiedad no encontrada — Jotaeme" };
   const { property } = view;
   const title = property.address
@@ -55,7 +77,8 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function PublicPropertyPage({ params }: PageProps) {
   const { id } = await params;
-  const view = await getPropertyForPublicView(id);
+  const allowDrafts = await isAdminPreview();
+  const view = await getPropertyForPublicView(id, { allowDrafts });
   if (!view) notFound();
 
   const { property, arbaLookup, history } = view;
@@ -89,8 +112,26 @@ export default async function PublicPropertyPage({ params }: PageProps) {
   const userId = await getCurrentUserId();
   const favorited = userId ? await isFavorited(userId, property.id) : false;
 
+  // Preview banner: only shows when an admin is looking at a non-publicada
+  // property. Anonymous visitors never reach this branch (the strict
+  // listing_status filter 404s them before this code runs).
+  const showPreviewBanner =
+    allowDrafts && property.listing_status !== "publicada";
+
   return (
     <main className="min-h-screen bg-background">
+      {showPreviewBanner && (
+        <PreviewBanner
+          propertyId={property.id}
+          listingStatus={
+            (property.listing_status as
+              | "borrador"
+              | "vendida"
+              | "publicada"
+              | null) ?? "borrador"
+          }
+        />
+      )}
       <PropertyTopBar />
 
       <article className="max-w-2xl mx-auto px-4 py-5 space-y-6">

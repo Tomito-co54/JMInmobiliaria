@@ -204,6 +204,39 @@ export async function lookupArbaByPartidaAction(
 }
 
 /**
+ * Clears all ARBA-derived fields on a property so the broker can re-run
+ * the lookup. Used by "Re-consultar ARBA" when the original lookup hit
+ * the wrong parcel or the partida was mistyped.
+ *
+ * After this, the ARBA section unlocks (partido/partida inputs become
+ * editable again) and the broker can call lookupArbaByPartidaAction
+ * with the corrected values.
+ */
+export async function clearArbaDataAction(
+  propertyId: string,
+): Promise<ActionResult> {
+  const ctx = await requireAdmin();
+  if (!ctx) return { ok: false, error: "No autorizado." };
+
+  const guard = await guardOwnerProperty(ctx.supabase, propertyId);
+  if (!guard.ok) return guard;
+
+  const { error } = await ctx.supabase
+    .from("properties")
+    .update({
+      partida: null,
+      nomenclatura_catastral: null,
+      surface_arba: null,
+      tpa: null,
+    } as never)
+    .eq("id", propertyId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/admin/properties/${propertyId}/editar`);
+  return { ok: true };
+}
+
+/**
  * Uploads a single photo via FormData, appends its public URL to
  * properties.photos[]. The first photo in the array is the portada.
  */
