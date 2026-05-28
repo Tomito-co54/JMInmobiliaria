@@ -87,7 +87,7 @@ export async function getPropertiesAdmin(filters: AdminPropertyFilters = {}) {
   let query = supabase
     .from("properties")
     .select(
-      "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, surface_total, is_active, listing_status, quality_score, first_seen_at, last_seen_at, source",
+      "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, surface_total, is_active, listing_status, is_featured, quality_score, first_seen_at, last_seen_at, source",
       { count: "exact" },
     )
     .order("last_seen_at", { ascending: false });

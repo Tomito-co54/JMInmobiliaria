@@ -423,6 +423,45 @@ export async function changeListingStatusAction(
 }
 
 /**
+ * Toggles the `is_featured` flag on an owner property. Featured properties
+ * (combined with listing_status='publicada') become eligible to be the
+ * home page protagonista — the editorial centerpiece with the cut-out
+ * gesture. The broker curates this manually; nothing auto-flips it.
+ *
+ * Idempotent in the sense that the new state is always the OPPOSITE of
+ * what's currently in DB — the caller doesn't need to know the current
+ * value.
+ */
+export async function toggleFeaturedAction(
+  propertyId: string,
+): Promise<ActionResult<{ is_featured: boolean }>> {
+  const ctx = await requireAdmin();
+  if (!ctx) return { ok: false, error: "No autorizado." };
+
+  const guard = await guardOwnerProperty(ctx.supabase, propertyId);
+  if (!guard.ok) return guard;
+
+  const { data: current, error: readErr } = await ctx.supabase
+    .from("properties")
+    .select("is_featured")
+    .eq("id", propertyId)
+    .single();
+  if (readErr) return { ok: false, error: readErr.message };
+
+  const next = !((current as { is_featured: boolean }).is_featured);
+  const { error: writeErr } = await ctx.supabase
+    .from("properties")
+    .update({ is_featured: next } as never)
+    .eq("id", propertyId);
+  if (writeErr) return { ok: false, error: writeErr.message };
+
+  revalidatePath("/admin/properties");
+  revalidatePath(`/admin/properties/${propertyId}/editar`);
+  revalidatePath("/"); // home rotation depends on this set
+  return { ok: true, data: { is_featured: next } };
+}
+
+/**
  * Permanently deletes an owner property — row + all photos in Storage.
  * Refuses to operate on scraped properties (guardOwnerProperty enforces).
  */

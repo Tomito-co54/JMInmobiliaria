@@ -390,6 +390,32 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 
 ---
 
+## Antes de tocar cualquier cosa visual
+
+**Regla dura:** antes de modificar componentes visuales, layout, estilos,
+tipografía, colores, spacing, copy de UI, o tomar cualquier decisión de
+diseño — **leer `DIRECCION_DE_ARTE.md`** (vive en la raíz del repo).
+
+Aplica a:
+- Cambios en `app/page.tsx` (landing), `/p/[id]`, `/guia-de-compra`,
+  o cualquier surface pública.
+- Componentes de `components/property/`, `components/scoring/`,
+  `components/home/`, `components/shared/`.
+- Tokens en `lib/brand/`, `globals.css`, Tailwind config.
+- Cualquier propuesta de "este botón se ve mejor así" / "movamos esto" /
+  "cambiemos la jerarquía".
+
+NO aplica a (lectura de DIRECCION_DE_ARTE no obligatoria):
+- Cambios de lógica de negocio, queries, schemas, server actions sin
+  impacto visual.
+- Fixes de bugs que solo restauran comportamiento previo.
+- Refactors internos sin cambio de UI.
+
+Si la decisión que vas a tomar afecta cómo SE VE algo, leer el doc primero
+y referenciar la sección relevante en el commit/explicación.
+
+---
+
 ## What NOT to do
 
 - ❌ No proponer nuevo stack sin confirmación explícita.
