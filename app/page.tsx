@@ -7,6 +7,7 @@ import { BrandLogo } from "@/components/shared/BrandLogo";
 import { getPropertiesByProximity, ZONA_SUR_CENTER } from "@/lib/db/properties";
 import { getFavoritedPropertyIds } from "@/lib/db/favorites";
 import { PropertyCard } from "@/components/property/PropertyCard";
+import { HomeHero } from "@/components/home/HomeHero";
 import { HomeFeatures } from "@/components/home/HomeFeatures";
 import type { QualityBreakdown } from "@/lib/scoring";
 
@@ -75,26 +76,7 @@ export default async function Home() {
         </div>
       </header>
 
-      {/* Hero — copy del H1 y pitch removidos a la espera del nuevo. */}
-      <section className="px-4 pt-12 pb-10 sm:pt-16 sm:pb-14">
-        <div className="max-w-2xl mx-auto text-center space-y-6">
-          <div className="flex justify-center">
-            <BrandLogo variant="full" size={140} />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Zona Sur GBA: Lomas, Banfield, Lanús, Avellaneda, Quilmes.
-          </p>
-          <div className="pt-2 flex justify-center">
-            <a
-              href="#catalogo"
-              className={cn(buttonVariants({ size: "lg" }), "gap-1")}
-            >
-              Ver propiedades
-              <ArrowRight className="size-4" />
-            </a>
-          </div>
-        </div>
-      </section>
+      <HomeHero />
 
       {/* Features — explains the product before showing inventory */}
       <HomeFeatures />
