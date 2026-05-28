@@ -2,6 +2,18 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
+  // Server Actions body limit. Default is 1MB, which crashes the
+  // property-photo uploader the moment the broker drags in a normal
+  // phone photo (often 2-6MB). The bucket itself caps at 10MB per file
+  // (see supabase/migrations/00012_property_photos_bucket.sql); we set
+  // 12MB here so the Storage layer is the one that rejects oversize
+  // files with a clean error, instead of the framework swallowing the
+  // request before our action runs.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "12mb",
+    },
+  },
   // Force-include the woff fonts used by @react-pdf/renderer for the
   // service deliverable PDFs. The fonts.ts module resolves them with
   // path.join(process.cwd(), "node_modules", ...) which Next.js's
