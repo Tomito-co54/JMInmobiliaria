@@ -8,6 +8,7 @@ import { getPropertiesByProximity, ZONA_SUR_CENTER } from "@/lib/db/properties";
 import { getFavoritedPropertyIds } from "@/lib/db/favorites";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { HomeHero } from "@/components/home/HomeHero";
+import { HomeProtagonist } from "@/components/home/HomeProtagonist";
 import { HomeFeatures } from "@/components/home/HomeFeatures";
 import type { QualityBreakdown } from "@/lib/scoring";
 
@@ -77,6 +78,11 @@ export default async function Home() {
       </header>
 
       <HomeHero />
+
+      {/* Protagonista — the brand-signature showpiece (§2.6). Renders only
+          when there's a curated is_featured + publicada property; otherwise
+          it returns null and the home flows straight into the features. */}
+      <HomeProtagonist />
 
       {/* Features — explains the product before showing inventory */}
       <HomeFeatures />

@@ -279,6 +279,87 @@ export async function getPropertiesByProximity(
   return { data: sorted, count: count ?? 0 };
 }
 
+// ============================================================================
+// Home protagonista (Block 3 — rediseño de la home)
+// ============================================================================
+
+/**
+ * Tight row for the home's "propiedad destacada" showpiece. Only the
+ * columns the protagonist component actually paints — keeps the payload
+ * small for a surface that renders on every public home hit.
+ */
+export interface FeaturedPropertyRow {
+  id: string;
+  address: string | null;
+  partido: string | null;
+  property_type: string | null;
+  price_amount: number | null;
+  price_currency: "USD" | "ARS" | null;
+  rooms: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  surface_total: number | null;
+  surface_arba: number | null;
+  photos: string[];
+  partida: string | null;
+  quality_score_breakdown: QualityBreakdown | null;
+}
+
+const FEATURED_PROPERTY_COLS = [
+  "id",
+  "address",
+  "partido",
+  "property_type",
+  "price_amount",
+  "price_currency",
+  "rooms",
+  "bedrooms",
+  "bathrooms",
+  "surface_total",
+  "surface_arba",
+  "photos",
+  "partida",
+  "quality_score_breakdown",
+  "created_at",
+].join(", ");
+
+/**
+ * Picks the home's protagonista — the single editorial centerpiece that
+ * gets the "recorte que sobresale del cuadrante" treatment (DIRECCION_DE_
+ * ARTE §2.6). The broker curates the eligible pool by flipping is_featured
+ * from /admin/properties; the same two-gate public filter still applies
+ * (must be mine + publicada) so a featured-but-unpublished row never leaks.
+ *
+ * Rotation: when more than one property is featured, we rotate one per
+ * calendar day. The index is derived from the day number so it is stable
+ * within a single day (no hydration drift on a Server Component, no churn
+ * between requests) but the showpiece changes daily. With a single
+ * featured property the rotation is a no-op and it always shows.
+ *
+ * Returns null when nothing is eligible — the caller drops the section.
+ */
+export async function getFeaturedProperty(): Promise<FeaturedPropertyRow | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("properties")
+    .select(FEATURED_PROPERTY_COLS)
+    .eq("is_featured", true)
+    // Two-gate public filter (see lib/db/property-sources.ts) — the
+    // is_featured CHECK constraint already restricts to owner sources, but
+    // we keep the explicit gate so the rule lives in one obvious place.
+    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+    .eq("listing_status", PUBLIC_LISTING_STATUS)
+    // Deterministic base order so the daily rotation index is stable.
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as FeaturedPropertyRow[];
+  if (rows.length === 0) return null;
+
+  const dayIndex = Math.floor(Date.now() / 86_400_000) % rows.length;
+  return rows[dayIndex];
+}
+
 /**
  * Counts properties by status (for admin dashboard).
  */
