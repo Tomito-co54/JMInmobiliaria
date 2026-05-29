@@ -9,7 +9,7 @@ import { getFavoritedPropertyIds } from "@/lib/db/favorites";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { HomeHero } from "@/components/home/HomeHero";
 import { HomeProtagonist } from "@/components/home/HomeProtagonist";
-import { HomeFeatures } from "@/components/home/HomeFeatures";
+import { HomeGuarantees } from "@/components/home/HomeGuarantees";
 import type { QualityBreakdown } from "@/lib/scoring";
 
 const HOME_CATALOG_LIMIT = 12;
@@ -84,8 +84,8 @@ export default async function Home() {
           it returns null and the home flows straight into the features. */}
       <HomeProtagonist />
 
-      {/* Features — explains the product before showing inventory */}
-      <HomeFeatures />
+      {/* Garantías — explains the product (two tones) before the catalog */}
+      <HomeGuarantees />
 
       {/* Catalog */}
       <section
