@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import { getFeaturedProperty } from "@/lib/db/properties";
+import type { FeaturedPropertyRow } from "@/lib/db/properties";
 import { getScoreBand } from "@/lib/scoring/bands";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -57,8 +57,8 @@ function fmtPrice(amount: number): string {
   return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(amount);
 }
 
-export async function HomeProtagonist() {
-  const p = await getFeaturedProperty();
+export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | null }) {
+  const p = property;
   // No curated centerpiece → the section simply doesn't exist. The home
   // flows hero → features → catalog without a gap.
   if (!p) return null;
