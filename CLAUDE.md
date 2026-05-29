@@ -57,9 +57,35 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status:** Pivote operativo. Cargador funcional. Próximo bloque grande:
-**Dashboard de inteligencia de mercado** (donde las propiedades
-scrapeadas finalmente sirven para algo, separadas del catálogo público).
+**Status:** Rediseño de la home pública **en curso** (rama
+`rediseno-home`). Bloques 1 y 2 hechos y pusheados; quedan 3, 4 y 5.
+
+### Rediseño de la home en curso (rama `rediseno-home`)
+
+**Plan aprobado por el owner** y documentado en `DIRECCION_DE_ARTE.md`.
+Se ejecuta en 5 bloques; cada bloque commit propio + push para mostrar
+progreso visual antes de continuar.
+
+| # | Bloque | Estado | Commit |
+|---|---|---|---|
+| 1 | `is_featured` flag + toggle ★ en `/admin/properties` (migración 00013, server action, FeaturedToggle client component, CHECK constraint solo permite `true` en owner sources) | ✅ | `29609ad` |
+| 2 | Hero — extraído a `components/home/HomeHero.tsx`. Cascade de entrada con stagger 120ms, eyebrow dorado caps, Fraunces italic placeholder, bullets centrales, scroll hint con bounce, background radial sutil | ✅ | `b93ab09` |
+| 3 | Propiedad protagonista (rotación entre `is_featured=true AND listing_status='publicada'`) con el recorte que sobresale del cuadrante (§2.6 del DIRECCION_DE_ARTE) | ⏭ próximo | |
+| 4 | Garantías E1 ajustado — dos tonos distintos: bloque ARBA/verificación sobrio editorial; bloque Score/Match/Servicios dinámico controlado ("gamer" prolijo) | ⏭ | |
+| 5 | Resto del catálogo — sistema de 3 tratamientos editoriales (premium cards alternadas + lista editorial + CTA "Ver todas") | ⏭ | |
+
+**DB:** la única `publicada` (`a33f1a22` — Belgrano 1285) ya está
+marcada `is_featured=true` para que el Bloque 3 tenga candidata real al
+arrancar.
+
+**Reglas operativas del rediseño:**
+- Antes de cualquier decisión visual, **leer `DIRECCION_DE_ARTE.md`** y
+  referenciar la sección que la justifica.
+- En zona gris, aplicar las **4 preguntas** (regla de oro al final del
+  doc) explícitamente.
+- Commit por bloque + push antes de continuar — mostrar progreso visual
+  al owner por bloque, no esperar a tener todo.
+- No mergear a `main` hasta que el owner apruebe la rama completa.
 
 ### Hitos (este fork)
 
