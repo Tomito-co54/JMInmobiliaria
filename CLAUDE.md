@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status:** Rediseño de la home pública **en curso** (rama
-`rediseno-home`). Bloques 1, 2 y 3 hechos y pusheados; quedan 4 y 5.
+`rediseno-home`). Bloques 1, 2, 3 y 4 hechos y pusheados; queda el 5.
 
 ### Rediseño de la home en curso (rama `rediseno-home`)
 
@@ -71,7 +71,7 @@ progreso visual antes de continuar.
 | 1 | `is_featured` flag + toggle ★ en `/admin/properties` (migración 00013, server action, FeaturedToggle client component, CHECK constraint solo permite `true` en owner sources) | ✅ | `29609ad` |
 | 2 | Hero — extraído a `components/home/HomeHero.tsx`. Cascade de entrada con stagger 120ms, eyebrow dorado caps, Fraunces italic placeholder, bullets centrales, scroll hint con bounce, background radial sutil | ✅ | `b93ab09` |
 | 3 | Propiedad protagonista — `getFeaturedProperty()` (rota 1/día entre `is_featured=true AND publicada`, honra el filtro de dos puertas), `components/home/HomeProtagonist.tsx` server component entre Hero y Features: cuadrante rígido de fondo + foto enmarcada que sobresale de su margen (§2.6), medallón de Quality Score solapado, chip ARBA. Asset honesto: frame rectangular hoy, cut-out PNG cuando exista | ✅ | `ae16d81` |
-| 4 | Garantías E1 ajustado — dos tonos distintos: bloque ARBA/verificación sobrio editorial; bloque Score/Match/Servicios dinámico controlado ("gamer" prolijo) | ⏭ | |
+| 4 | Garantías en dos tonos — reemplaza `HomeFeatures` (grilla 2x2, era la lista negra §6) por `HomeGuarantees` + `HomeGuaranteesClient`. Tono 1 ARBA sobrio (polígono que se dibuja, partida, m², cifra % ARBA real); Tono 2 dinámico sobre panel tintado (anillo Score 0→N, Match reactivo al tap, secuencia de 3 pasos del informe). Hooks propios `use-in-view.ts` (IntersectionObserver + count-up rAF), sin librería de animación; SVG con `currentColor` (visible en dark). Stats strip disuelto | ✅ | `a61ab95` |
 | 5 | Resto del catálogo — sistema de 3 tratamientos editoriales (premium cards alternadas + lista editorial + CTA "Ver todas") | ⏭ | |
 
 **DB:** la única `publicada` (`a33f1a22` — Belgrano 1285) ya está
