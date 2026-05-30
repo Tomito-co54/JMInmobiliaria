@@ -1,30 +1,20 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { BrandLogo } from "@/components/shared/BrandLogo";
-import { getPropertiesByProximity, ZONA_SUR_CENTER } from "@/lib/db/properties";
-import { getFavoritedPropertyIds } from "@/lib/db/favorites";
-import { PropertyCard } from "@/components/property/PropertyCard";
-import { HomeFeatures } from "@/components/home/HomeFeatures";
-import type { QualityBreakdown } from "@/lib/scoring";
+import {
+  getPropertiesByProximity,
+  getFeaturedProperty,
+  ZONA_SUR_CENTER,
+} from "@/lib/db/properties";
+import { HomeHero } from "@/components/home/HomeHero";
+import { HomeProtagonist } from "@/components/home/HomeProtagonist";
+import { HomeGuarantees } from "@/components/home/HomeGuarantees";
+import { HomeCatalog } from "@/components/home/HomeCatalog";
+import type { PremiumCardProperty } from "@/components/home/PropertyPremiumCard";
 
-const HOME_CATALOG_LIMIT = 12;
-
-interface PropertyRow {
-  id: string;
-  property_type: string | null;
-  partido: string | null;
-  address: string | null;
-  price_amount: number | null;
-  price_currency: "USD" | "ARS" | null;
-  rooms: number | null;
-  surface_total: number | null;
-  surface_arba: number | null;
-  photos: string[];
-  quality_score_breakdown: QualityBreakdown | null;
-}
+const HOME_CATALOG_LIMIT = 6;
 
 export default async function Home() {
   const supabase = await createClient();
@@ -32,18 +22,24 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Pull a slice of properties to seed the catalog on the landing. With
-  // no profile context for anons we order by proximity to the geographic
-  // center of our service area (ZONA_SUR_CENTER), so visitors see
-  // properties clustered in the most-covered part of GBA first. Match
-  // scoring is not run here (no profile, and we want first paint fast).
-  // For match-scored discovery the buyer goes to /buscar after signup.
-  const { data: rows, count: totalProperties } = await getPropertiesByProximity(
-    ZONA_SUR_CENTER,
-    { limit: HOME_CATALOG_LIMIT },
-  );
-  const properties = rows as unknown as PropertyRow[];
-  const favoritedIds = user ? await getFavoritedPropertyIds(user.id) : new Set<string>();
+  // The protagonista (rotating featured property) and the catalog slice run
+  // in parallel. getFeaturedProperty is deterministic within a day, so the
+  // id we exclude from the catalog matches what HomeProtagonist renders.
+  const [featured, proximity] = await Promise.all([
+    getFeaturedProperty(),
+    // Proximity sort to ZONA_SUR_CENTER seeds the catalog for anons with no
+    // profile — properties clustered in the most-covered part of GBA first.
+    getPropertiesByProximity(ZONA_SUR_CENTER, { limit: HOME_CATALOG_LIMIT }),
+  ]);
+
+  const allRows = proximity.data as unknown as PremiumCardProperty[];
+  // The protagonista is the spotlight above — don't list it again below.
+  // Exception: if it's the ONLY published property, still show it as a
+  // premium card so the catalog isn't empty while inventory is small.
+  const withoutFeatured = featured
+    ? allRows.filter((p) => p.id !== featured.id)
+    : allRows;
+  const catalog = withoutFeatured.length > 0 ? withoutFeatured : allRows;
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -75,93 +71,19 @@ export default async function Home() {
         </div>
       </header>
 
-      {/* Hero — copy del H1 y pitch removidos a la espera del nuevo. */}
-      <section className="px-4 pt-12 pb-10 sm:pt-16 sm:pb-14">
-        <div className="max-w-2xl mx-auto text-center space-y-6">
-          <div className="flex justify-center">
-            <BrandLogo variant="full" size={140} />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Zona Sur GBA: Lomas, Banfield, Lanús, Avellaneda, Quilmes.
-          </p>
-          <div className="pt-2 flex justify-center">
-            <a
-              href="#catalogo"
-              className={cn(buttonVariants({ size: "lg" }), "gap-1")}
-            >
-              Ver propiedades
-              <ArrowRight className="size-4" />
-            </a>
-          </div>
-        </div>
-      </section>
+      <HomeHero />
 
-      {/* Features — explains the product before showing inventory */}
-      <HomeFeatures />
+      {/* Protagonista — the brand-signature showpiece (§2.6). Renders only
+          when there's a curated is_featured + publicada property; otherwise
+          it returns null and the home flows straight into the guarantees. */}
+      <HomeProtagonist property={featured} />
 
-      {/* Catalog */}
-      <section
-        id="catalogo"
-        className="px-4 pb-16 border-t bg-muted/30 scroll-mt-16 pt-10 sm:pt-12"
-      >
-        <div className="max-w-5xl mx-auto space-y-6">
-          <header className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight">
-              Propiedades disponibles
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {totalProperties > 0
-                ? `${totalProperties} ${
-                    totalProperties === 1 ? "propiedad indexada" : "propiedades indexadas"
-                  } en Zona Sur GBA, con scoring de calidad y datos catastrales verificados.`
-                : "Estamos cargando las primeras propiedades."}
-            </p>
-          </header>
+      {/* Garantías — explains the product (two tones) before the catalog.
+          La propiedad destacada alimenta el diagrama ARBA (partida + m²). */}
+      <HomeGuarantees featured={featured} />
 
-          {properties.length === 0 ? (
-            <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
-              Todavía no hay propiedades cargadas. Volvé pronto.
-            </div>
-          ) : (
-            <>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                {properties.map((p) => (
-                  <li key={p.id}>
-                    <PropertyCard
-                      property={{
-                        id: p.id,
-                        property_type: p.property_type,
-                        partido: p.partido,
-                        address: p.address,
-                        price_amount: p.price_amount,
-                        price_currency: p.price_currency,
-                        rooms: p.rooms,
-                        surface_total: p.surface_total,
-                        surface_arba: p.surface_arba,
-                        photos: p.photos,
-                      }}
-                      qualityBreakdown={p.quality_score_breakdown}
-                      matchBreakdown={null}
-                      isFavorited={favoritedIds.has(p.id)}
-                      signedOut={!user}
-                    />
-                  </li>
-                ))}
-              </ul>
-
-              <div className="flex justify-center pt-2">
-                <Link
-                  href="/buscar"
-                  className={buttonVariants({ variant: "outline", size: "lg" })}
-                >
-                  Ver todas las propiedades
-                  <ArrowRight className="size-4 ml-1" />
-                </Link>
-              </div>
-            </>
-          )}
-        </div>
-      </section>
+      {/* Catálogo — premium cards alternadas (§5 del rediseño) */}
+      <HomeCatalog properties={catalog} totalProperties={proximity.count} />
     </main>
   );
 }

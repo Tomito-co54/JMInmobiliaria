@@ -4,6 +4,7 @@ import { getPropertiesAdmin, getDistinctPartidos } from "@/lib/db/admin";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { PropertiesFilters } from "./properties-filters";
+import { FeaturedToggle } from "./featured-toggle";
 import { Pagination } from "@/components/shared/pagination";
 
 export const metadata = {
@@ -115,6 +116,7 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
               <th className="text-right font-medium p-3">m²</th>
               <th className="text-center font-medium p-3">Estado</th>
               <th className="text-left font-medium p-3">Origen</th>
+              <th className="text-center font-medium p-3" title="Rota en la home">★</th>
               <th className="text-left font-medium p-3">Último visto</th>
               <th className="text-right font-medium p-3">Acción</th>
             </tr>
@@ -123,7 +125,7 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
             {result.rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={10}
                   className="p-8 text-center text-muted-foreground"
                 >
                   Sin propiedades que coincidan con esos filtros.
@@ -168,6 +170,14 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
                     </td>
                     <td className="p-3 text-muted-foreground capitalize text-xs">
                       {isOwner ? "Mía" : row.source}
+                    </td>
+                    <td className="p-3 text-center">
+                      {isOwner && (
+                        <FeaturedToggle
+                          propertyId={row.id}
+                          initial={row.is_featured ?? false}
+                        />
+                      )}
                     </td>
                     <td className="p-3 text-muted-foreground">
                       {formatDate(row.last_seen_at)}

@@ -57,9 +57,36 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status:** Pivote operativo. Cargador funcional. Próximo bloque grande:
-**Dashboard de inteligencia de mercado** (donde las propiedades
-scrapeadas finalmente sirven para algo, separadas del catálogo público).
+**Status:** Rediseño de la home pública **completo** en la rama
+`rediseno-home` (5/5 bloques hechos y pusheados). Pendiente: aprobación del
+owner para mergear a `main`.
+
+### Rediseño de la home en curso (rama `rediseno-home`)
+
+**Plan aprobado por el owner** y documentado en `DIRECCION_DE_ARTE.md`.
+Se ejecuta en 5 bloques; cada bloque commit propio + push para mostrar
+progreso visual antes de continuar.
+
+| # | Bloque | Estado | Commit |
+|---|---|---|---|
+| 1 | `is_featured` flag + toggle ★ en `/admin/properties` (migración 00013, server action, FeaturedToggle client component, CHECK constraint solo permite `true` en owner sources) | ✅ | `29609ad` |
+| 2 | Hero — extraído a `components/home/HomeHero.tsx`. Cascade de entrada con stagger 120ms, eyebrow dorado caps, Fraunces italic placeholder, bullets centrales, scroll hint con bounce, background radial sutil | ✅ | `b93ab09` |
+| 3 | Propiedad protagonista — `getFeaturedProperty()` (rota 1/día entre `is_featured=true AND publicada`, honra el filtro de dos puertas), `components/home/HomeProtagonist.tsx` server component entre Hero y Features: cuadrante rígido de fondo + foto enmarcada que sobresale de su margen (§2.6), medallón de Quality Score solapado, chip ARBA. Asset honesto: frame rectangular hoy, cut-out PNG cuando exista | ✅ | `ae16d81` |
+| 4 | Garantías en dos tonos — reemplaza `HomeFeatures` (grilla 2x2, era la lista negra §6) por `HomeGuarantees` + `HomeGuaranteesClient`. Tono 1 ARBA sobrio (polígono que se dibuja, partida, m², cifra % ARBA real); Tono 2 dinámico sobre panel tintado (anillo Score 0→N, Match reactivo al tap, secuencia de 3 pasos del informe). Hooks propios `use-in-view.ts` (IntersectionObserver + count-up rAF), sin librería de animación; SVG con `currentColor` (visible en dark). Stats strip disuelto | ✅ | `a61ab95` |
+| 5 | Resto del catálogo — reemplaza la grilla 2-col de `PropertyCard` (estilo Zonaprop, §6) por `PropertyPremiumCard` (cards grandes, una por fila, foto alternando izq/der vía `flip`; mobile full-width stack) dentro de `HomeCatalog` (header editorial + Reveal por card + CTA "Ver todas"). `HomeProtagonist` ahora recibe la propiedad por prop; la home busca la destacada una sola vez y la excluye del catálogo (con fallback si es la única). `PropertyCard` se conserva para `/buscar` y `/favoritos` | ✅ | `56f6586` |
+
+**DB:** la única `publicada` (`a33f1a22` — Belgrano 1285) ya está
+marcada `is_featured=true` para que el Bloque 3 tenga candidata real al
+arrancar.
+
+**Reglas operativas del rediseño:**
+- Antes de cualquier decisión visual, **leer `DIRECCION_DE_ARTE.md`** y
+  referenciar la sección que la justifica.
+- En zona gris, aplicar las **4 preguntas** (regla de oro al final del
+  doc) explícitamente.
+- Commit por bloque + push antes de continuar — mostrar progreso visual
+  al owner por bloque, no esperar a tener todo.
+- No mergear a `main` hasta que el owner apruebe la rama completa.
 
 ### Hitos (este fork)
 
@@ -387,6 +414,32 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 - Código debe ser self-documenting por naming.
 - Comentarios explican el **por qué**, no el qué.
 - JSDoc en funciones públicas de `/lib`.
+
+---
+
+## Antes de tocar cualquier cosa visual
+
+**Regla dura:** antes de modificar componentes visuales, layout, estilos,
+tipografía, colores, spacing, copy de UI, o tomar cualquier decisión de
+diseño — **leer `DIRECCION_DE_ARTE.md`** (vive en la raíz del repo).
+
+Aplica a:
+- Cambios en `app/page.tsx` (landing), `/p/[id]`, `/guia-de-compra`,
+  o cualquier surface pública.
+- Componentes de `components/property/`, `components/scoring/`,
+  `components/home/`, `components/shared/`.
+- Tokens en `lib/brand/`, `globals.css`, Tailwind config.
+- Cualquier propuesta de "este botón se ve mejor así" / "movamos esto" /
+  "cambiemos la jerarquía".
+
+NO aplica a (lectura de DIRECCION_DE_ARTE no obligatoria):
+- Cambios de lógica de negocio, queries, schemas, server actions sin
+  impacto visual.
+- Fixes de bugs que solo restauran comportamiento previo.
+- Refactors internos sin cambio de UI.
+
+Si la decisión que vas a tomar afecta cómo SE VE algo, leer el doc primero
+y referenciar la sección relevante en el commit/explicación.
 
 ---
 
