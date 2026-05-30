@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { FeaturedPropertyRow } from "@/lib/db/properties";
 import {
   PUBLIC_LISTING_STATUS,
   PUBLIC_PROPERTY_SOURCES,
@@ -81,8 +82,18 @@ async function getGuaranteeStats(): Promise<{ arbaPct: number; score: number }> 
   }
 }
 
-export async function HomeGuarantees() {
+export async function HomeGuarantees({
+  featured,
+}: {
+  featured: FeaturedPropertyRow | null;
+}) {
   const { arbaPct, score } = await getGuaranteeStats();
+
+  // The ARBA parcel diagram shows the REAL partida + surface of the featured
+  // property. When there's no featured property (or it lacks the data), the
+  // viz falls back to its illustrative defaults.
+  const parcelPartida = featured?.partida ?? undefined;
+  const parcelSurface = featured?.surface_arba ?? featured?.surface_total ?? undefined;
 
   return (
     <section className="relative px-4 py-20 sm:py-28 overflow-x-clip">
@@ -145,7 +156,7 @@ export async function HomeGuarantees() {
             </div>
           </Reveal>
           <Reveal className="order-1 md:order-2" delayMs={120}>
-            <ArbaParcelViz />
+            <ArbaParcelViz partida={parcelPartida} surfaceM2={parcelSurface} />
           </Reveal>
         </div>
 

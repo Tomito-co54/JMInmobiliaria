@@ -78,8 +78,9 @@ export default async function Home() {
           it returns null and the home flows straight into the guarantees. */}
       <HomeProtagonist property={featured} />
 
-      {/* Garantías — explains the product (two tones) before the catalog */}
-      <HomeGuarantees />
+      {/* Garantías — explains the product (two tones) before the catalog.
+          La propiedad destacada alimenta el diagrama ARBA (partida + m²). */}
+      <HomeGuarantees featured={featured} />
 
       {/* Catálogo — premium cards alternadas (§5 del rediseño) */}
       <HomeCatalog properties={catalog} totalProperties={proximity.count} />

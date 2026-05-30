@@ -57,8 +57,9 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status:** Rediseño de la home pública **en curso** (rama
-`rediseno-home`). Bloques 1, 2, 3 y 4 hechos y pusheados; queda el 5.
+**Status:** Rediseño de la home pública **completo** en la rama
+`rediseno-home` (5/5 bloques hechos y pusheados). Pendiente: aprobación del
+owner para mergear a `main`.
 
 ### Rediseño de la home en curso (rama `rediseno-home`)
 
@@ -72,7 +73,7 @@ progreso visual antes de continuar.
 | 2 | Hero — extraído a `components/home/HomeHero.tsx`. Cascade de entrada con stagger 120ms, eyebrow dorado caps, Fraunces italic placeholder, bullets centrales, scroll hint con bounce, background radial sutil | ✅ | `b93ab09` |
 | 3 | Propiedad protagonista — `getFeaturedProperty()` (rota 1/día entre `is_featured=true AND publicada`, honra el filtro de dos puertas), `components/home/HomeProtagonist.tsx` server component entre Hero y Features: cuadrante rígido de fondo + foto enmarcada que sobresale de su margen (§2.6), medallón de Quality Score solapado, chip ARBA. Asset honesto: frame rectangular hoy, cut-out PNG cuando exista | ✅ | `ae16d81` |
 | 4 | Garantías en dos tonos — reemplaza `HomeFeatures` (grilla 2x2, era la lista negra §6) por `HomeGuarantees` + `HomeGuaranteesClient`. Tono 1 ARBA sobrio (polígono que se dibuja, partida, m², cifra % ARBA real); Tono 2 dinámico sobre panel tintado (anillo Score 0→N, Match reactivo al tap, secuencia de 3 pasos del informe). Hooks propios `use-in-view.ts` (IntersectionObserver + count-up rAF), sin librería de animación; SVG con `currentColor` (visible en dark). Stats strip disuelto | ✅ | `a61ab95` |
-| 5 | Resto del catálogo — sistema de 3 tratamientos editoriales (premium cards alternadas + lista editorial + CTA "Ver todas") | ⏭ | |
+| 5 | Resto del catálogo — reemplaza la grilla 2-col de `PropertyCard` (estilo Zonaprop, §6) por `PropertyPremiumCard` (cards grandes, una por fila, foto alternando izq/der vía `flip`; mobile full-width stack) dentro de `HomeCatalog` (header editorial + Reveal por card + CTA "Ver todas"). `HomeProtagonist` ahora recibe la propiedad por prop; la home busca la destacada una sola vez y la excluye del catálogo (con fallback si es la única). `PropertyCard` se conserva para `/buscar` y `/favoritos` | ✅ | `56f6586` |
 
 **DB:** la única `publicada` (`a33f1a22` — Belgrano 1285) ya está
 marcada `is_featured=true` para que el Bloque 3 tenga candidata real al

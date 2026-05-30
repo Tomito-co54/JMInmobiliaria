@@ -64,15 +64,21 @@ export function Reveal({
 const PARCEL_POINTS = "34,24 150,16 184,78 168,150 58,142 22,86";
 
 export function ArbaParcelViz({
-  surfaceM2 = 245,
-  partida = "054-018345-2",
+  surfaceM2,
+  partida,
 }: {
-  surfaceM2?: number;
-  partida?: string;
+  /** Real ARBA surface of the featured property; the readout hides when absent. */
+  surfaceM2?: number | null;
+  /** Real partida of the featured property; the readout hides when absent. */
+  partida?: string | null;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.4 });
   const reduced = usePrefersReducedMotion();
-  const m2 = useCountUp(surfaceM2, inView, { durationMs: 1300 });
+  const hasSurface = typeof surfaceM2 === "number" && Number.isFinite(surfaceM2);
+  const hasPartida = typeof partida === "string" && partida.trim() !== "";
+  const m2 = useCountUp(hasSurface ? (surfaceM2 as number) : 0, inView, {
+    durationMs: 1300,
+  });
 
   return (
     <div ref={ref} className="relative mx-auto w-full max-w-sm">
@@ -142,35 +148,43 @@ export function ArbaParcelViz({
         })}
       </svg>
 
-      {/* Read-outs below the diagram: partida appears, m² counts up. */}
-      <div className="mt-4 flex items-center justify-between gap-3 text-sm">
+      {/* Read-outs below the diagram — the REAL partida + surface of the
+          featured property. Each hides when the data is absent; we never
+          fabricate a value. */}
+      {(hasPartida || hasSurface) && (
         <div
-          className="transition-all duration-500"
+          className="mt-4 flex items-center justify-between gap-3 text-sm transition-all duration-500"
           style={{
             opacity: inView ? 1 : 0,
             transform: inView ? "translateY(0)" : "translateY(6px)",
             transitionDelay: inView ? "1000ms" : "0ms",
           }}
         >
-          <p className="text-[0.65rem] uppercase tracking-wider text-muted-foreground">
-            Partida
-          </p>
-          <p className="font-mono tabular-nums" style={{ color: "var(--brand-heading)" }}>
-            {partida}
-          </p>
+          {hasPartida && (
+            <div>
+              <p className="text-[0.65rem] uppercase tracking-wider text-muted-foreground">
+                Partida
+              </p>
+              <p className="font-mono tabular-nums" style={{ color: "var(--brand-heading)" }}>
+                {partida}
+              </p>
+            </div>
+          )}
+          {hasSurface && (
+            <div className="ml-auto text-right">
+              <p className="text-[0.65rem] uppercase tracking-wider text-muted-foreground">
+                Superficie ARBA
+              </p>
+              <p
+                className="font-semibold tabular-nums"
+                style={{ color: "var(--brand-heading)" }}
+              >
+                {Math.round(m2)} m²
+              </p>
+            </div>
+          )}
         </div>
-        <div className="text-right">
-          <p className="text-[0.65rem] uppercase tracking-wider text-muted-foreground">
-            Superficie ARBA
-          </p>
-          <p
-            className="font-semibold tabular-nums"
-            style={{ color: "var(--brand-heading)" }}
-          >
-            {Math.round(m2)} m²
-          </p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
