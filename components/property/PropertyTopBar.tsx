@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 export function PropertyTopBar() {
   return (
     <header className="sticky top-0 z-20 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-      <div className="max-w-2xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
+      <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
         <Link
           href="/"
           aria-label="Volver al inicio"

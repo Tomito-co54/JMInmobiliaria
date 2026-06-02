@@ -110,10 +110,9 @@ export function PropertyHistory({
   const currency = priceCurrency ?? "";
 
   return (
-    <section className="rounded-lg border bg-card p-5 sm:p-6 space-y-4">
-      <header className="space-y-1">
-        <h2 className="font-semibold text-base">Historial</h2>
-        {days !== null && (
+    <div className="space-y-4">
+      {days !== null && (
+        <header>
           <p className="text-xs text-muted-foreground">
             {isActive ? "Lo seguimos hace" : "Lo seguimos durante"}{" "}
             <span className="font-medium text-foreground tabular-nums">
@@ -126,8 +125,8 @@ export function PropertyHistory({
             )}
             .
           </p>
-        )}
-      </header>
+        </header>
+      )}
 
       {visible.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">
@@ -161,6 +160,6 @@ export function PropertyHistory({
           Mostrando los {MAX_EVENTS} cambios más recientes de {history.length} registrados.
         </p>
       )}
-    </section>
+    </div>
   );
 }

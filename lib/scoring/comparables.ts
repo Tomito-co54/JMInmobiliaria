@@ -11,9 +11,12 @@ import type { ComparableStats } from "./types";
  * outliers can't be converted reliably without a daily official rate, and
  * the cohort would be too small to be useful anyway.
  *
- * Surface preference: surface_arba (ARBA-verified) over surface_total
- * (declared). When we have the verified number, comparing price/m² against
- * it is more honest than comparing against what the publisher decided to claim.
+ * Surface basis: surface_total (the DECLARED surface). USD/m² is a function
+ * of the asking price, which the seller sets against the surface they
+ * advertise — so the denominator must be the declared surface, not ARBA's.
+ * ARBA's surface is a cadastral *verification* signal handled by the
+ * arba_coherence subscore, not a pricing denominator. Must stay in lockstep
+ * with priceVsComparablesSubScore in lib/scoring/subscores.ts.
  */
 
 interface ComparableRow {
@@ -38,7 +41,9 @@ function median(sortedAsc: number[]): number {
 }
 
 function pricePerM2(row: ComparableRow): number | null {
-  const surfaceRaw = row.surface_arba ?? row.surface_total ?? null;
+  // Declared surface only — see the file-level note. surface_arba is kept in
+  // the row shape for callers but is intentionally NOT used as the denominator.
+  const surfaceRaw = row.surface_total ?? null;
   if (surfaceRaw === null) return null;
   const surface = typeof surfaceRaw === "number" ? surfaceRaw : parseFloat(surfaceRaw);
   if (!Number.isFinite(surface) || surface <= 0) return null;

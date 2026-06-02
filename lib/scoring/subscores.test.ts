@@ -266,7 +266,7 @@ describe("timeOnMarketSubScore", () => {
 describe("priceVsComparablesSubScore", () => {
   it("scores 50 when matching the median exactly", () => {
     const input = makeInput({
-      property: makeProperty({ price_amount: 200000, surface_arba: 100 }),
+      property: makeProperty({ price_amount: 200000, surface_total: 100 }),
       comparableStats: { medianPricePerM2Usd: 2000, sampleSize: 12 },
     });
     const s = priceVsComparablesSubScore(input);
@@ -276,7 +276,7 @@ describe("priceVsComparablesSubScore", () => {
 
   it("scores 100 when 25% cheaper than median", () => {
     const input = makeInput({
-      property: makeProperty({ price_amount: 150000, surface_arba: 100 }),
+      property: makeProperty({ price_amount: 150000, surface_total: 100 }),
       comparableStats: { medianPricePerM2Usd: 2000, sampleSize: 12 },
     });
     const s = priceVsComparablesSubScore(input);
@@ -285,11 +285,35 @@ describe("priceVsComparablesSubScore", () => {
 
   it("scores 0 when 50%+ above median", () => {
     const input = makeInput({
-      property: makeProperty({ price_amount: 300000, surface_arba: 100 }),
+      property: makeProperty({ price_amount: 300000, surface_total: 100 }),
       comparableStats: { medianPricePerM2Usd: 2000, sampleSize: 12 },
     });
     const s = priceVsComparablesSubScore(input);
     expect(s.value).toBe(0);
+  });
+
+  it("uses DECLARED surface (surface_total), ignoring surface_arba", () => {
+    // Declared 100m² → 200000/100 = 2000/m² = median → 50.
+    // If it (wrongly) used surface_arba 50m², it'd be 4000/m² → 0.
+    const input = makeInput({
+      property: makeProperty({
+        price_amount: 200000,
+        surface_total: 100,
+        surface_arba: 50,
+      }),
+      comparableStats: { medianPricePerM2Usd: 2000, sampleSize: 12 },
+    });
+    const s = priceVsComparablesSubScore(input);
+    expect(s.value).toBe(50);
+    expect(s.reason).toContain("2000/m²");
+  });
+
+  it("skips when declared surface is missing even if surface_arba exists", () => {
+    const input = makeInput({
+      property: makeProperty({ surface_total: null, surface_arba: 120 }),
+    });
+    const s = priceVsComparablesSubScore(input);
+    expect(s.confidence).toBe(0);
   });
 
   it("uses confidence 0.5 with small sample (5-9)", () => {

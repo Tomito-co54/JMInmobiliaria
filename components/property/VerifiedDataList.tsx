@@ -40,15 +40,7 @@ export function VerifiedDataList({ property, arbaLookup }: VerifiedDataListProps
   const items = deriveVerifiedDataItems(property, arbaLookup);
 
   return (
-    <section className="rounded-lg border bg-card p-5 sm:p-6 space-y-4">
-      <header className="space-y-1">
-        <h2 className="font-semibold text-base">Datos oficiales</h2>
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Lo que pudimos verificar contra ARBA, el organismo catastral de la
-          provincia de Buenos Aires.
-        </p>
-      </header>
-      <ul className="space-y-3">
+    <ul className="space-y-3 rounded-2xl border bg-card/50 p-5 sm:p-6">
         {items.map((item) => {
           const { Icon, color } = STATUS_ICON[item.status];
           return (
@@ -73,7 +65,6 @@ export function VerifiedDataList({ property, arbaLookup }: VerifiedDataListProps
             </li>
           );
         })}
-      </ul>
-    </section>
+    </ul>
   );
 }
