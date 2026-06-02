@@ -325,7 +325,12 @@ export function timeOnMarketSubScore(input: ScoringInput): SubScore {
 
 export function priceVsComparablesSubScore(input: ScoringInput): SubScore {
   const { price_amount, price_currency, property_type, partido } = input.property;
-  const surface = input.property.surface_arba ?? input.property.surface_total ?? null;
+  // USD/m² uses the DECLARED surface (surface_total), not surface_arba.
+  // ARBA's surface is a cadastral *verification* signal (see arbaCoherence),
+  // not the denominator of the asking price — the price is set against the
+  // surface the seller advertises. Keep this in lockstep with the comparable
+  // median in lib/scoring/comparables.ts, which also uses surface_total.
+  const surface = input.property.surface_total ?? null;
   const weight = SUBSCORE_WEIGHTS.price_vs_comparables;
 
   if (!price_amount || !price_currency || !property_type || !partido || !surface || surface <= 0) {

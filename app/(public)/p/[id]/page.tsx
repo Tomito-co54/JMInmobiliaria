@@ -244,8 +244,11 @@ export default async function PublicPropertyPage({ params }: PageProps) {
             </EditorialSection>
           </div>
 
-          {/* RIGHT — sticky data panel (desktop only) */}
-          <aside className="hidden lg:block lg:sticky lg:top-20">
+          {/* RIGHT — sticky data panel (desktop only). When the panel is
+              taller than the available viewport height, it scrolls
+              internally instead of clipping its bottom (overflow-y-auto +
+              max-height against the viewport minus the top offset). */}
+          <aside className="hidden lg:block lg:sticky lg:top-20 lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto lg:overscroll-contain">
             <PropertyDataPanel
               propertyId={property.id}
               priceAmount={property.price_amount}
