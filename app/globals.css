@@ -199,3 +199,37 @@
     @apply bg-background text-foreground;
     }
 }
+
+/* ---------------------------------------------------------------------------
+   Home entrance motion (DIRECCION_DE_ARTE §2.4 — nada corta en seco; §1 —
+   con carácter, no un fade genérico). Custom keyframes with a soft overshoot
+   so elements "settle" into place rather than sliding flatly. transform +
+   opacity only (§4, GPU). All gated behind motion-safe at the call site, and
+   neutralised here for users who asked for less motion. */
+@keyframes home-rise {
+  0% { opacity: 0; transform: translateY(34px) scale(0.96); }
+  60% { opacity: 1; transform: translateY(-6px) scale(1.006); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Headline gets a touch more travel + a hair of blur clearing, so the
+   protagonist line of type "arrives" with the most weight. */
+@keyframes home-rise-hero {
+  0% { opacity: 0; transform: translateY(46px) scale(0.94); filter: blur(4px); }
+  55% { opacity: 1; transform: translateY(-8px) scale(1.008); filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+.home-rise {
+  animation: home-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.home-rise-hero {
+  animation: home-rise-hero 1.05s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-rise,
+  .home-rise-hero {
+    animation: none;
+  }
+}
