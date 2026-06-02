@@ -7,16 +7,16 @@ import { getCurrentUserId } from "@/lib/db/users";
 import { isFavorited } from "@/lib/db/favorites";
 import { PreviewBanner } from "./preview-banner";
 import { PropertyTopBar } from "@/components/property/PropertyTopBar";
-import { PropertyCover } from "@/components/property/PropertyCover";
-import { PropertyPriceBlock } from "@/components/property/PropertyPriceBlock";
+import { PropertyHero } from "@/components/property/PropertyHero";
+import { PropertyDataPanel } from "@/components/property/PropertyDataPanel";
+import { PropertyMobileBar } from "@/components/property/PropertyMobileBar";
+import { EditorialSection } from "@/components/property/EditorialSection";
 import { VerifiedDataList } from "@/components/property/VerifiedDataList";
 import { PropertyMapSection } from "@/components/property/PropertyMapSection";
 import { PropertyDescription } from "@/components/property/PropertyDescription";
 import { PropertyHistory } from "@/components/property/PropertyHistory";
-import { PropertyCTAs } from "@/components/property/PropertyCTAs";
-import { QualityScoreCard } from "@/components/scoring/QualityScoreCard";
-import { MatchScoreCard } from "@/components/matching/MatchScoreCard";
 import { BuyingProcessAdvisor } from "@/components/property/BuyingProcessAdvisor";
+import { getScoreBand } from "@/lib/scoring/bands";
 
 /**
  * Public property view — the "wow moment" page (Block 4).
@@ -118,8 +118,34 @@ export default async function PublicPropertyPage({ params }: PageProps) {
   const showPreviewBanner =
     allowDrafts && property.listing_status !== "publicada";
 
+  // Derived display data for the hero + panel.
+  const TYPE_LABELS: Record<string, string> = {
+    casa: "Casa",
+    departamento: "Departamento",
+    ph: "PH",
+    lote: "Lote",
+    local: "Local",
+  };
+  const OP_LABELS: Record<string, string> = {
+    venta: "en venta",
+    alquiler: "en alquiler",
+  };
+  const typeLabel = property.property_type
+    ? TYPE_LABELS[property.property_type] ?? property.property_type
+    : "Propiedad";
+  const opLabel = property.operation_type
+    ? OP_LABELS[property.operation_type] ?? property.operation_type
+    : null;
+
+  const score = property.quality_score_breakdown?.score ?? null;
+  const scoreBand = getScoreBand(score);
+  // ARBA-verified = we matched the parcel against the cadastral service.
+  const arbaVerified =
+    !!property.partida || arbaLookup?.match_strategy === "intersects" ||
+    arbaLookup?.match_strategy === "dwithin";
+
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background pb-24 lg:pb-0">
       {showPreviewBanner && (
         <PreviewBanner
           propertyId={property.id}
@@ -134,66 +160,122 @@ export default async function PublicPropertyPage({ params }: PageProps) {
       )}
       <PropertyTopBar />
 
-      <article className="max-w-2xl mx-auto px-4 py-5 space-y-6">
-        <PropertyCover photos={property.photos} alt={altText} />
+      <div className="max-w-6xl mx-auto px-4 py-5 sm:py-7">
+        {/* Two-column on desktop: scrolling content left, sticky data panel
+            right. Single column on mobile (panel flows inline after the
+            hero + supporting sections). */}
+        <div className="lg:grid lg:grid-cols-[1fr_22rem] lg:gap-8 lg:items-start">
+          {/* LEFT — hero + evidence + narrative */}
+          <div className="space-y-12 lg:space-y-14">
+            <PropertyHero
+              photos={property.photos}
+              alt={altText}
+              address={property.address}
+              partido={property.partido}
+              typeLabel={typeLabel}
+              opLabel={opLabel}
+              score={score}
+              scoreBandLabel={scoreBand.label}
+              scoreBandHex={scoreBand.hex}
+              arbaVerified={arbaVerified}
+            />
 
-        <PropertyPriceBlock
-          priceAmount={property.price_amount}
-          priceCurrency={property.price_currency}
-          propertyType={property.property_type}
-          operationType={property.operation_type}
-          partido={property.partido}
-          address={property.address}
-          rooms={property.rooms}
-          bedrooms={property.bedrooms}
-          bathrooms={property.bathrooms}
-          garages={property.garages}
-          surfaceTotal={property.surface_total}
-          surfaceArba={property.surface_arba}
-        />
+            {/* On mobile the data panel comes right after the hero, before
+                the supporting sections. On desktop it lives in the sticky
+                right column instead (rendered once, below). */}
+            <div className="lg:hidden pt-3">
+              <PropertyDataPanel
+                propertyId={property.id}
+                priceAmount={property.price_amount}
+                priceCurrency={property.price_currency}
+                rooms={property.rooms}
+                bedrooms={property.bedrooms}
+                bathrooms={property.bathrooms}
+                garages={property.garages}
+                surfaceTotal={property.surface_total}
+                surfaceArba={property.surface_arba}
+                qualityBreakdown={property.quality_score_breakdown}
+                matchBreakdown={matchBreakdown}
+                matchProfileName={profile?.name ?? null}
+                source={property.source}
+                sourceUrl={property.url}
+                isFavorited={favorited}
+                signedOut={!userId}
+              />
+            </div>
 
-        {matchBreakdown && profile && (
-          <MatchScoreCard breakdown={matchBreakdown} profileName={profile.name} />
-        )}
+            {userId && (
+              <BuyingProcessAdvisor
+                propertyId={property.id}
+                currentStage={profile?.current_stage ?? null}
+                showSetupPrompt={!profile?.current_stage}
+              />
+            )}
 
-        {userId && (
-          <BuyingProcessAdvisor
-            propertyId={property.id}
-            currentStage={profile?.current_stage ?? null}
-            showSetupPrompt={!profile?.current_stage}
-          />
-        )}
+            <EditorialSection
+              title="Datos oficiales"
+              subtitle="Lo que pudimos verificar contra ARBA, el organismo catastral de la provincia de Buenos Aires."
+            >
+              <VerifiedDataList property={property} arbaLookup={arbaLookup} />
+            </EditorialSection>
 
-        <QualityScoreCard breakdown={property.quality_score_breakdown} />
+            <EditorialSection title="Ubicación">
+              <PropertyMapSection
+                lat={property.lat}
+                lng={property.lng}
+                address={property.address}
+                partido={property.partido}
+                arbaGeoJson={arbaLookup?.raw_response ?? null}
+              />
+            </EditorialSection>
 
-        <VerifiedDataList property={property} arbaLookup={arbaLookup} />
+            <EditorialSection title="Descripción">
+              <PropertyDescription description={property.description} />
+            </EditorialSection>
 
-        <PropertyMapSection
-          lat={property.lat}
-          lng={property.lng}
-          address={property.address}
-          partido={property.partido}
-          arbaGeoJson={arbaLookup?.raw_response ?? null}
-        />
+            <EditorialSection title="Historial">
+              <PropertyHistory
+                history={history}
+                firstSeenAt={property.first_seen_at}
+                lastSeenAt={property.last_seen_at}
+                isActive={property.is_active}
+                priceCurrency={property.price_currency}
+              />
+            </EditorialSection>
+          </div>
 
-        <PropertyDescription description={property.description} />
+          {/* RIGHT — sticky data panel (desktop only) */}
+          <aside className="hidden lg:block lg:sticky lg:top-20">
+            <PropertyDataPanel
+              propertyId={property.id}
+              priceAmount={property.price_amount}
+              priceCurrency={property.price_currency}
+              rooms={property.rooms}
+              bedrooms={property.bedrooms}
+              bathrooms={property.bathrooms}
+              garages={property.garages}
+              surfaceTotal={property.surface_total}
+              surfaceArba={property.surface_arba}
+              qualityBreakdown={property.quality_score_breakdown}
+              matchBreakdown={matchBreakdown}
+              matchProfileName={profile?.name ?? null}
+              source={property.source}
+              sourceUrl={property.url}
+              isFavorited={favorited}
+              signedOut={!userId}
+            />
+          </aside>
+        </div>
+      </div>
 
-        <PropertyHistory
-          history={history}
-          firstSeenAt={property.first_seen_at}
-          lastSeenAt={property.last_seen_at}
-          isActive={property.is_active}
-          priceCurrency={property.price_currency}
-        />
-
-        <PropertyCTAs
-          propertyId={property.id}
-          sourceUrl={property.url}
-          source={property.source}
-          isFavorited={favorited}
-          signedOut={!userId}
-        />
-      </article>
+      {/* Sticky bottom action bar — mobile only */}
+      <PropertyMobileBar
+        propertyId={property.id}
+        priceAmount={property.price_amount}
+        priceCurrency={property.price_currency}
+        isFavorited={favorited}
+        signedOut={!userId}
+      />
     </main>
   );
 }

@@ -30,8 +30,7 @@ export function PropertyDescription({ description }: PropertyDescriptionProps) {
   const visible = expanded || !isLong ? text : text.slice(0, COLLAPSED_LIMIT) + "…";
 
   return (
-    <section className="rounded-lg border bg-card p-5 sm:p-6 space-y-3">
-      <h2 className="font-semibold text-base">Descripción</h2>
+    <div className="space-y-3">
       {text.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">
           El aviso no incluyó descripción.
@@ -63,6 +62,6 @@ export function PropertyDescription({ description }: PropertyDescriptionProps) {
           )}
         </>
       )}
-    </section>
+    </div>
   );
 }
