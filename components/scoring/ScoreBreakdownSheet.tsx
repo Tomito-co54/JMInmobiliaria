@@ -93,7 +93,7 @@ export function ScoreBreakdownSheet({ breakdown }: ScoreBreakdownSheetProps) {
         </SheetHeader>
 
         {breakdown.insufficient_data && (
-          <div className="mx-4 my-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 flex gap-2">
+          <div className="mx-4 my-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200 flex gap-2">
             <Info className="size-4 shrink-0 mt-0.5" />
             <p>
               Datos insuficientes para calcular el score total. Mostramos los sub-scores que sí

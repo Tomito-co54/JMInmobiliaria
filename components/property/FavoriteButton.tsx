@@ -82,7 +82,8 @@ export function FavoriteButton({
       aria-pressed={favorited}
       className={cn(
         "inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors hover:bg-muted/60",
-        favorited && "border-red-300 bg-red-50 text-red-700 hover:bg-red-100",
+        favorited &&
+          "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300 dark:hover:bg-red-500/25",
       )}
     >
       <Heart className={cn("size-4", favorited && "fill-current")} />
