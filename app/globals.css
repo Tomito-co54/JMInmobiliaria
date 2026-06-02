@@ -128,10 +128,13 @@
 }
 
 .dark {
-    /* Dark mode = inverted brand palette. The brand navy becomes the base
-       background; cards step up to a slightly lighter navy for separation;
-       primary buttons flip to white-on-navy so they still pop. Gold accent
-       stays the same — it works on both light and dark navy. */
+    /* Dark mode = sober cold-slate surfaces, NOT brand navy. The brand navy
+       (#1A1B5C) is too saturated to use as a page background — it reads loud.
+       Instead the surfaces are a desaturated near-black with a cold blue
+       temperature (slate, à la macOS / Claude dark), layered by elevation:
+       background → card/popover → secondary/muted, each a step lighter.
+       The brand navy is reserved for ACCENTS now; gold stays the accent and
+       primary buttons flip to white-on-slate so they still pop. */
 
     /* Theme-aware brand tokens — flipped from light. Navy on navy is
        unreadable, so:
@@ -149,17 +152,17 @@
     --brand-circle-bg: var(--brand-gold);
     --brand-circle-fg: var(--brand-navy);
 
-    --background: #1A1B5C;            /* brand navy */
+    --background: #0D1017;            /* cold slate, near-black (page base) */
     --foreground: #FFFFFF;
-    --card: #25267A;                  /* slightly lighter navy for cards */
+    --card: #161A22;                  /* +1 elevation */
     --card-foreground: #FFFFFF;
-    --popover: #25267A;
+    --popover: #161A22;
     --popover-foreground: #FFFFFF;
-    --primary: #FFFFFF;               /* white CTAs on navy */
+    --primary: #FFFFFF;               /* white CTAs on slate */
     --primary-foreground: var(--brand-navy);
-    --secondary: #2D2E83;
+    --secondary: #1F242E;             /* +2 elevation (chips / hover) */
     --secondary-foreground: #FFFFFF;
-    --muted: #2D2E83;
+    --muted: #1F242E;
     --muted-foreground: oklch(1 0 0 / 70%);
     --accent: var(--brand-gold);
     --accent-foreground: var(--brand-navy);
@@ -172,11 +175,11 @@
     --chart-3: oklch(1 0 0 / 55%);
     --chart-4: oklch(1 0 0 / 40%);
     --chart-5: oklch(1 0 0 / 25%);
-    --sidebar: var(--brand-navy);
+    --sidebar: #0A0D13;              /* a touch darker than the page base */
     --sidebar-foreground: #FFFFFF;
     --sidebar-primary: var(--brand-gold);
     --sidebar-primary-foreground: var(--brand-navy);
-    --sidebar-accent: #2D2E83;
+    --sidebar-accent: #1F242E;
     --sidebar-accent-foreground: #FFFFFF;
     --sidebar-border: oklch(1 0 0 / 14%);
     --sidebar-ring: var(--brand-gold);
