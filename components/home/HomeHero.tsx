@@ -9,8 +9,11 @@ import { cn } from "@/lib/utils";
  * Direction-de-arte references:
  *   §1  "tech con alma": Fraunces protagonista (headline), Inter como
  *       anchor discreto (eyebrow + zonas).
- *   §2.4 transiciones suaves: entry cascade (logo → eyebrow → headline →
- *       zonas → CTA → scroll hint) con animation-delay escalonado.
+ *   §2.4 transiciones suaves + §1 carácter: entry cascade (logo → eyebrow →
+ *       headline → zonas → CTA → scroll hint) con animation-delay escalonado.
+ *       No es un fade genérico: usa los keyframes home-rise / home-rise-hero
+ *       (globals.css) con overshoot suave (settle) y, en el headline, un
+ *       blur que se aclara para que la línea protagónica "llegue" con peso.
  *   §2.1 profundidad eje Z con intención: el fondo radial muy diluido
  *       crea un "foco" sutil bajo el contenido, no decora.
  *   §4   performance: solo CSS transform/opacity, motion-safe respeta
@@ -55,8 +58,8 @@ export function HomeHero() {
       <div className="max-w-2xl mx-auto text-center space-y-7 sm:space-y-9">
         {/* Logo */}
         <div
-          className="flex justify-center motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 duration-700"
-          style={{ animationFillMode: "backwards" }}
+          className="flex justify-center home-rise"
+          style={{ animationDelay: "0ms" }}
         >
           <BrandLogo variant="full" size={110} priority />
         </div>
@@ -64,11 +67,10 @@ export function HomeHero() {
         {/* Eyebrow — anchor de geografía/categoría. Caps + tracking ancho,
             dorado para ese chispazo editorial sin gritar. */}
         <p
-          className="text-[0.7rem] sm:text-xs font-medium uppercase tracking-[0.25em] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 duration-700"
+          className="text-[0.7rem] sm:text-xs font-medium uppercase tracking-[0.25em] home-rise"
           style={{
             color: "var(--brand-accent)",
-            animationDelay: "120ms",
-            animationFillMode: "backwards",
+            animationDelay: "140ms",
           }}
         >
           Inmobiliaria · Zona Sur GBA
@@ -76,13 +78,13 @@ export function HomeHero() {
 
         {/* Headline placeholder. Italic + muted = obviamente provisional.
             La altura visual ya está bien aproximada para 2 líneas en
-            mobile y desktop. */}
+            mobile y desktop. El home-rise-hero le da el peso de entrada más
+            pronunciado (más recorrido + blur que se aclara). */}
         <h1
-          className="font-heading font-medium text-3xl sm:text-5xl leading-[1.05] tracking-tight italic motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 duration-700"
+          className="font-heading font-medium text-3xl sm:text-5xl leading-[1.05] tracking-tight italic home-rise-hero"
           style={{
             color: "color-mix(in srgb, var(--brand-heading) 45%, transparent)",
-            animationDelay: "240ms",
-            animationFillMode: "backwards",
+            animationDelay: "260ms",
           }}
         >
           [Headline pendiente,
@@ -92,8 +94,8 @@ export function HomeHero() {
 
         {/* Zonas con middle-dot, sin caja final con coma — más editorial. */}
         <p
-          className="text-sm sm:text-base text-muted-foreground motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 duration-700"
-          style={{ animationDelay: "360ms", animationFillMode: "backwards" }}
+          className="text-sm sm:text-base text-muted-foreground home-rise"
+          style={{ animationDelay: "440ms" }}
         >
           <span>Lomas</span>
           <Bullet />
@@ -109,8 +111,8 @@ export function HomeHero() {
         {/* CTA. El chevron se desplaza 2px al hover (§2.2 — premia
             curiosidad). En mobile no hay hover; tap te lleva al ancla. */}
         <div
-          className="pt-2 flex justify-center motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 duration-700"
-          style={{ animationDelay: "480ms", animationFillMode: "backwards" }}
+          className="pt-2 flex justify-center home-rise"
+          style={{ animationDelay: "600ms" }}
         >
           <a
             href="#catalogo"
@@ -128,8 +130,8 @@ export function HomeHero() {
       {/* Scroll hint — chevron pulsando suavemente. */}
       <div
         aria-hidden
-        className="mt-10 sm:mt-14 flex justify-center motion-safe:animate-in motion-safe:fade-in duration-700"
-        style={{ animationDelay: "800ms", animationFillMode: "backwards" }}
+        className="mt-10 sm:mt-14 flex justify-center home-rise"
+        style={{ animationDelay: "920ms" }}
       >
         <ChevronDown className="size-4 text-muted-foreground/50 motion-safe:animate-bounce" />
       </div>

@@ -59,11 +59,18 @@ export function HomeCatalog({
         ) : (
           <>
             <div className="space-y-8 sm:space-y-12">
-              {properties.map((p, i) => (
-                <Reveal key={p.id} delayMs={i === 0 ? 0 : 80}>
-                  <PropertyPremiumCard property={p} flip={i % 2 === 1} />
-                </Reveal>
-              ))}
+              {properties.map((p, i) => {
+                const flip = i % 2 === 1;
+                return (
+                  // Each card swings in from its photo side (flip → from the
+                  // right, else from the left) with a small per-card stagger,
+                  // so scrolling the catalog has rhythm instead of a flat fade
+                  // (§2.4). Each card re-triggers on its own scroll position.
+                  <Reveal key={p.id} delayMs={60} direction={flip ? "right" : "left"}>
+                    <PropertyPremiumCard property={p} flip={flip} />
+                  </Reveal>
+                );
+              })}
             </div>
 
             <div className="flex justify-center pt-12 sm:pt-16">

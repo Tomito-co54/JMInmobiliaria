@@ -1,10 +1,11 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import type { FeaturedPropertyRow } from "@/lib/db/properties";
 import { getScoreBand } from "@/lib/scoring/bands";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Reveal } from "@/components/home/HomeGuaranteesClient";
+import { HomeProtagonistShowpiece } from "@/components/home/HomeProtagonistShowpiece";
 
 /**
  * The home protagonista — Jotaeme's brand-signature gesture (Block 3 del
@@ -83,9 +84,9 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
     <section className="relative px-4 py-16 sm:py-24 overflow-x-clip">
       <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-y-14 md:gap-x-10 items-center">
         {/* ---- Text block (the serious anchor) ---- */}
-        <div
-          className="order-2 md:order-1 flex flex-col motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 duration-700"
-          style={{ animationFillMode: "backwards" }}
+        <Reveal
+          direction="left"
+          className="order-2 md:order-1 flex flex-col"
         >
           <p
             className="text-[0.7rem] sm:text-xs font-medium uppercase tracking-[0.22em] mb-3"
@@ -141,82 +142,20 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
             Ver propiedad
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
-        </div>
+        </Reveal>
 
-        {/* ---- Showpiece: la foto que sobresale del cuadrante (§2.6) ---- */}
-        <div
-          className="order-1 md:order-2 relative mx-auto w-full max-w-sm md:max-w-none motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 duration-700"
-          style={{ animationDelay: "150ms", animationFillMode: "backwards" }}
-        >
-          {/* Rigid quadrant — el grid invisible que ordena el caos aparente.
-              Faint catastral-style grid lines hint at the cadastral data
-              backbone without shouting. */}
-          <div
-            aria-hidden
-            className="aspect-square rounded-[2rem] border"
-            style={{
-              backgroundColor: "var(--brand-icon-bg)",
-              borderColor: "color-mix(in srgb, var(--brand-navy) 12%, transparent)",
-              backgroundImage:
-                "linear-gradient(color-mix(in srgb, var(--brand-navy) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--brand-navy) 5%, transparent) 1px, transparent 1px)",
-              backgroundSize: "2.25rem 2.25rem",
-            }}
+        {/* ---- Showpiece: la foto que sobresale del cuadrante (§2.6) ----
+            Client island so the gesture runs on SCROLL into view (the section
+            is below the fold; a mount animation would already be over). */}
+        <div className="order-1 md:order-2">
+          <HomeProtagonistShowpiece
+            id={p.id}
+            cover={cover}
+            headline={headline}
+            score={score}
+            bandHex={band.hex}
+            bandLabel={band.label}
           />
-
-          {/* The framed photo, broken out of the quadrant's top/right margin:
-              rotated + ring frame + deep shadow. This is the literal gesture.
-              (Swap the inner frame for a contour cut-out PNG when available.) */}
-          <Link
-            href={`/p/${p.id}`}
-            aria-label={`Ver ${headline}`}
-            className="group absolute -top-6 right-3 sm:-top-8 sm:-right-4 w-[88%] block focus-visible:outline-none"
-          >
-            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden ring-[6px] ring-background shadow-2xl rotate-[-2.5deg] transition-transform duration-500 ease-out group-hover:rotate-[-1deg] group-hover:scale-[1.02] group-focus-visible:rotate-[-1deg]">
-              {cover ? (
-                <Image
-                  src={cover}
-                  alt={headline}
-                  fill
-                  sizes="(max-width: 768px) 88vw, 440px"
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <div
-                  className="size-full grid place-items-center"
-                  style={{ backgroundColor: "var(--brand-icon-bg)" }}
-                />
-              )}
-            </div>
-          </Link>
-
-          {/* Score medallion — overlaps the photo's corner (§2.1 capas). The
-              serious data sitting on top of the audacious composition. */}
-          {score !== null && (
-            <div
-              className="absolute -bottom-4 -left-2 sm:-left-5 flex items-center gap-2.5 rounded-2xl border bg-background/95 backdrop-blur px-3.5 py-2.5 shadow-xl motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-700"
-              style={{
-                borderColor: `color-mix(in srgb, ${band.hex} 40%, transparent)`,
-                animationDelay: "500ms",
-                animationFillMode: "backwards",
-              }}
-            >
-              <span
-                className="text-3xl font-extrabold tabular-nums leading-none"
-                style={{ color: band.hex }}
-              >
-                {score}
-              </span>
-              <span className="flex flex-col leading-tight">
-                <span className="text-[0.6rem] uppercase tracking-wider text-muted-foreground">
-                  Quality
-                </span>
-                <span className="text-xs font-semibold" style={{ color: band.hex }}>
-                  {band.label}
-                </span>
-              </span>
-            </div>
-          )}
         </div>
       </div>
     </section>

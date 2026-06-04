@@ -28,28 +28,43 @@ import { cn } from "@/lib/utils";
  */
 
 // ---------------------------------------------------------------------------
-// Reveal — fade + slide-up when scrolled into view. Reduced-motion users get
-// the final state with no transition (the hidden classes are motion-safe).
+// Reveal — scroll-triggered entrance with character. Pronounced rise + scale,
+// optional directional slide (so catalog cards swing in from their photo
+// side). Spring-ish easing so it "settles" rather than fading flatly (§2.4 —
+// nada corta en seco). Reduced-motion users get the final state with no
+// transition (the hidden classes are motion-safe).
 // ---------------------------------------------------------------------------
 export function Reveal({
   children,
   delayMs = 0,
   className,
+  direction = "up",
 }: {
   children: React.ReactNode;
   delayMs?: number;
   className?: string;
+  /** Entrance direction. "up" rises; "left"/"right" slide in horizontally. */
+  direction?: "up" | "left" | "right";
 }) {
   const { ref, inView } = useInView<HTMLDivElement>();
+  const hidden =
+    direction === "left"
+      ? "motion-safe:opacity-0 motion-safe:-translate-x-10 motion-safe:scale-[0.97]"
+      : direction === "right"
+        ? "motion-safe:opacity-0 motion-safe:translate-x-10 motion-safe:scale-[0.97]"
+        : "motion-safe:opacity-0 motion-safe:translate-y-9 motion-safe:scale-[0.97]";
   return (
     <div
       ref={ref}
       className={cn(
-        "motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out",
-        inView ? "opacity-100 translate-y-0" : "motion-safe:opacity-0 motion-safe:translate-y-4",
+        "motion-safe:transition-all motion-safe:duration-[850ms]",
+        inView ? "opacity-100 translate-x-0 translate-y-0 scale-100" : hidden,
         className,
       )}
-      style={{ transitionDelay: inView ? `${delayMs}ms` : "0ms" }}
+      style={{
+        transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+        transitionDelay: inView ? `${delayMs}ms` : "0ms",
+      }}
     >
       {children}
     </div>
@@ -76,8 +91,10 @@ export function ArbaParcelViz({
   const reduced = usePrefersReducedMotion();
   const hasSurface = typeof surfaceM2 === "number" && Number.isFinite(surfaceM2);
   const hasPartida = typeof partida === "string" && partida.trim() !== "";
+  // Long enough that the count is still ticking when the read-out reveals
+  // (~2150ms), so the number is seen *climbing*, not pre-settled.
   const m2 = useCountUp(hasSurface ? (surfaceM2 as number) : 0, inView, {
-    durationMs: 1300,
+    durationMs: 2900,
   });
 
   return (
@@ -103,31 +120,52 @@ export function ArbaParcelViz({
           ))}
         </g>
 
-        {/* Filled parcel — fades in after the outline draws. */}
+        {/* Filled parcel — fades in once the outline has finished drawing. */}
         <polygon
           points={PARCEL_POINTS}
           fill="currentColor"
-          fillOpacity={0.1}
+          fillOpacity={0.12}
           className="transition-opacity duration-700"
           style={{
             opacity: inView ? 1 : 0,
-            transitionDelay: inView ? "700ms" : "0ms",
+            transitionDelay: inView ? "1900ms" : "0ms",
           }}
         />
-        {/* Drawn outline — stroke-dashoffset runs full→0 (pathLength=1). */}
+        {/* Drawn outline — stroke-dashoffset runs full→0 (pathLength=1).
+            Thicker + slower than before so the "drawing" reads clearly as a
+            pedagogical gesture (§2.3 — el movimiento explica la verificación,
+            no decora). The gold pencil dot below traces the same path. */}
         <polygon
           points={PARCEL_POINTS}
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="3"
           strokeLinejoin="round"
+          strokeLinecap="round"
           pathLength={1}
           style={{
             strokeDasharray: 1,
             strokeDashoffset: inView || reduced ? 0 : 1,
-            transition: reduced ? "none" : "stroke-dashoffset 1200ms ease-in-out",
+            transition: reduced ? "none" : "stroke-dashoffset 1900ms cubic-bezier(0.65, 0, 0.35, 1)",
           }}
         />
+        {/* Pencil dot — a gold marker that travels the outline as it draws,
+            making the "we trace your parcel" idea literal. Hidden for
+            reduced-motion (it only makes sense while animating). */}
+        {!reduced && (
+          <circle r="4" fill="var(--brand-gold)" style={{ opacity: inView ? 1 : 0 }}>
+            <animateMotion
+              dur="1.9s"
+              begin={inView ? "0s" : "indefinite"}
+              fill="freeze"
+              keyPoints="0;1"
+              keyTimes="0;1"
+              calcMode="spline"
+              keySplines="0.65 0 0.35 1"
+              path={`M ${PARCEL_POINTS.split(" ").map((p) => p.replace(",", " ")).join(" L ")} Z`}
+            />
+          </circle>
+        )}
         {/* Vertex ticks — appear once the outline is drawn. */}
         {PARCEL_POINTS.split(" ").map((pt, i) => {
           const [x, y] = pt.split(",").map(Number);
@@ -141,7 +179,7 @@ export function ArbaParcelViz({
               className="transition-opacity duration-300"
               style={{
                 opacity: inView ? 1 : 0,
-                transitionDelay: inView ? `${900 + i * 60}ms` : "0ms",
+                transitionDelay: inView ? `${1950 + i * 80}ms` : "0ms",
               }}
             />
           );
@@ -157,7 +195,7 @@ export function ArbaParcelViz({
           style={{
             opacity: inView ? 1 : 0,
             transform: inView ? "translateY(0)" : "translateY(6px)",
-            transitionDelay: inView ? "1000ms" : "0ms",
+            transitionDelay: inView ? "2150ms" : "0ms",
           }}
         >
           {hasPartida && (
@@ -195,10 +233,12 @@ export function ArbaParcelViz({
 export function ScoreRingViz({ score }: { score: number }) {
   const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.5 });
   const reduced = usePrefersReducedMotion();
-  const display = useCountUp(score, inView, { durationMs: 1200 });
+  // Count-up matches the ring draw (1600ms) so the number climbs in lockstep
+  // with the arc filling.
+  const display = useCountUp(score, inView, { durationMs: 1600 });
 
   const size = 188;
-  const sw = 14;
+  const sw = 16;
   const radius = (size - sw) / 2;
   const circumference = 2 * Math.PI * radius;
   const band = getScoreBand(score);
@@ -207,7 +247,18 @@ export function ScoreRingViz({ score }: { score: number }) {
   const targetOffset = circumference * (1 - fillPct);
 
   return (
-    <div ref={ref} className="relative mx-auto" style={{ width: size, height: size }}>
+    <div
+      ref={ref}
+      className={cn(
+        "relative mx-auto motion-safe:transition-transform motion-safe:duration-700",
+        inView ? "scale-100" : "motion-safe:scale-90",
+      )}
+      style={{
+        width: size,
+        height: size,
+        transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+      }}
+    >
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
         <circle
           cx={size / 2}
@@ -229,10 +280,12 @@ export function ScoreRingViz({ score }: { score: number }) {
           strokeDasharray={circumference}
           style={{
             strokeDashoffset: inView || reduced ? targetOffset : circumference,
-            transition: reduced ? "none" : "stroke-dashoffset 1200ms cubic-bezier(0.22,1,0.36,1)",
+            // Slower, more dramatic draw + stronger glow so the arc filling
+            // has presence (§2.2 — revela el dato con peso).
+            transition: reduced ? "none" : "stroke-dashoffset 1600ms cubic-bezier(0.22,1,0.36,1)",
             // Concrete hex + alpha (color is a #rrggbb from interpolateRingColor)
             // — avoids color-mix() inside drop-shadow().
-            filter: `drop-shadow(0 0 6px ${color}59)`,
+            filter: `drop-shadow(0 0 10px ${color}80)`,
           }}
         />
       </svg>
@@ -296,13 +349,15 @@ export function MatchDemo() {
         </p>
       </div>
 
-      {/* Meter — scaleX transform (GPU), reacts to the toggles. */}
+      {/* Meter — scaleX transform (GPU), reacts to the toggles with a slight
+          overshoot so the response feels snappy (§2.2). */}
       <div className="mt-3 h-2.5 w-full rounded-full bg-muted overflow-hidden">
         <div
-          className="h-full rounded-full origin-left motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out"
+          className="h-full rounded-full origin-left motion-safe:transition-transform motion-safe:duration-[450ms]"
           style={{
             backgroundColor: band.hex,
             transform: `scaleX(${Math.max(0, Math.min(100, display)) / 100})`,
+            transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
           }}
         />
       </div>
@@ -317,9 +372,10 @@ export function MatchDemo() {
               aria-pressed={on}
               onClick={() => setActive((s) => ({ ...s, [c.key]: !s[c.key] }))}
               className={cn(
-                "min-h-11 rounded-full border px-4 text-sm font-medium transition-colors",
+                "min-h-11 rounded-full border px-4 text-sm font-medium transition-all duration-200",
+                "active:scale-90 motion-safe:hover:scale-[1.04]",
                 on
-                  ? "border-transparent bg-primary text-primary-foreground"
+                  ? "border-transparent bg-primary text-primary-foreground shadow-sm"
                   : "bg-card text-muted-foreground hover:border-primary/40",
               )}
             >
