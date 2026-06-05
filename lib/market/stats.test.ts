@@ -12,8 +12,10 @@ import {
   computeKpis,
   classifyChange,
   priceDeltaPct,
+  scoreBandDistribution,
   type MarketRow,
 } from "./stats";
+import { listScoreBands, getScoreBand } from "@/lib/scoring/bands";
 
 function row(overrides: Partial<MarketRow>): MarketRow {
   return {
@@ -180,5 +182,51 @@ describe("classifyChange / priceDeltaPct", () => {
   it("priceDeltaPct computes percent drop", () => {
     expect(priceDeltaPct({ field_changed: "price_amount", old_value: "100", new_value: "90" })).toBeCloseTo(-10, 5);
     expect(priceDeltaPct({ field_changed: "is_active", old_value: "true", new_value: "false" })).toBeNull();
+  });
+});
+
+describe("scoreBandDistribution", () => {
+  const bands = listScoreBands();
+  const classify = (s: number) => getScoreBand(s).id;
+
+  it("buckets scores into the canonical bands", () => {
+    const rows = [
+      { quality_score: 10 }, // low (0-19)
+      { quality_score: 45 }, // acceptable (36-55)
+      { quality_score: 60 }, // good (56-75)
+      { quality_score: 67 }, // good
+      { quality_score: 98 }, // exceptional (95-100)
+    ];
+    const d = scoreBandDistribution(rows, bands, classify);
+    expect(d.scored).toBe(5);
+    expect(d.unscored).toBe(0);
+    const byId = Object.fromEntries(d.buckets.map((b) => [b.id, b.count]));
+    expect(byId.low).toBe(1);
+    expect(byId.acceptable).toBe(1);
+    expect(byId.good).toBe(2);
+    expect(byId.exceptional).toBe(1);
+    expect(d.maxCount).toBe(2);
+  });
+
+  it("counts unscored rows separately, not in buckets", () => {
+    const rows = [{ quality_score: 60 }, { quality_score: null }, { quality_score: null }];
+    const d = scoreBandDistribution(rows, bands, classify);
+    expect(d.scored).toBe(1);
+    expect(d.unscored).toBe(2);
+    expect(d.buckets.reduce((s, b) => s + b.count, 0)).toBe(1);
+  });
+
+  it("always returns every band, even empty ones", () => {
+    const d = scoreBandDistribution([], bands, classify);
+    expect(d.buckets).toHaveLength(bands.length);
+    expect(d.maxCount).toBe(0);
+    expect(d.scored).toBe(0);
+  });
+
+  it("coerces string-numeric scores (PostgREST)", () => {
+    const rows = [{ quality_score: "67" as unknown as number }];
+    const d = scoreBandDistribution(rows, bands, classify);
+    expect(d.scored).toBe(1);
+    expect(d.buckets.find((b) => b.id === "good")?.count).toBe(1);
   });
 });

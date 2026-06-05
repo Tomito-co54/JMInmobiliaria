@@ -76,20 +76,19 @@ export function HomeHero() {
           Inmobiliaria · Zona Sur GBA
         </p>
 
-        {/* Headline placeholder. Italic + muted = obviamente provisional.
-            La altura visual ya está bien aproximada para 2 líneas en
-            mobile y desktop. El home-rise-hero le da el peso de entrada más
-            pronunciado (más recorrido + blur que se aclara). */}
+        {/* Headline — Fraunces italic, la línea protagónica. El
+            home-rise-hero le da el peso de entrada más pronunciado (más
+            recorrido + blur que se aclara). */}
         <h1
           className="font-heading font-medium text-3xl sm:text-5xl leading-[1.05] tracking-tight italic home-rise-hero"
           style={{
-            color: "color-mix(in srgb, var(--brand-heading) 45%, transparent)",
+            color: "var(--brand-heading)",
             animationDelay: "260ms",
           }}
         >
-          [Headline pendiente,
+          La información del martillero,
           <br />
-          en dos líneas.]
+          en tus manos.
         </h1>
 
         {/* Zonas con middle-dot, sin caja final con coma — más editorial. */}
