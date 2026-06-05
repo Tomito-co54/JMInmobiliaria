@@ -11,6 +11,7 @@ import { getScrapedInventory, getRecentPropertyHistory } from "@/lib/db/market";
 import {
   computeKpis,
   distributionByType,
+  scoreBandDistribution,
   usdPerM2,
   effectiveSurface,
   daysOnMarket,
@@ -18,8 +19,10 @@ import {
   priceDeltaPct,
   type MarketRow,
   type UsdM2Summary,
+  type ScoreDistribution,
   type ChangeKind,
 } from "@/lib/market/stats";
+import { listScoreBands, getScoreBand } from "@/lib/scoring/bands";
 import { InventoryTable, type InventoryRow } from "./inventory-table";
 
 export const metadata = {
@@ -57,6 +60,11 @@ export default async function MercadoPage() {
 
   const kpis = computeKpis(rows);
   const dist = distributionByType(rows);
+  const scoreDist = scoreBandDistribution(
+    rows,
+    listScoreBands(),
+    (s) => getScoreBand(s).id,
+  );
 
   // Enrich rows for the explorer table (M2).
   const inventory: InventoryRow[] = rows.map((r) => {
@@ -166,6 +174,19 @@ export default async function MercadoPage() {
         </section>
       </div>
 
+      {/* ---- M5: Distribución de Quality Score ---- */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Distribución de calidad</h2>
+          <p className="text-sm text-muted-foreground">
+            Cómo se reparte el Quality Score del mercado por banda.{" "}
+            {scoreDist.scored} con score
+            {scoreDist.unscored > 0 ? ` · ${scoreDist.unscored} sin calcular` : ""}.
+          </p>
+        </div>
+        <ScoreHistogram dist={scoreDist} />
+      </section>
+
       {/* ---- M2: Explorador de inventario ---- */}
       <section className="space-y-4">
         <div>
@@ -255,6 +276,60 @@ function DistributionChart({
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// M5 — quality-score histogram (server). Vertical bars, one per band, colored
+// with the canonical band hex (lib/scoring/bands.ts).
+// ---------------------------------------------------------------------------
+function ScoreHistogram({ dist }: { dist: ScoreDistribution }) {
+  if (dist.scored === 0) {
+    return (
+      <div className="rounded-md border bg-card p-6 text-sm text-muted-foreground">
+        Todavía no hay avisos con Quality Score calculado.
+      </div>
+    );
+  }
+  const max = Math.max(1, dist.maxCount);
+  return (
+    <div className="rounded-md border bg-card p-5">
+      {/* Bars share a fixed-height track; each grows to count/max. */}
+      <div className="flex items-end gap-2 sm:gap-3 h-40">
+        {dist.buckets.map((b) => {
+          const pct = (b.count / max) * 100;
+          return (
+            <div key={b.id} className="flex-1 flex flex-col items-center justify-end h-full gap-2">
+              <span className="text-sm font-bold tabular-nums" style={{ color: b.hex }}>
+                {b.count}
+              </span>
+              <div
+                className="w-full rounded-t-md transition-all"
+                style={{
+                  height: `${Math.max(b.count > 0 ? 6 : 2, pct)}%`,
+                  backgroundColor: b.count > 0 ? b.hex : "var(--muted)",
+                  opacity: b.count > 0 ? 1 : 0.5,
+                }}
+                title={`${b.label}: ${b.count}`}
+              />
+            </div>
+          );
+        })}
+      </div>
+      {/* Axis: band label + range under each bar. */}
+      <div className="flex items-start gap-2 sm:gap-3 mt-2">
+        {dist.buckets.map((b) => (
+          <div key={b.id} className="flex-1 text-center">
+            <p className="text-[0.7rem] font-medium leading-tight" style={{ color: b.hex }}>
+              {b.label}
+            </p>
+            <p className="text-[0.65rem] text-muted-foreground tabular-nums">
+              {b.min}–{b.max}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );

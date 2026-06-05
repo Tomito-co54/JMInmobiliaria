@@ -16,10 +16,12 @@ import { cn } from "@/lib/utils";
  * a glossary entry are wrapped in TermDefinition so the buyer can tap them.
  */
 
+// Lighter shades in dark mode so the status icons read clearly over the
+// slate surface (the -600 tones go muddy on dark).
 const STATUS_ICON = {
-  verified: { Icon: CheckCircle2, color: "text-emerald-600" },
-  warning: { Icon: AlertTriangle, color: "text-amber-600" },
-  missing: { Icon: AlertOctagon, color: "text-red-600" },
+  verified: { Icon: CheckCircle2, color: "text-emerald-600 dark:text-emerald-400" },
+  warning: { Icon: AlertTriangle, color: "text-amber-600 dark:text-amber-400" },
+  missing: { Icon: AlertOctagon, color: "text-red-600 dark:text-red-400" },
 } as const;
 
 interface VerifiedDataListProps {

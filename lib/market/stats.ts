@@ -261,3 +261,66 @@ export function priceDeltaPct(h: HistoryEntry): number | null {
   if (o === null || n === null || o === 0) return null;
   return ((n - o) / o) * 100;
 }
+
+// ---------------------------------------------------------------------------
+// Quality-score distribution by band (M5)
+// ---------------------------------------------------------------------------
+
+export interface ScoreBandBucket {
+  id: string;
+  label: string;
+  hex: string;
+  /** Inclusive score range for the band (for the axis label). */
+  min: number;
+  max: number;
+  count: number;
+}
+
+export interface ScoreDistribution {
+  buckets: ScoreBandBucket[];
+  /** Rows that have a usable quality_score (the histogram's n). */
+  scored: number;
+  /** Rows with no score yet (excluded from the buckets). */
+  unscored: number;
+  /** Largest bucket count — handy for bar scaling in the UI. */
+  maxCount: number;
+}
+
+/**
+ * Buckets the scraped inventory's quality_score into the canonical score
+ * bands (lib/scoring/bands.ts is the single source of truth — we don't
+ * redefine thresholds here). Rows without a score are counted separately,
+ * not silently dropped.
+ *
+ * `bands` is injected (the caller passes listScoreBands() + a classifier)
+ * so this module stays free of the scoring import cycle and easy to test.
+ */
+export function scoreBandDistribution(
+  rows: Pick<MarketRow, "quality_score">[],
+  bands: { id: string; label: string; hex: string; min: number; max: number }[],
+  classify: (score: number) => string,
+): ScoreDistribution {
+  const counts = new Map<string, number>();
+  let scored = 0;
+  let unscored = 0;
+  for (const row of rows) {
+    const s = num(row.quality_score);
+    if (s === null) {
+      unscored += 1;
+      continue;
+    }
+    scored += 1;
+    const id = classify(s);
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  const buckets: ScoreBandBucket[] = bands.map((b) => ({
+    id: b.id,
+    label: b.label,
+    hex: b.hex,
+    min: b.min,
+    max: b.max,
+    count: counts.get(b.id) ?? 0,
+  }));
+  const maxCount = buckets.reduce((m, b) => Math.max(m, b.count), 0);
+  return { buckets, scored, unscored, maxCount };
+}

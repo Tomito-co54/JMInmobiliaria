@@ -80,7 +80,9 @@ function renderPriceTransition(
       <span
         className={cn(
           "inline-flex items-center gap-1 font-semibold",
-          dropped ? "text-emerald-600" : "text-red-600",
+          dropped
+            ? "text-emerald-600 dark:text-emerald-400"
+            : "text-red-600 dark:text-red-400",
         )}
       >
         {currency} {fmtPrice(newN)}
