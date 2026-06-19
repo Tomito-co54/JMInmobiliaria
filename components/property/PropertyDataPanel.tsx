@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FavoriteButton } from "./FavoriteButton";
 import { PropertyScorePanel } from "./PropertyScorePanel";
+import { WhatsAppButton } from "./WhatsAppButton";
 import { MatchScoreCard } from "@/components/matching/MatchScoreCard";
 import type { QualityBreakdown } from "@/lib/scoring";
 import type { MatchBreakdown } from "@/lib/matching";
@@ -33,6 +34,7 @@ function fmtPrice(amount: number): string {
 
 interface PropertyDataPanelProps {
   propertyId: string;
+  address: string | null;
   priceAmount: number | null;
   priceCurrency: "USD" | "ARS" | null;
   rooms: number | null;
@@ -52,6 +54,7 @@ interface PropertyDataPanelProps {
 
 export function PropertyDataPanel({
   propertyId,
+  address,
   priceAmount,
   priceCurrency,
   rooms,
@@ -126,8 +129,10 @@ export function PropertyDataPanel({
 
       <div className="h-px bg-border" />
 
-      {/* CTAs */}
+      {/* CTAs — WhatsApp is the primary lead path (full width, on top);
+          Guardar + Servicios are secondary below it. */}
       <div className="space-y-3">
+        <WhatsAppButton address={address} size="lg" className="w-full" />
         <div className="grid grid-cols-2 gap-2">
           <FavoriteButton
             propertyId={propertyId}
@@ -137,7 +142,7 @@ export function PropertyDataPanel({
           />
           <Link
             href={`/p/${propertyId}/servicios`}
-            className={cn(buttonVariants({ size: "lg" }), "h-12 gap-2")}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-12 gap-2")}
           >
             <FileText className="size-5" />
             Servicios
