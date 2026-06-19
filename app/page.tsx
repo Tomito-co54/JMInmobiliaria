@@ -12,6 +12,7 @@ import { HomeHero } from "@/components/home/HomeHero";
 import { HomeProtagonist } from "@/components/home/HomeProtagonist";
 import { HomeGuarantees } from "@/components/home/HomeGuarantees";
 import { HomeCatalog } from "@/components/home/HomeCatalog";
+import { WhatsAppFloat } from "@/components/home/WhatsAppFloat";
 import type { PremiumCardProperty } from "@/components/home/PropertyPremiumCard";
 
 const HOME_CATALOG_LIMIT = 6;
@@ -84,6 +85,9 @@ export default async function Home() {
 
       {/* Catálogo — premium cards alternadas (§5 del rediseño) */}
       <HomeCatalog properties={catalog} totalProperties={proximity.count} />
+
+      {/* Lead CTA flotante — presente en todo el scroll de la home */}
+      <WhatsAppFloat />
     </main>
   );
 }
