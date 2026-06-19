@@ -186,6 +186,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
             <div className="lg:hidden pt-3">
               <PropertyDataPanel
                 propertyId={property.id}
+                address={property.address}
                 priceAmount={property.price_amount}
                 priceCurrency={property.price_currency}
                 rooms={property.rooms}
@@ -251,6 +252,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
           <aside className="hidden lg:block lg:sticky lg:top-20 lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto lg:overscroll-contain">
             <PropertyDataPanel
               propertyId={property.id}
+              address={property.address}
               priceAmount={property.price_amount}
               priceCurrency={property.price_currency}
               rooms={property.rooms}
@@ -274,6 +276,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
       {/* Sticky bottom action bar — mobile only */}
       <PropertyMobileBar
         propertyId={property.id}
+        address={property.address}
         priceAmount={property.price_amount}
         priceCurrency={property.price_currency}
         isFavorited={favorited}

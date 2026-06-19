@@ -1,14 +1,11 @@
-import Link from "next/link";
-import { FileText } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { FavoriteButton } from "./FavoriteButton";
+import { WhatsAppButton } from "./WhatsAppButton";
 
 /**
  * Sticky bottom action bar — MOBILE ONLY (hidden lg:+). Keeps price + Save +
- * Servicios reachable without scrolling to the footer (§4: las animaciones
- * y el scroll nunca esconden los CTA). On desktop the sticky right panel
- * already covers this, so this is suppressed there.
+ * the primary lead CTA (WhatsApp) reachable without scrolling to the footer
+ * (§4: las animaciones y el scroll nunca esconden los CTA). On desktop the
+ * sticky right panel already covers this, so this is suppressed there.
  */
 
 function fmtPrice(amount: number): string {
@@ -16,12 +13,14 @@ function fmtPrice(amount: number): string {
 }
 
 export function PropertyMobileBar({
-  propertyId,
+  address,
   priceAmount,
   priceCurrency,
+  propertyId,
   isFavorited,
   signedOut,
 }: {
+  address: string | null;
   propertyId: string;
   priceAmount: number | null;
   priceCurrency: "USD" | "ARS" | null;
@@ -46,13 +45,7 @@ export function PropertyMobileBar({
           variant="overlay"
           signedOut={signedOut}
         />
-        <Link
-          href={`/p/${propertyId}/servicios`}
-          className={cn(buttonVariants({ size: "sm" }), "h-10 gap-1.5 shrink-0")}
-        >
-          <FileText className="size-4" />
-          Servicios
-        </Link>
+        <WhatsAppButton address={address} size="sm" className="shrink-0" />
       </div>
     </div>
   );
