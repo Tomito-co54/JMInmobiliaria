@@ -35,3 +35,6 @@ export function propertyLeadMessage(address: string | null): string {
   const ref = address?.trim() ? `“${address.trim()}”` : "una propiedad publicada";
   return `Hola Jotaeme, me interesa ${ref}. ¿Podemos coordinar?`;
 }
+
+/** Generic lead message for surfaces without a specific property (home, footer). */
+export const GENERIC_LEAD_MESSAGE = "Hola Jotaeme, quiero hacer una consulta.";
