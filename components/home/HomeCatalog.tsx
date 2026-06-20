@@ -1,6 +1,3 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 import { Reveal } from "@/components/home/HomeGuaranteesClient";
 import {
   PropertyPremiumCard,
@@ -57,33 +54,26 @@ export function HomeCatalog({
             Todavía no hay propiedades publicadas. Volvé pronto.
           </div>
         ) : (
-          <>
-            <div className="space-y-8 sm:space-y-12">
-              {properties.map((p, i) => {
-                const flip = i % 2 === 1;
-                return (
-                  // Each card swings in from its photo side (flip → from the
-                  // right, else from the left) with a small per-card stagger,
-                  // so scrolling the catalog has rhythm instead of a flat fade
-                  // (§2.4). Each card re-triggers on its own scroll position.
-                  <Reveal key={p.id} delayMs={60} direction={flip ? "right" : "left"}>
-                    <PropertyPremiumCard property={p} flip={flip} />
-                  </Reveal>
-                );
-              })}
-            </div>
-
-            <div className="flex justify-center pt-12 sm:pt-16">
-              <Link
-                href="/buscar"
-                className={buttonVariants({ variant: "outline", size: "lg" })}
-              >
-                Ver todas las propiedades
-                <ArrowRight className="size-4 ml-1" />
-              </Link>
-            </div>
-          </>
+          <div className="space-y-8 sm:space-y-12">
+            {properties.map((p, i) => {
+              const flip = i % 2 === 1;
+              return (
+                // Each card swings in from its photo side (flip → from the
+                // right, else from the left) with a small per-card stagger,
+                // so scrolling the catalog has rhythm instead of a flat fade
+                // (§2.4). Each card re-triggers on its own scroll position.
+                <Reveal key={p.id} delayMs={60} direction={flip ? "right" : "left"}>
+                  <PropertyPremiumCard property={p} flip={flip} />
+                </Reveal>
+              );
+            })}
+          </div>
         )}
+        {/* Nota: el viejo CTA "Ver todas" apuntaba a /buscar (la búsqueda del
+            portal agregador original, con match scoring). Con el inventario
+            propio actual la home ya muestra todo el catálogo, así que se
+            quitó. Cuando el inventario crezca, va una página de listado
+            propia en su lugar. */}
       </div>
     </section>
   );

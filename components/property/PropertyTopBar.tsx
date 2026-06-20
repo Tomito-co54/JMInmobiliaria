@@ -1,19 +1,21 @@
 import Link from "next/link";
-import { ArrowLeft, Heart, Share2 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { BrandLogo } from "@/components/shared/BrandLogo";
+import { ShareButton } from "./ShareButton";
 import { cn } from "@/lib/utils";
 
 /**
  * Sticky top bar of the public property page.
  *
- *   ← Volver        [isotipo Jotaeme]        [♡] [⤴]
+ *   ← Volver        [isotipo Jotaeme]        [⤴ Compartir]
  *
- * Server Component — the save/share buttons are decorative for now (B6/B7
- * will wire them up). Rendering them as <Button> with disabled tooltip is
- * fine for the layout pass.
+ * Server Component. The only action is Share (functional via the Web Share
+ * API / clipboard fallback). The old decorative "Guardar (próximamente)"
+ * stub was removed — favoriting is a logged-in buyer feature that already
+ * lives in the data panel; it added nothing for an anonymous visitor.
  */
-export function PropertyTopBar() {
+export function PropertyTopBar({ title }: { title: string }) {
   return (
     <header className="sticky top-0 z-20 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
@@ -33,14 +35,7 @@ export function PropertyTopBar() {
           <BrandLogo variant="isotipo" size={28} />
         </Link>
 
-        <div className="flex items-center gap-0.5">
-          <Button variant="ghost" size="icon" aria-label="Guardar (próximamente)">
-            <Heart className="size-4" />
-          </Button>
-          <Button variant="ghost" size="icon" aria-label="Compartir (próximamente)">
-            <Share2 className="size-4" />
-          </Button>
-        </div>
+        <ShareButton title={title} />
       </div>
     </header>
   );

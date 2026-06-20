@@ -158,7 +158,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
           }
         />
       )}
-      <PropertyTopBar />
+      <PropertyTopBar title={altText} />
 
       <div className="max-w-6xl mx-auto px-4 py-5 sm:py-7">
         {/* Two-column on desktop: scrolling content left, sticky data panel
