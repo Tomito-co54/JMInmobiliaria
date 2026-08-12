@@ -57,36 +57,11 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status:** Rediseño de la home pública **completo** en la rama
-`rediseno-home` (5/5 bloques hechos y pusheados). Pendiente: aprobación del
-owner para mergear a `main`.
-
-### Rediseño de la home en curso (rama `rediseno-home`)
-
-**Plan aprobado por el owner** y documentado en `DIRECCION_DE_ARTE.md`.
-Se ejecuta en 5 bloques; cada bloque commit propio + push para mostrar
-progreso visual antes de continuar.
-
-| # | Bloque | Estado | Commit |
-|---|---|---|---|
-| 1 | `is_featured` flag + toggle ★ en `/admin/properties` (migración 00013, server action, FeaturedToggle client component, CHECK constraint solo permite `true` en owner sources) | ✅ | `29609ad` |
-| 2 | Hero — extraído a `components/home/HomeHero.tsx`. Cascade de entrada con stagger 120ms, eyebrow dorado caps, Fraunces italic placeholder, bullets centrales, scroll hint con bounce, background radial sutil | ✅ | `b93ab09` |
-| 3 | Propiedad protagonista — `getFeaturedProperty()` (rota 1/día entre `is_featured=true AND publicada`, honra el filtro de dos puertas), `components/home/HomeProtagonist.tsx` server component entre Hero y Features: cuadrante rígido de fondo + foto enmarcada que sobresale de su margen (§2.6), medallón de Quality Score solapado, chip ARBA. Asset honesto: frame rectangular hoy, cut-out PNG cuando exista | ✅ | `ae16d81` |
-| 4 | Garantías en dos tonos — reemplaza `HomeFeatures` (grilla 2x2, era la lista negra §6) por `HomeGuarantees` + `HomeGuaranteesClient`. Tono 1 ARBA sobrio (polígono que se dibuja, partida, m², cifra % ARBA real); Tono 2 dinámico sobre panel tintado (anillo Score 0→N, Match reactivo al tap, secuencia de 3 pasos del informe). Hooks propios `use-in-view.ts` (IntersectionObserver + count-up rAF), sin librería de animación; SVG con `currentColor` (visible en dark). Stats strip disuelto | ✅ | `a61ab95` |
-| 5 | Resto del catálogo — reemplaza la grilla 2-col de `PropertyCard` (estilo Zonaprop, §6) por `PropertyPremiumCard` (cards grandes, una por fila, foto alternando izq/der vía `flip`; mobile full-width stack) dentro de `HomeCatalog` (header editorial + Reveal por card + CTA "Ver todas"). `HomeProtagonist` ahora recibe la propiedad por prop; la home busca la destacada una sola vez y la excluye del catálogo (con fallback si es la única). `PropertyCard` se conserva para `/buscar` y `/favoritos` | ✅ | `56f6586` |
-
-**DB:** la única `publicada` (`a33f1a22` — Belgrano 1285) ya está
-marcada `is_featured=true` para que el Bloque 3 tenga candidata real al
-arrancar.
-
-**Reglas operativas del rediseño:**
-- Antes de cualquier decisión visual, **leer `DIRECCION_DE_ARTE.md`** y
-  referenciar la sección que la justifica.
-- En zona gris, aplicar las **4 preguntas** (regla de oro al final del
-  doc) explícitamente.
-- Commit por bloque + push antes de continuar — mostrar progreso visual
-  al owner por bloque, no esperar a tener todo.
-- No mergear a `main` hasta que el owner apruebe la rama completa.
+**Status:** Todo el trabajo visual + dashboard de mercado + contacto vía
+WhatsApp + limpieza de surfaces legacy **mergeado a `main`** (HEAD
+`873b744`, agosto 2026). Repo limpio, 206 tests passing, `npm run build`
+verde. Pendiente **único** para lanzar: deploy a Vercel (nunca vinculado
+— no hay `vercel.json` ni `.vercel`).
 
 ### Hitos (este fork)
 
@@ -96,16 +71,32 @@ arrancar.
 | Fase 0 — Separación + Limpieza | Filtros públicos `source` + `listing_status`; baja del registro público; fix flujo reset password vía /auth/callback; SMTP de Supabase via Resend | `ab10631` `c8d6fe1` `361f471` `d189251` |
 | Fase 1 — Cargador de propiedades | Migraciones 00011 (listing_status + tpa + CHECK constraint) + 00012 (bucket property-photos); ARBA por partida (getParcelByPartida + bridge); UI single-screen editor con fotos drag&drop; 28 tests nuevos | `434f015` `b2c20b0` `f68c6a1` `e86f735` |
 | Fase 1.B — Polish del cargador | Filtros estado split (Gestión + Mercado + Origen); autosave silencioso por sección; inline validation de partida; "Re-consultar ARBA"; preview admin de borradores con banner | `927f50e` |
+| Fase 2 — Rediseño de la home pública | Migración 00013 (`is_featured` + toggle ★ en admin, CHECK owner-only); `HomeHero` (cascade stagger 120ms, eyebrow dorado, Fraunces italic); `HomeProtagonist` (§2.6: rota 1/día entre `is_featured=true` publicadas, foto que sobresale del cuadrante, medallón de Quality Score); `HomeGuarantees` + `HomeGuaranteesClient` (Tono 1 ARBA sobrio con polígono que se dibuja; Tono 2 anillo Score + Match reactivo + secuencia de 3 pasos, hook propio `use-in-view.ts` sin librería); `HomeCatalog` + `PropertyPremiumCard` (cards editoriales grandes, foto flip izq/der, la destacada se excluye del catálogo). Rama `rediseno-home` mergeada a `main`. | `29609ad` `b93ab09` `ae16d81` `a61ab95` `56f6586` `36c39a3` (merge) |
+| Fase 3 — Dashboard de mercado v1 | `/admin/mercado`: 5 módulos server-side (KPIs de inventario scrapeado, USD/m² por tipo con media/mediana/desvío, feed de cambios recientes desde `property_history`, distribución de Quality Score, tabla-explorador filtrable). Sin dependencias nuevas. | `781ae8f` `c025b72` (merge) |
+| Fase 4 — Rediseño de `/p/[id]` | Layout editorial 2-col (panel de datos sticky scrolleable + foto full-bleed), fix `USD/m²` que usaba `surface_arba` en vez de la declarada. | `27ca7a3` `56569dc` `6877ab3` (merge) |
+| Fase 5 — Dark mode + polish | Dark mode slate frío (no navy de marca — evita chillones); tintes claros arreglados en sheet de score y toast de favorito guardado; headline real "en construcción" reemplazado; polish general. | `54f9a27` `a52364f` `f601342` |
+| Fase 6 — Animaciones scroll-triggered | Pasada de movimiento en la home (Reveal + cascades) — la home "se siente viva" sin librería de animación. | `79bbc31` `a300adf` (merge) |
+| Fase 7 — Contacto / leads (canal principal) | `lib/brand/contact.ts` (`WHATSAPP_NUMBER`, `whatsappLink`, `propertyLeadMessage`); `WhatsAppButton` como CTA primario en `/p/[id]` panel desktop + barra sticky mobile con mensaje que nombra la dirección; `WhatsAppFloat` en toda la home con mensaje genérico. | `25cd9f2` `2088d0b` `2eb6629` `2cf1e41` (merges) |
+| Fase 8 — Limpieza legacy en cara pública | "Esconder no borrar": se quitó CTA "Ver todas" (iba a `/buscar` viejo); se quitó "Guardar (próximamente)" del top bar de `/p/[id]`; `ShareButton` funcional (Web Share API + fallback a copiar link). Rutas legacy (`/buscar`, `/favoritos`, `/onboarding`, `/mis-servicios`, `/busquedas`) siguen vivas — Tomy puede usarlas como herramienta personal, no las ve el visitante anónimo. | `bfb53be` `873b744` (merge) |
 
-**Tests:** 176 passing (la upstream tenía 146; +30 nuevos en este fork).
+**Tests:** 206 passing (arrancamos en 176 al cierre de Fase 1.B; +30
+sumados por las fases 2-8).
+
+**Build:** `npm run build` verde. 25 rutas, First Load JS shared 183 kB.
+3 warnings menores de `@typescript-eslint/no-unused-vars` que no bloquean
+(vars `_omit`, `_req`, `ownerPropertyPublishSchema`).
 
 **Live URLs:**
-- Producción: aún no deployada (sigue en `localhost:3000`).
+- Producción: **aún no deployada** — pendiente Vercel + dominio.
 - GitHub repo: https://github.com/Tomito-co54/JMInmobiliaria
-- Supabase project: `https://cjnaxxidigdylnwlpyab.supabase.co` (compartido con upstream — única DB por ahora).
+- Supabase project: `https://cjnaxxidigdylnwlpyab.supabase.co` (compartido con upstream — una única DB por ahora; decisión previa a deploy: seguir compartida o crear DB propia para prod).
 - Sentry project: `jotaeme-web` (heredado del upstream).
 
 **Project location:** `C:\dev\jotaeme-inmobiliaria` (hermano de `C:\dev\jotaeme` que es el original — este fork no toca al original).
+
+**Contenido real:** 1 sola propiedad publicada (`a33f1a22` — Belgrano
+1285) marcada `is_featured=true`. Cargar más antes de lanzar para que el
+catálogo no se vea vacío.
 
 ---
 
@@ -208,10 +199,11 @@ Management API (config de auth, settings de proyecto). Reglas:
 ├── app/
 │   ├── (auth)/                   # login, forgot-password, reset-password, verify-email
 │   ├── (public)/                 # /, /p/[id], /p/[id]/servicios, /guia-de-compra
-│   ├── (app)/                    # legacy del upstream — buscar, busquedas, favoritos, dashboard, perfil
+│   ├── (app)/                    # legacy del upstream — buscar, busquedas, favoritos, dashboard, perfil, alertas, mis-servicios
 │   ├── admin/                    # ← panel principal de operación
 │   │   ├── page.tsx              # dashboard de métricas
 │   │   ├── properties/           # ← CARGADOR (nueva, listado, [id]/editar)
+│   │   ├── mercado/              # ← Dashboard de inteligencia de mercado v1 (5 módulos)
 │   │   ├── groups/               # dedup viewer (admin tool)
 │   │   └── users/                # legacy
 │   ├── api/                      # webhooks (MercadoPago, Sentry), admin fulfillment
@@ -222,10 +214,10 @@ Management API (config de auth, settings de proyecto). Reglas:
 │
 ├── components/
 │   ├── ui/                       # shadcn/ui base
-│   ├── property/                 # PropertyCover, PropertyCTAs, PropertyMapSection, etc.
+│   ├── property/                 # PropertyHero, PropertyDataPanel, PropertyMobileBar, WhatsAppButton, ShareButton, PropertyMapSection, etc.
 │   ├── scoring/                  # QualityScoreRing + Card + Sheet
 │   ├── matching/                 # MatchScoreCard (legacy buyer feature)
-│   ├── home/                     # HomeFeatures
+│   ├── home/                     # HomeHero, HomeProtagonist, HomeGuarantees(+Client), HomeCatalog, PropertyPremiumCard, WhatsAppFloat
 │   ├── shared/                   # BrandLogo, AdminSidebar, UserMenu, MetricCard, etc.
 │   ├── education/                # BuyingProcessAdvisor (legacy)
 │   └── search/                   # SearchProfileForm (legacy)
@@ -252,12 +244,13 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   └── utils.ts
 │
 ├── hooks/
-│   └── use-autosave.ts           # ← debounced autosave del cargador
+│   ├── use-autosave.ts           # ← debounced autosave del cargador
+│   └── use-in-view.ts            # ← IntersectionObserver + count-up rAF (Fase 2 bloque 4)
 │
 ├── types/                        # tipos compartidos
 ├── public/brand/                 # logos navy/white, isotipo + full
 ├── supabase/
-│   ├── migrations/               # 00001..00012 (las 00011+12 son del fork)
+│   ├── migrations/               # 00001..00013 (00011+12+13 son del fork)
 │   ├── seed.sql
 │   └── reset.sql
 ├── scripts/                      # CLIs: scrape, dedup, geocode, ARBA, score, alerts, db-run
@@ -292,7 +285,8 @@ Columnas clave:
 | `rooms`, `bedrooms`, `bathrooms`, `garages` | integer | |
 | `description`, `photos` | text / jsonb | `photos` = array de URLs (primera = portada) |
 | `first_seen_at`, `last_seen_at`, `is_active` | timestamps / bool | **Estado de mercado** — solo relevante a scrapeadas |
-| `listing_status` | text | **NEW**: `borrador` / `publicada` / `vendida` — solo mías (CHECK constraint) |
+| `listing_status` | text | `borrador` / `publicada` / `vendida` — solo mías (CHECK constraint) |
+| `is_featured` | boolean | Broker-curated flag para rotar la protagonista de la home. Solo owner sources (CHECK constraint, migración 00013). |
 | `quality_score`, `quality_score_breakdown` | numeric / jsonb | |
 | `created_at`, `updated_at` | timestamps | |
 
@@ -337,44 +331,52 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 ### Fases hechas (este fork)
 
 1. **Fase 0 — Separación + Limpieza** ✅
-   - Filtro `source` en surfaces públicas (Parte A)
-   - Eliminación de `/register`, Google OAuth, CTAs públicos (Parte B)
-   - Fix flujo reset password vía `/auth/callback`
-   - SMTP de Supabase via Resend
-   - Convención `SUPABASE_MANAGEMENT_TOKEN`
+2. **Fase 1 — Cargador de propiedades** ✅ (+ Polish B)
+3. **Fase 2 — Rediseño de la home pública** ✅ (5 bloques, mergeado)
+4. **Fase 3 — Dashboard de mercado v1** ✅ (`/admin/mercado`)
+5. **Fase 4 — Rediseño de `/p/[id]`** ✅ (layout 2-col + fix USD/m²)
+6. **Fase 5 — Dark mode slate + polish** ✅
+7. **Fase 6 — Animaciones scroll-triggered** ✅
+8. **Fase 7 — Contacto/leads (WhatsApp)** ✅ (CTA primario)
+9. **Fase 8 — Limpieza legacy en cara pública** ✅ ("esconder no borrar")
 
-2. **Fase 1 — Cargador de propiedades** ✅
-   - Migración 00011: `listing_status` + `tpa` + CHECK constraint
-   - Migración 00012: bucket `property-photos`
-   - ARBA por partida exacta (sin geocoding)
-   - UI single-screen editor en `/admin/properties/[id]/editar`
-   - Fotos: upload + drag-reorder + portada + delete con optimistic UI
-   - Estados editoriales: borrador → publicada → vendida
-   - Polish B: autosave, filtros split, inline validation, re-consultar ARBA, preview admin
+Detalles de cada fase en **Current progress** más arriba.
 
-### Próxima fase (cuando arranque)
+### Próxima fase — **Deploy a producción (Vercel)**
 
-**Dashboard de inteligencia de mercado** en `/admin/mercado` (TBD):
-- Distribución de USD/m² por (partido, tipo): media, mediana, moda, desvío
-- Feed de listings nuevos (data point)
-- Bajadas de precio detectadas
+Único bloqueante para lanzar. Requiere pasos manuales del owner (login
+Vercel, env vars, redirect URLs). Alto nivel:
+
+- Decisión previa: DB Supabase propia para prod, o seguir compartida con
+  `jotaeme` original (una única `properties` para ambos). Recomendación:
+  compartida por ahora — el scraper ya alimenta esa DB y no hay razón
+  para duplicar el pipeline.
+- Vincular el repo `Tomito-co54/JMInmobiliaria` a un proyecto Vercel.
+- Pegar ~15 env vars (ver **Environment Variables** más abajo).
+- Actualizar Redirect URLs en Supabase Auth (agregar dominio de prod al
+  callback de `/auth/callback`).
+- Dominio propio (a decidir por Tomy).
+- Verificar que el pipeline diario de scraping (GitHub Actions) siga
+  funcionando contra la misma DB.
+
+### Diferidos del dashboard de mercado
+
+Esperan más historial acumulado del scraper para tener sentido:
+- Series temporales USD/m² (requiere meses de data)
 - Listings rancios (>90, >180 días)
-- Score heurístico de "vendibilidad" (no ML supervisado)
 - Atribución por inmobiliaria publicadora (requiere extender scraper —
   agregar columna `publisher_agency` a `properties`)
 - Mapa de calor por zona
-- Series temporales (requiere meses de data acumulada)
 
-### Diferidos hasta que tengan sentido
+### Nice-to-haves post-lanzamiento
 
-- Deploy a producción (Vercel + env vars + dominio propio)
-- Sistema de leads: form de contacto en `/p/[id]` o link a WhatsApp
-- Brand polish / redesign de la vista pública para tu caso (sin
-  necesariamente score si no aplica, más espacio para fotos)
-- Galería fullscreen con swipe (espera múltiples fotos por propiedad)
-- Eliminación de surfaces legacy buyer-facing (`/buscar`,
-  `/favoritos`, `/onboarding`) — solo si confirmás que no las querés
-  como herramienta personal
+- Form de contacto por mail vía Resend para quien no usa WhatsApp
+  (baja prioridad — el canal principal ya cubre el caso de uso).
+- Galería fullscreen con swipe (espera múltiples fotos por propiedad).
+- Eliminación total de surfaces legacy buyer-facing (`/buscar`,
+  `/favoritos`, `/onboarding`, `/mis-servicios`, `/busquedas`) — hoy
+  esconden sus CTAs públicos pero las rutas viven. Borrar solo si Tomy
+  confirma que no las quiere como herramienta personal.
 
 ---
 
@@ -555,6 +557,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.1 | Aug 12, 2026 | **Actualización pre-deploy.** El rediseño de home + `/p/[id]` + dashboard de mercado + WhatsApp + limpieza legacy están todos mergeados a `main` (HEAD `873b744`). Current progress reescrito como tabla de 8 fases (2-8 son nuevas). Build map colapsado: solo queda **Deploy a Vercel** como bloqueante. **206 tests passing** (+30 desde 2.0), `npm run build` verde (25 rutas). Se agregó `is_featured` al schema; `use-in-view.ts` a hooks; `mercado/` a admin; `WhatsAppButton` + `WhatsAppFloat` + `HomeHero/Protagonist/Guarantees/Catalog` + `PropertyPremiumCard` al Project Structure. |
 | 2.0 | May 27, 2026 | **Fork inicializado.** Rewrite completo del CLAUDE.md para reflejar la identidad del proyecto (inmobiliaria personal, no portal buyer-facing). Conserva historia upstream como referencia. Listado de hitos del fork: separación + cargador + polish B. **176 tests passing** sobre la base de 146 del upstream. |
 | 1.x | upstream | Las entradas anteriores (1.0 a 1.19) describen la construcción del portal buyer-facing original (`Tomito-co54/Jotaeme`). Preservadas como historia para entender por qué existen ciertas piezas (matching score, search profiles, /buscar, /favoritos, BuyingProcessAdvisor, MercadoPago + informe ARBA, etc.). |
 
