@@ -87,9 +87,9 @@ sumados por las fases 2-8).
 (vars `_omit`, `_req`, `ownerPropertyPublishSchema`).
 
 **Live URLs:**
-- Producción: **aún no deployada** — pendiente Vercel + dominio.
+- Producción: **https://jm-inmobiliaria-d3pa.vercel.app** — deployada 12-ago-2026, pendiente verificar login (SMTP roto — no llegan emails de recovery; ver [[project-status-roadmap]] en memoria).
 - GitHub repo: https://github.com/Tomito-co54/JMInmobiliaria
-- Supabase project: `https://cjnaxxidigdylnwlpyab.supabase.co` (compartido con upstream — una única DB por ahora; decisión previa a deploy: seguir compartida o crear DB propia para prod).
+- Supabase project: `https://cjnaxxidigdylnwlpyab.supabase.co` (**compartido con el proyecto original `jotaeme`** — decisión tomada: una única DB, el scraper alimenta la misma tabla).
 - Sentry project: `jotaeme-web` (heredado del upstream).
 
 **Project location:** `C:\dev\jotaeme-inmobiliaria` (hermano de `C:\dev\jotaeme` que es el original — este fork no toca al original).
