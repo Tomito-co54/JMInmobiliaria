@@ -4,16 +4,18 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FormError } from "@/components/shared/form-error";
+import { FormError, FormErrorBanner } from "@/components/shared/form-error";
 import { requestPasswordReset } from "@/app/(auth)/actions";
 
 export function ForgotPasswordForm() {
   const [isPending, startTransition] = useTransition();
   const [submitted, setSubmitted] = useState(false);
+  const [bannerError, setBannerError] = useState<string>();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   function handleSubmit(formData: FormData) {
     setFieldErrors({});
+    setBannerError(undefined);
 
     startTransition(async () => {
       const result = await requestPasswordReset(formData);
@@ -22,6 +24,10 @@ export function ForgotPasswordForm() {
         setSubmitted(true);
       } else if (result.fieldErrors) {
         setFieldErrors(result.fieldErrors);
+      } else {
+        // Reaching here means the action decided the failure was safe to
+        // show. Announcing "Email enviado" over it would be a lie.
+        setBannerError(result.error);
       }
     });
   }
@@ -40,6 +46,8 @@ export function ForgotPasswordForm() {
 
   return (
     <form action={handleSubmit} className="space-y-4">
+      <FormErrorBanner message={bannerError} />
+
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input

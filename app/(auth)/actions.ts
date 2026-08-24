@@ -9,6 +9,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
 } from "@/lib/validators/auth";
+import { describePasswordResetFailure } from "@/lib/auth/password-reset-errors";
 
 /**
  * Server Actions for authentication flows.
@@ -118,10 +119,18 @@ export async function requestPasswordReset(
     },
   );
 
-  // Note: we always return ok=true to prevent email enumeration attacks.
-  // If the email doesn't exist, Supabase silently does nothing.
+  // We report success even when nothing was sent, so this form can't be used
+  // to discover which addresses have an account. The one exception is rate
+  // limiting: it reflects how often the requester asked, not whether the
+  // account exists, so hiding it protects nobody and leaves the owner staring
+  // at a false "Email enviado".
   if (error) {
     console.error("Password reset error:", error);
+
+    const message = describePasswordResetFailure(error.status);
+    if (message) {
+      return { ok: false, error: message };
+    }
   }
 
   return { ok: true };
