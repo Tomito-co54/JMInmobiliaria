@@ -57,11 +57,24 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status:** Todo el trabajo visual + dashboard de mercado + contacto vía
-WhatsApp + limpieza de surfaces legacy **mergeado a `main`** (HEAD
-`873b744`, agosto 2026). Repo limpio, 206 tests passing, `npm run build`
-verde. Pendiente **único** para lanzar: deploy a Vercel (nunca vinculado
-— no hay `vercel.json` ni `.vercel`).
+**Status (24-ago-2026):** El sitio **está deployado y funcionando en
+producción**, con auto-deploy desde `main` vía la integración GitHub de
+Vercel. El login de admin está verificado. 216 tests passing, `npm run
+build` verde.
+
+Ya no hay un bloqueante técnico para lanzar. Los dos pendientes reales son
+de **contenido y de datos**, no de código:
+
+1. **El catálogo tiene 1 sola propiedad.** El cargador funciona desde
+   mayo; simplemente no se usó. Es la razón de ser del sitio.
+2. **El pipeline de scraping nunca corrió en este fork.** 90 runs, 0
+   exitosos. Falla en `Verify required secrets are set` porque los forks
+   de GitHub no heredan los secrets del repo original. La data de mercado
+   quedó congelada el 29-jul-2026.
+
+El segundo es urgente en un sentido que el primero no: la serie temporal
+que el dashboard v2 necesita **no se puede recuperar retroactivamente**.
+Cada día de pipeline caído es un día de historial perdido para siempre.
 
 ### Hitos (este fork)
 
@@ -78,25 +91,78 @@ verde. Pendiente **único** para lanzar: deploy a Vercel (nunca vinculado
 | Fase 6 — Animaciones scroll-triggered | Pasada de movimiento en la home (Reveal + cascades) — la home "se siente viva" sin librería de animación. | `79bbc31` `a300adf` (merge) |
 | Fase 7 — Contacto / leads (canal principal) | `lib/brand/contact.ts` (`WHATSAPP_NUMBER`, `whatsappLink`, `propertyLeadMessage`); `WhatsAppButton` como CTA primario en `/p/[id]` panel desktop + barra sticky mobile con mensaje que nombra la dirección; `WhatsAppFloat` en toda la home con mensaje genérico. | `25cd9f2` `2088d0b` `2eb6629` `2cf1e41` (merges) |
 | Fase 8 — Limpieza legacy en cara pública | "Esconder no borrar": se quitó CTA "Ver todas" (iba a `/buscar` viejo); se quitó "Guardar (próximamente)" del top bar de `/p/[id]`; `ShareButton` funcional (Web Share API + fallback a copiar link). Rutas legacy (`/buscar`, `/favoritos`, `/onboarding`, `/mis-servicios`, `/busquedas`) siguen vivas — Tomy puede usarlas como herramienta personal, no las ve el visitante anónimo. | `bfb53be` `873b744` (merge) |
+| Fase 9 — Auth legible en producción | Diagnóstico del supuesto "SMTP roto" (ver más abajo — no lo estaba). `lib/auth/callback-errors.ts` + `/auth/callback` que propaga el `error_code` de Supabase en vez de aplanar todo a un redirect mudo; `AuthCallbackNotice` que lee el fragmento `#error=...` desde el cliente (el servidor no puede verlo). `lib/auth/password-reset-errors.ts`: el form de recuperación deja de anunciar "Email enviado" cuando Supabase devolvió 429. Rate limit de auth subido de 2 a 30 mails/hora vía Management API. 10 tests nuevos. | `8d1710a` `3c2a143` `e22fe6e` (merges) |
 
-**Tests:** 206 passing (arrancamos en 176 al cierre de Fase 1.B; +30
-sumados por las fases 2-8).
+**Tests:** 216 passing (arrancamos en 176 al cierre de Fase 1.B; +30 por
+las fases 2-8, +10 por la fase 9).
 
-**Build:** `npm run build` verde. 25 rutas, First Load JS shared 183 kB.
+**Build:** `npm run build` verde. 34 rutas, First Load JS shared 183 kB.
 3 warnings menores de `@typescript-eslint/no-unused-vars` que no bloquean
 (vars `_omit`, `_req`, `ownerPropertyPublishSchema`).
 
 **Live URLs:**
-- Producción: **https://jm-inmobiliaria-d3pa.vercel.app** — deployada 12-ago-2026, pendiente verificar login (SMTP roto — no llegan emails de recovery; ver [[project-status-roadmap]] en memoria).
+- Producción: **https://jm-inmobiliaria-d3pa.vercel.app** — deployada 12-ago-2026. Login de admin **verificado** el 24-ago. Auto-deploy desde `main`: un push llega a producción en ~60s.
 - GitHub repo: https://github.com/Tomito-co54/JMInmobiliaria
 - Supabase project: `https://cjnaxxidigdylnwlpyab.supabase.co` (**compartido con el proyecto original `jotaeme`** — decisión tomada: una única DB, el scraper alimenta la misma tabla).
 - Sentry project: `jotaeme-web` (heredado del upstream).
 
 **Project location:** `C:\dev\jotaeme-inmobiliaria` (hermano de `C:\dev\jotaeme` que es el original — este fork no toca al original).
 
-**Contenido real:** 1 sola propiedad publicada (`a33f1a22` — Belgrano
-1285) marcada `is_featured=true`. Cargar más antes de lanzar para que el
-catálogo no se vea vacío.
+**Contenido real (verificado 24-ago-2026):**
+
+| Qué | Cuánto |
+|---|---|
+| Propiedades propias publicadas | **1** — `a33f1a22`, Belgrano 1285, Lomas de Zamora, `is_featured=true`, creada 28-may |
+| Propiedades propias en borrador | 0 |
+| Scrapeadas de Zonaprop | 274 |
+| Scrapeadas de Trezza | 27 |
+| `property_history` | 510 filas, sin crecer desde el 29-jul |
+
+Cargar más propiedades antes de lanzar: el catálogo público muestra hoy
+una sola ficha.
+
+### Estado de email / auth (resuelto en Fase 9)
+
+El `CLAUDE.md` v2.1 registraba "SMTP roto — no llegan emails de recovery".
+**Era falso, y la causa real vale la pena documentarla porque el síntoma
+engaña.**
+
+- El SMTP custom está bien: `smtp.resend.com:465`, usuario `resend`.
+  Los mails llegan al inbox, sin pasar por spam.
+- El proyecto tenía `rate_limit_email_sent = 2/hora`. Probar el flujo de
+  recuperación tres veces seguidas agotaba la cuota, y a partir de ahí
+  Supabase devolvía 429 sin mandar nada.
+- `requestPasswordReset()` devolvía `ok: true` **pase lo que pase** para
+  evitar enumeración de emails, así que la pantalla seguía diciendo
+  "Email enviado" mientras no salía nada. Ese silencio es lo que se
+  interpretó como SMTP roto.
+- Arreglado: el rate limit está en 30/hora (el default de Supabase cuando
+  hay SMTP propio), y el 429 ahora se muestra. El resto de los errores
+  sigue callado a propósito — el rate limit no revela si la cuenta
+  existe, los demás sí.
+
+**Pendiente relacionado, no urgente:** `smtp_admin_email` es
+`onboarding@resend.dev`, el dominio sandbox de Resend, que solo entrega
+al dueño de la cuenta. Hoy no bloquea nada porque el sitio no le manda
+mails a terceros (no hay registro público, MercadoPago está apagado, y
+los leads van por WhatsApp). Se vuelve bloqueante el día que se encienda
+el informe ARBA pago; ahí hace falta dominio propio verificado en Resend.
+
+### Estado del pipeline de scraping (roto)
+
+```
+91 runs desde el 26-may-2026.  Exitosos: 0.  Fallidos: 90.
+Muere siempre en: "Verify required secrets are set"
+```
+
+Los forks de GitHub no heredan los secrets del repo original. El workflow
+exige `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` y en
+`Tomito-co54/JMInmobiliaria` nunca se cargaron. Los 302 registros de la
+base los puso el repo original apuntando al mismo Supabase, y ese también
+dejó de alimentarla el 29-jul.
+
+Arreglo: cargar esos dos secrets en Settings → Secrets and variables →
+Actions del repo. Es la tarea de menor esfuerzo y mayor efecto pendiente.
 
 ---
 
@@ -110,7 +176,7 @@ Same as upstream — no se cambia stack sin confirmación explícita.
 - **Styling:** Tailwind CSS 4
 - **UI Components:** shadcn/ui (Radix-based) — 13 componentes instalados
 - **Backend / DB:** Supabase (PostgreSQL + Auth + Storage)
-- **Hosting:** Vercel (cuando se deployee)
+- **Hosting:** Vercel (deployado, auto-deploy desde `main`)
 - **Forms:** React Hook Form + Zod validation
 - **Tipografía:** Inter (body) + Fraunces (headings vía `font-heading`)
 
@@ -127,7 +193,9 @@ Same as upstream — no se cambia stack sin confirmación explícita.
 ### Background Jobs
 - **GitHub Actions** (`.github/workflows/pipeline.yml`): scrape diario
   de Zonaprop + Trezza → dedup → geocode → ARBA → quality score →
-  alertas. Heredado del upstream, sigue corriendo.
+  alertas. Heredado del upstream. **Dispara todos los días a las 6 AM UTC
+  pero falla desde el día uno del fork** — le faltan los secrets de
+  Actions. Ver **Estado del pipeline de scraping** en Current progress.
 
 ---
 
@@ -237,6 +305,8 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   ├── scoring/                  # quality.ts + subscores + comparables + bands
 │   ├── matching/                 # match.ts (legacy buyer-side)
 │   ├── validators/               # Zod schemas — auth, property, etc.
+│   ├── auth/                     # ← copy de errores de auth (puro, testeable)
+│   │                             #   callback-errors.ts + password-reset-errors.ts
 │   ├── storage/                  # property-photos.ts (upload/delete helpers)
 │   ├── zona-sur/                 # partidos + arbaCode mapping
 │   ├── education/                # guía de compra contenido (legacy)
@@ -339,34 +409,45 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 7. **Fase 6 — Animaciones scroll-triggered** ✅
 8. **Fase 7 — Contacto/leads (WhatsApp)** ✅ (CTA primario)
 9. **Fase 8 — Limpieza legacy en cara pública** ✅ ("esconder no borrar")
+10. **Deploy a producción (Vercel)** ✅ 12-ago-2026 — vinculado por la
+    integración GitHub, auto-deploy desde `main`
+11. **Fase 9 — Auth legible en producción** ✅ 24-ago-2026
 
 Detalles de cada fase en **Current progress** más arriba.
 
-### Próxima fase — **Deploy a producción (Vercel)**
+### Próximo — ordenado por lo que más destraba
 
-Único bloqueante para lanzar. Requiere pasos manuales del owner (login
-Vercel, env vars, redirect URLs). Alto nivel:
+**1. Reparar el pipeline de scraping** ← empezar por acá
 
-- Decisión previa: DB Supabase propia para prod, o seguir compartida con
-  `jotaeme` original (una única `properties` para ambos). Recomendación:
-  compartida por ahora — el scraper ya alimenta esa DB y no hay razón
-  para duplicar el pipeline.
-- Vincular el repo `Tomito-co54/JMInmobiliaria` a un proyecto Vercel.
-- Pegar ~15 env vars (ver **Environment Variables** más abajo).
-- Actualizar Redirect URLs en Supabase Auth (agregar dominio de prod al
-  callback de `/auth/callback`).
-- Dominio propio (a decidir por Tomy).
-- Verificar que el pipeline diario de scraping (GitHub Actions) siga
-  funcionando contra la misma DB.
+Dos secrets en GitHub (`NEXT_PUBLIC_SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY`) en Settings → Secrets and variables →
+Actions. Detalle del diagnóstico en **Current progress**.
 
-### Diferidos del dashboard de mercado
+Va primero por una razón de tiempo, no de importancia: el historial de
+mercado no se puede reconstruir hacia atrás. Los avisos de Zonaprop de la
+semana pasada ya no existen. Todo lo que el pipeline no capture hoy es
+data que el dashboard v2 nunca va a tener.
 
-Esperan más historial acumulado del scraper para tener sentido:
+**2. Cargar propiedades reales**
+
+Vía `/admin/properties/nueva`. El catálogo público muestra 1 sola ficha.
+Es la razón de ser del sitio y no depende de nada técnico.
+
+**3. Dashboard de mercado v2** — bloqueado por (1) + semanas de espera
+
 - Series temporales USD/m² (requiere meses de data)
 - Listings rancios (>90, >180 días)
-- Atribución por inmobiliaria publicadora (requiere extender scraper —
-  agregar columna `publisher_agency` a `properties`)
 - Mapa de calor por zona
+- Atribución por inmobiliaria publicadora — esta sí es código: extender el
+  scraper y agregar columna `publisher_agency` a `properties`
+
+Las tres primeras necesitan historial, no módulos nuevos. Construirlas
+antes de que el pipeline acumule sería graficar una línea plana.
+
+**4. Dominio propio + verificación en Resend**
+
+Necesario recién cuando se encienda el informe ARBA pago (ver **Estado de
+email / auth**). Hoy no bloquea nada.
 
 ### Nice-to-haves post-lanzamiento
 
@@ -497,7 +578,17 @@ Términos en español usados en el código y la UI:
 
 ## Environment Variables
 
-Vars requeridas (en `.env.local` para dev, Vercel env para prod):
+Vars requeridas (en `.env.local` para dev, Vercel env para prod).
+`.env.example` etiqueta cada una con dónde tiene que estar seteada
+(`[Vercel + local]`, `[Vercel only]`, `[Local only]`, `[Opcional]`) —
+esa es la fuente de verdad, no esta lista.
+
+Ojo con un malentendido recurrente: **`RESEND_API_KEY` no tiene nada que
+ver con los emails de recuperación de contraseña.** Esos los manda
+Supabase Auth con su propia config SMTP, que vive del lado de Supabase y
+se toca por Management API o dashboard, no por env vars de la app. La
+`RESEND_API_KEY` solo alimenta los emails transaccionales que manda el
+código nuestro (`lib/services/email/`).
 
 ```
 # Supabase
@@ -523,9 +614,10 @@ SENTRY_ORG=
 SENTRY_PROJECT=
 SENTRY_AUTH_TOKEN=
 
-# Scraping (vivos para el pipeline diario)
+# Scraping (para el pipeline diario — corre en GitHub Actions, no en Vercel)
 SCRAPER_USER_AGENT=
 SCRAPER_PROXY_URL=                   # opcional
+GOOGLE_GEOCODING_API_KEY=            # solo scripts locales / Actions
 
 # App
 NEXT_PUBLIC_APP_URL=
@@ -557,6 +649,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.2 | Aug 24, 2026 | **Sync con el estado real, tras reconstruir el entorno en una PC nueva.** Se corrigieron seis afirmaciones falsas de la v2.1: (1) el deploy a Vercel no estaba pendiente — está hecho desde el 12-ago y con integración GitHub, la nota "nunca vinculado, no hay `vercel.json` ni `.vercel`" apuntaba a la evidencia equivocada porque la integración Git no deja rastro en el repo; (2) el SMTP nunca estuvo roto — la causa era `rate_limit_email_sent = 2/hora` amplificado por un form que ocultaba el 429; (3) el pipeline no "sigue corriendo" — dispara pero falla desde el run #1 por secrets faltantes en el fork; (4) 206 tests → **216**; (5) 25 rutas → 34; (6) faltaba la Fase 9 entera. Build map reordenado por leverage: el pipeline va primero porque el historial de mercado no se puede reconstruir hacia atrás. Se agregó `lib/auth/` al Project Structure y dos secciones nuevas de estado (email/auth y pipeline). |
 | 2.1 | Aug 12, 2026 | **Actualización pre-deploy.** El rediseño de home + `/p/[id]` + dashboard de mercado + WhatsApp + limpieza legacy están todos mergeados a `main` (HEAD `873b744`). Current progress reescrito como tabla de 8 fases (2-8 son nuevas). Build map colapsado: solo queda **Deploy a Vercel** como bloqueante. **206 tests passing** (+30 desde 2.0), `npm run build` verde (25 rutas). Se agregó `is_featured` al schema; `use-in-view.ts` a hooks; `mercado/` a admin; `WhatsAppButton` + `WhatsAppFloat` + `HomeHero/Protagonist/Guarantees/Catalog` + `PropertyPremiumCard` al Project Structure. |
 | 2.0 | May 27, 2026 | **Fork inicializado.** Rewrite completo del CLAUDE.md para reflejar la identidad del proyecto (inmobiliaria personal, no portal buyer-facing). Conserva historia upstream como referencia. Listado de hitos del fork: separación + cargador + polish B. **176 tests passing** sobre la base de 146 del upstream. |
 | 1.x | upstream | Las entradas anteriores (1.0 a 1.19) describen la construcción del portal buyer-facing original (`Tomito-co54/Jotaeme`). Preservadas como historia para entender por qué existen ciertas piezas (matching score, search profiles, /buscar, /favoritos, BuyingProcessAdvisor, MercadoPago + informe ARBA, etc.). |
