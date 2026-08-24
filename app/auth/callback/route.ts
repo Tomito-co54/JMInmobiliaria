@@ -1,31 +1,44 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { readCallbackErrorCode } from "@/lib/auth/callback-errors";
 
 /**
- * OAuth + Email confirmation callback.
+ * OAuth + email link callback.
  *
- * Supabase redirects here after:
- *   - User clicks the email confirmation link (signup)
- *   - User clicks the magic link
- *   - Google OAuth completes
+ * Supabase redirects here after the user clicks a recovery or confirmation
+ * link. The `code` query param is exchanged for a session; `next` says where
+ * to go afterwards (default: /dashboard).
  *
- * The `code` query param is exchanged for a session.
- * The `next` param tells us where to redirect afterwards (default: /dashboard).
+ * Every failure path redirects to /login with a specific `?error=` code so
+ * the page can explain what went wrong. Sending the user to a page with no
+ * message — which is what this handler used to do — reads as "the site is
+ * broken" and gives them nothing to act on.
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard";
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const failWith = (code: string) =>
+    NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(code)}`);
 
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
-    }
+  // Supabase reports a rejected link on the redirect itself. Pass its code
+  // through rather than flattening every cause into one generic failure.
+  const reportedError = readCallbackErrorCode(searchParams);
+  if (reportedError) {
+    return failWith(reportedError);
   }
 
-  // Auth failed — send to login with a generic error
-  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
+  const code = searchParams.get("code");
+  if (!code) {
+    return failWith("missing_code");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    return failWith("exchange_failed");
+  }
+
+  return NextResponse.redirect(`${origin}${next}`);
 }
