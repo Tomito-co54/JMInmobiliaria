@@ -435,6 +435,13 @@ Es la razón de ser del sitio y no depende de nada técnico.
 
 **3. Dashboard de mercado v2** — bloqueado por (1) + semanas de espera
 
+> **Área de interés declarada por Tomy (24-ago-2026):** quiere trabajar
+> en este "centro de datos" — el dashboard privado que consume lo
+> scrapeado. Es la mitad del producto que lo sirve a él y no al
+> visitante, y la razón por la que el scraping se mantuvo vivo durante
+> el pivote. Al retomar, arrancar mostrándole qué renderiza ya la v1 con
+> los 302 registros adentro; puede no haberla visto con data real.
+
 - Series temporales USD/m² (requiere meses de data)
 - Listings rancios (>90, >180 días)
 - Mapa de calor por zona
@@ -442,7 +449,9 @@ Es la razón de ser del sitio y no depende de nada técnico.
   scraper y agregar columna `publisher_agency` a `properties`
 
 Las tres primeras necesitan historial, no módulos nuevos. Construirlas
-antes de que el pipeline acumule sería graficar una línea plana.
+antes de que el pipeline acumule sería graficar una línea plana. La
+cuarta (atribución por inmobiliaria) es la única que se puede hacer hoy
+mismo: es código puro, no espera data.
 
 **4. Dominio propio + verificación en Resend**
 
