@@ -3,6 +3,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { BrandLogo } from "@/components/shared/BrandLogo";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import {
   getPropertiesByProximity,
   getFeaturedProperty,
@@ -63,6 +64,7 @@ export default async function Home() {
             <BrandLogo variant="isotipo" size={32} priority />
           </Link>
           <div className="flex items-center gap-1 sm:gap-2">
+            <ThemeToggle />
             <Link
               href="/guia-de-compra"
               className={cn(
