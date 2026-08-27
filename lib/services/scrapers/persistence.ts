@@ -32,8 +32,6 @@ const TRACKED_FIELDS = [
   "description",
 ] as const;
 
-type TrackedField = (typeof TRACKED_FIELDS)[number];
-
 // Singleton: avoids re-creating the Supabase client (and its internal fetch
 // agent) for every upsert in a scraper run.
 let cachedAdminClient: ReturnType<typeof createClient> | null = null;
@@ -116,8 +114,10 @@ export async function upsertScrapedProperty(
     return "inserted";
   }
 
-  // Diff tracked fields
-  const changes: { field: TrackedField; oldValue: string | null; newValue: string | null }[] = [];
+  // Diff tracked fields. The field name is widened to string because
+  // `is_active` is appended below without being a diffable column — it is
+  // derived from the row's previous state, not from comparing scraped values.
+  const changes: { field: string; oldValue: string | null; newValue: string | null }[] = [];
   for (const field of TRACKED_FIELDS) {
     const oldNorm = normalizeForComparison(existing[field]);
     const newNorm = normalizeForComparison(newRow[field as keyof typeof newRow]);
@@ -125,6 +125,14 @@ export async function upsertScrapedProperty(
       changes.push({ field, oldValue: oldNorm, newValue: newNorm });
     }
   }
+
+  // A listing coming back from inactive is a real market event — the posting
+  // was gone (or we thought it was) and it is live again. `deactivateStale`
+  // writes the way down, but the way back up used to happen silently here,
+  // because `is_active` isn't a tracked field. The result was a history with
+  // 477 delistings and zero relistings, and a `classifyChange` "relisted"
+  // branch that could never fire.
+  const wasInactive = existing.is_active === false;
 
   // Always update last_seen_at and mark active (even if unchanged)
   const { error: updateError } = await supabase
@@ -136,6 +144,10 @@ export async function upsertScrapedProperty(
     } as never)
     .eq("id", existing.id);
   if (updateError) throw updateError;
+
+  if (wasInactive) {
+    changes.push({ field: "is_active", oldValue: "false", newValue: "true" });
+  }
 
   // Record changes in history
   if (changes.length > 0) {
