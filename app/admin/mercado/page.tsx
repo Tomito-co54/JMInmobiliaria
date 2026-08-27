@@ -389,7 +389,14 @@ function ChangeFeed({
   feed,
 }: {
   feed: {
-    h: { changed_at: string; old_value: string | null; new_value: string | null; field_changed: string };
+    h: {
+      changed_at: string;
+      old_value: string | null;
+      new_value: string | null;
+      field_changed: string;
+      price_at_change: number | string | null;
+      price_currency_at_change: string | null;
+    };
     kind: ChangeKind;
     prop: MarketRow;
   }[];
@@ -436,9 +443,21 @@ function ChangeDetail({
   entry,
   kind,
 }: {
-  entry: { old_value: string | null; new_value: string | null };
+  entry: {
+    old_value: string | null;
+    new_value: string | null;
+    price_at_change?: number | string | null;
+    price_currency_at_change?: string | null;
+  };
   kind: ChangeKind;
 }) {
+  // Price the listing carried at this event. Only exists on rows written
+  // after migration 00014, so every use has to tolerate its absence.
+  const snapshot =
+    entry.price_at_change === null || entry.price_at_change === undefined
+      ? null
+      : `${entry.price_currency_at_change ?? "USD"} ${fmtInt(Number(entry.price_at_change))}`;
+
   if (kind === "price_drop" || kind === "price_rise") {
     const pct = priceDeltaPct({ field_changed: "price_amount", ...entry });
     return (
@@ -455,8 +474,10 @@ function ChangeDetail({
       </span>
     );
   }
-  if (kind === "delisted") return <>Salió del mercado</>;
-  if (kind === "relisted") return <>Volvió al mercado</>;
+  if (kind === "delisted")
+    return <>Salió del mercado{snapshot ? ` a ${snapshot}` : ""}</>;
+  if (kind === "relisted")
+    return <>Volvió al mercado{snapshot ? ` a ${snapshot}` : ""}</>;
   if (kind === "type_change")
     return (
       <>
