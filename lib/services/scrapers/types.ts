@@ -1,3 +1,4 @@
+import type { CrawlEnd } from "./crawl-completeness";
 /**
  * Shared types for all property scrapers (Zonaprop, Argenprop, etc.).
  * Each scraper normalizes its raw HTML output to this shape, and the
@@ -81,4 +82,8 @@ export interface ScraperRunResult {
   errorCount: number;
   /** Total duration in ms */
   durationMs: number;
+  /** How the crawl ended. Gates deactivation — see crawl-completeness.ts. */
+  crawlEnd: CrawlEnd;
+  /** Whether stale listings were actually deactivated, and why not if skipped. */
+  deactivationReason: string;
 }

@@ -5,6 +5,7 @@ import {
   type UpsertResult,
 } from "../persistence";
 import type { ScraperRunResult } from "../types";
+import { decideDeactivation, type CrawlEnd } from "../crawl-completeness";
 import { buildListUrl, PARTIDOS_SLUGS } from "./urls";
 import { parseListPage } from "./parser";
 
@@ -18,7 +19,11 @@ import { parseListPage } from "./parser";
 
 export interface ScrapeTrezzaOptions {
   partido: string;
-  /** Max number of properties to process. Default 100 (covers most partidos). */
+  /**
+   * Safety bound on the infinite-scroll parse, not a target. Default 1000.
+   * If the parse comes back exactly at this number the catalog was probably
+   * larger, so the crawl counts as truncated and deactivation is skipped.
+   */
   maxProperties?: number;
   /** Show browser window (debugging). Default false. */
   headed?: boolean;
@@ -28,7 +33,7 @@ export async function scrapeTrezza(
   options: ScrapeTrezzaOptions,
 ): Promise<ScraperRunResult> {
   const { partido, headed = false } = options;
-  const maxProperties = options.maxProperties ?? 100;
+  const maxProperties = options.maxProperties ?? 1000;
 
   if (!PARTIDOS_SLUGS[partido]) {
     throw new Error(
@@ -45,7 +50,12 @@ export async function scrapeTrezza(
     deactivatedCount: 0,
     errorCount: 0,
     durationMs: 0,
+    crawlEnd: "page_error",
+    deactivationReason: "",
   };
+
+  // Pessimistic until the list page is parsed successfully.
+  let crawlEnd: CrawlEnd = "page_error";
 
   const startedAt = Date.now();
   // Trezza has no anti-bot to speak of, but we still rate-limit to be polite.
@@ -71,6 +81,9 @@ export async function scrapeTrezza(
     const properties = await parseListPage(page, partido, maxProperties);
     console.log(`[trezza] Parsed ${properties.length} active venta listings`);
 
+    // Landing exactly on the cap means the scroll was probably cut short.
+    crawlEnd = properties.length >= maxProperties ? "property_cap" : "exhausted";
+
     for (const prop of properties) {
       if (seenExternalIds.has(prop.externalId)) continue;
       seenExternalIds.add(prop.externalId);
@@ -88,8 +101,14 @@ export async function scrapeTrezza(
       }
     }
 
-    // Deactivate stale Trezza properties in this partido (only if we got results)
-    if (result.scrapedCount > 0) {
+    // Same rule as Zonaprop: only an exhaustive crawl may declare listings
+    // gone. See ../crawl-completeness.ts.
+    result.crawlEnd = crawlEnd;
+    const decision = decideDeactivation(crawlEnd, result.scrapedCount);
+    result.deactivationReason = decision.reason;
+    console.log(`[trezza] Deactivation ${decision.reason}`);
+
+    if (decision.allowed) {
       try {
         result.deactivatedCount = await deactivateStale(
           "trezza",
