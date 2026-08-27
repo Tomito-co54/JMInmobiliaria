@@ -35,7 +35,7 @@ npm run dev
 Abrir [http://localhost:3000](http://localhost:3000).
 
 ```bash
-npm test          # 275 tests (Vitest, lógica pura)
+npm test          # 300 tests (Vitest, lógica pura)
 npm run build
 ```
 
