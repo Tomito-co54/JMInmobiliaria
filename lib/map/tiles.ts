@@ -127,3 +127,40 @@ export function tilesForView(
 
   return { tiles, zoom };
 }
+
+/**
+ * Where a coordinate lands inside a view, in box pixels.
+ *
+ * The one function that makes an overlay trustworthy. Drawing a parcel by
+ * scaling its outline to fit the frame, while the tiles underneath sit at
+ * whatever zoom was chosen separately, produces a picture where the two
+ * disagree — the outline drawn over a block it does not occupy. On a page
+ * that promises "el polígono exacto de la parcela", that is worse than
+ * showing no map at all.
+ *
+ * Same projection as `tilesForView`, same origin, so anything placed with
+ * this lands exactly where the map says it is.
+ */
+export function projectToView(
+  point: LatLng,
+  center: LatLng,
+  zoom: number,
+  width: number,
+  height: number,
+): { x: number; y: number } {
+  const c = pointToTile(center, zoom);
+  const p = pointToTile(point, zoom);
+  return {
+    x: (p.x - c.x) * TILE_SIZE + width / 2,
+    y: (p.y - c.y) * TILE_SIZE + height / 2,
+  };
+}
+
+/**
+ * How much ground to show around a parcel.
+ *
+ * Wider than the lot so it sits in its block — a parcel filling the frame
+ * edge to edge reads as an abstract shape again, which is the thing the map
+ * was added to fix.
+ */
+export const PARCEL_VIEW_FACTOR = 1.7;

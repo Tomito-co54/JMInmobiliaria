@@ -4,7 +4,9 @@ import {
   metersPerPixel,
   zoomForSpan,
   tilesForView,
+  projectToView,
   TILE_SIZE,
+  PARCEL_VIEW_FACTOR,
 } from "./tiles";
 
 /** Belgrano 1285, Lomas de Zamora — the featured property's parcel. */
@@ -114,5 +116,73 @@ describe("tilesForView", () => {
     // small block needed a dozen requests, it wouldn't be.
     const { tiles } = tilesForView(LOMAS, 18, 320, 260);
     expect(tiles.length).toBeLessThanOrEqual(6);
+  });
+});
+
+describe("projectToView", () => {
+  const CENTER = LOMAS;
+  const W = 206;
+  const H = 166;
+
+  it("puts the centre in the middle of the box", () => {
+    const p = projectToView(CENTER, CENTER, 18, W, H);
+    expect(p.x).toBeCloseTo(W / 2, 6);
+    expect(p.y).toBeCloseTo(H / 2, 6);
+  });
+
+  it("puts north above and east to the right", () => {
+    const north = projectToView(
+      { lat: CENTER.lat + 0.0002, lng: CENTER.lng },
+      CENTER, 18, W, H,
+    );
+    const east = projectToView(
+      { lat: CENTER.lat, lng: CENTER.lng + 0.0002 },
+      CENTER, 18, W, H,
+    );
+    expect(north.y).toBeLessThan(H / 2); // SVG y grows downward
+    expect(east.x).toBeGreaterThan(W / 2);
+  });
+
+  it("shares its origin with tilesForView, which is what aligns the two", () => {
+    // The bug this pins: the outline was scaled to fill the box while the
+    // tiles sat at their own zoom, so the parcel was drawn across a street
+    // it does not touch. Both layers must agree on where a coordinate is.
+    const zoom = 18;
+    const { tiles } = tilesForView(CENTER, zoom, W, H);
+    const p = projectToView(CENTER, CENTER, zoom, W, H);
+
+    // Find the tile containing the centre and check the point falls inside
+    // it, using only the tile's own placement.
+    const owner = tiles.find(
+      (t) =>
+        p.x >= t.left && p.x < t.left + TILE_SIZE &&
+        p.y >= t.top && p.y < t.top + TILE_SIZE,
+    );
+    expect(owner).toBeDefined();
+  });
+
+  it("renders a parcel at its true size on the ground", () => {
+    // ~29 m across, the real Belgrano 1285 lot. At this zoom that has to be
+    // a specific number of pixels — not "whatever fills the frame".
+    const zoom = 19;
+    const spanMeters = 29;
+    const dLat = spanMeters / 111_320;
+    const a = projectToView(CENTER, CENTER, zoom, W, H);
+    const b = projectToView(
+      { lat: CENTER.lat - dLat, lng: CENTER.lng },
+      CENTER, zoom, W, H,
+    );
+    const expectedPx = spanMeters / metersPerPixel(CENTER.lat, zoom);
+    expect(Math.abs(b.y - a.y)).toBeCloseTo(expectedPx, 0);
+  });
+
+  it("leaves room around the lot at the zoom the home picks", () => {
+    // PARCEL_VIEW_FACTOR exists so the parcel sits in its block rather than
+    // filling the frame edge to edge, which would make it abstract again.
+    const spanMeters = 29;
+    const zoom = zoomForSpan(CENTER.lat, spanMeters * PARCEL_VIEW_FACTOR, W);
+    const widthPx = spanMeters / metersPerPixel(CENTER.lat, zoom);
+    expect(widthPx).toBeLessThan(W); // fits
+    expect(widthPx).toBeGreaterThan(W * 0.35); // but isn't a speck
   });
 });

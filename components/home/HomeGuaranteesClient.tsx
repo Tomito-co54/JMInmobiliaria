@@ -138,7 +138,13 @@ export function ArbaParcelViz({
           aria-hidden="true"
           style={{ opacity: inView ? 1 : 0, transition: "opacity 900ms ease-out" }}
         >
-          <div className="absolute inset-0 grayscale-[0.65] opacity-[0.5] dark:opacity-[0.3] dark:invert">
+          {/* Pushed further back than a map normally would be. At the zoom
+              where a single lot is legible, OSM draws street names at full
+              size, and in a 206px box those labels are the loudest thing on
+              screen — the block ends up being about Banfield instead of
+              about the parcel. Desaturated hard and lightened so the streets
+              survive as geometry and the type recedes to a whisper. */}
+          <div className="absolute inset-0 grayscale opacity-[0.32] contrast-[0.75] brightness-[1.08] dark:opacity-[0.22] dark:invert dark:brightness-100">
             {tiles.map((t) => (
               <Image
                 key={t.url}

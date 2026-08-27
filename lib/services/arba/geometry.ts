@@ -80,37 +80,25 @@ export function parcelCenter(rawResponse: unknown): LatLng | null {
   };
 }
 
-/** A parcel outline ready to draw, plus where on Earth it sits. */
-export interface ParcelOutline {
-  /** SVG `points` for a <polygon>, fitted to the given box. */
-  points: string;
-  /** Geographic extent of the parcel, for placing map tiles behind it. */
+/** A parcel's vertices and extent, in geographic coordinates. */
+export interface ParcelShape {
+  vertices: LatLng[];
   bounds: { north: number; south: number; east: number; west: number };
   center: LatLng;
+  /** Longest side of the bounding box, in metres. */
+  spanMeters: number;
 }
 
 /**
- * Projects a parcel's real outline into SVG coordinates.
+ * The parcel's outline as coordinates, not as pixels.
  *
- * The home page used to draw a hand-written hexagon captioned "a believable
- * parcel", beside a paragraph promising the *exact* outline of the plot.
- * The real geometry simply wasn't stored anywhere until the cadastral cache
- * started keeping it.
- *
- * Equirectangular projection with a cosine correction on longitude. At the
- * scale of a single lot the difference from a proper Mercator is far below a
- * pixel, and it keeps the parcel from looking stretched sideways — which a
- * naive lat/lng-to-x/y mapping does at 34° south.
- *
- * The outline is scaled to fill the box and centred, preserving aspect
- * ratio: a long narrow lot has to still read as long and narrow.
+ * It used to return SVG points scaled to fill a box. That is fine for a
+ * diagram floating on nothing, and wrong the moment there is a map
+ * underneath: the outline ends up at one scale and the ground at another,
+ * and the parcel appears to sit across a street it doesn't touch. Projection
+ * belongs to whoever is drawing, so it can be the same one the tiles use.
  */
-export function parcelOutline(
-  rawResponse: unknown,
-  width: number,
-  height: number,
-  padding = 8,
-): ParcelOutline | null {
+export function parcelShape(rawResponse: unknown): ParcelShape | null {
   if (typeof rawResponse !== "object" || rawResponse === null) return null;
   const fc = rawResponse as { features?: unknown };
   if (!Array.isArray(fc.features) || fc.features.length === 0) return null;
@@ -118,20 +106,20 @@ export function parcelOutline(
   const rings = outerRings((fc.features[0] as { geometry?: unknown })?.geometry);
   if (rings.length === 0) return null;
 
-  const pts: LatLng[] = [];
+  const vertices: LatLng[] = [];
   for (const ring of rings) {
     for (const point of ring) {
       if (!Array.isArray(point) || point.length < 2) continue;
       const [lng, lat] = point;
       if (typeof lat !== "number" || typeof lng !== "number") continue;
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-      pts.push({ lat, lng });
+      vertices.push({ lat, lng });
     }
   }
-  if (pts.length < 3) return null;
+  if (vertices.length < 3) return null;
 
-  const lats = pts.map((p) => p.lat);
-  const lngs = pts.map((p) => p.lng);
+  const lats = vertices.map((p) => p.lat);
+  const lngs = vertices.map((p) => p.lng);
   const bounds = {
     north: Math.max(...lats),
     south: Math.min(...lats),
@@ -143,30 +131,13 @@ export function parcelOutline(
     lng: (bounds.east + bounds.west) / 2,
   };
 
-  const kx = Math.cos((center.lat * Math.PI) / 180);
-  const spanX = (bounds.east - bounds.west) * kx;
-  const spanY = bounds.north - bounds.south;
-  if (spanX <= 0 && spanY <= 0) return null;
-
-  const boxW = width - padding * 2;
-  const boxH = height - padding * 2;
-  const scale = Math.min(
-    spanX > 0 ? boxW / spanX : Infinity,
-    spanY > 0 ? boxH / spanY : Infinity,
+  const METERS_PER_DEGREE = 111_320;
+  const spanMeters = Math.max(
+    (bounds.north - bounds.south) * METERS_PER_DEGREE,
+    (bounds.east - bounds.west) *
+      METERS_PER_DEGREE *
+      Math.cos((center.lat * Math.PI) / 180),
   );
-  if (!Number.isFinite(scale)) return null;
 
-  const offsetX = padding + (boxW - spanX * scale) / 2;
-  const offsetY = padding + (boxH - spanY * scale) / 2;
-
-  const points = pts
-    .map((p) => {
-      const x = offsetX + (p.lng - bounds.west) * kx * scale;
-      // SVG y grows downward, latitude grows upward.
-      const y = offsetY + (bounds.north - p.lat) * scale;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-
-  return { points, bounds, center };
+  return { vertices, bounds, center, spanMeters };
 }

@@ -1,6 +1,12 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { parcelOutline } from "@/lib/services/arba/geometry";
-import { zoomForSpan, tilesForView, PARCEL_BOX } from "@/lib/map/tiles";
+import { parcelShape } from "@/lib/services/arba/geometry";
+import {
+  zoomForSpan,
+  tilesForView,
+  projectToView,
+  PARCEL_BOX,
+  PARCEL_VIEW_FACTOR,
+} from "@/lib/map/tiles";
 import type { FeaturedPropertyRow } from "@/lib/db/properties";
 import {
   PUBLIC_LISTING_STATUS,
@@ -112,26 +118,37 @@ async function getParcelOutline(partida: string) {
     const raw = (data?.[0] as { raw_response?: unknown } | undefined)?.raw_response;
     if (!raw) return null;
 
-    const outline = parcelOutline(raw, PARCEL_BOX.width, PARCEL_BOX.height);
-    if (!outline) return null;
+    const shape = parcelShape(raw);
+    if (!shape) return null;
 
-    const spanMeters = Math.max(
-      (outline.bounds.north - outline.bounds.south) * 111_320,
-      (outline.bounds.east - outline.bounds.west) *
-        111_320 *
-        Math.cos((outline.center.lat * Math.PI) / 180),
+    // One zoom, one origin, one projection for both layers. The outline is
+    // placed with the same maths that positions the tiles, so it can only
+    // land where the parcel actually is.
+    const zoom = zoomForSpan(
+      shape.center.lat,
+      shape.spanMeters * PARCEL_VIEW_FACTOR,
+      PARCEL_BOX.width,
     );
-    // A little wider than the lot, so the parcel sits in its block instead of
-    // filling the frame edge to edge.
-    const zoom = zoomForSpan(outline.center.lat, spanMeters * 2.4, PARCEL_BOX.width);
     const { tiles } = tilesForView(
-      outline.center,
+      shape.center,
       zoom,
       PARCEL_BOX.width,
       PARCEL_BOX.height,
     );
+    const points = shape.vertices
+      .map((v) => {
+        const p = projectToView(
+          v,
+          shape.center,
+          zoom,
+          PARCEL_BOX.width,
+          PARCEL_BOX.height,
+        );
+        return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+      })
+      .join(" ");
 
-    return { points: outline.points, tiles };
+    return { points, tiles };
   } catch (err) {
     // Logged rather than swallowed: every failure here degrades silently to
     // the generic outline, which looks fine and is exactly why nobody would
