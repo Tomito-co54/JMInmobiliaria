@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, MapPin, ShieldCheck } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { BrandLogo } from "@/components/shared/BrandLogo";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { ServiceCard } from "@/components/services/ServiceCard";
 import { listAvailableServices } from "@/lib/services/catalog";
 import { getPropertyForPublicView } from "@/lib/db/properties";
@@ -70,7 +71,9 @@ export default async function ServiceCatalogPage({ params }: PageProps) {
             <BrandLogo variant="isotipo" size={28} />
           </Link>
 
-          <div className="w-[60px]" />
+          <div className="w-[60px] flex justify-end">
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

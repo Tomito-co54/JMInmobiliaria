@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 /**
  * Shared layout for all auth pages (/login, /forgot-password,
@@ -13,12 +14,12 @@ export default function AuthLayout({
   return (
     <div className="min-h-screen flex flex-col bg-muted/40">
       <header className="px-4 py-4 border-b bg-background">
-        <Link
-          href="/"
-          className="text-lg font-semibold tracking-tight"
-        >
-          Jotaeme
-        </Link>
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/" className="text-lg font-semibold tracking-tight">
+            Jotaeme
+          </Link>
+          <ThemeToggle />
+        </div>
       </header>
 
       <main className="flex-1 flex items-center justify-center px-4 py-8">

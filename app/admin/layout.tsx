@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { UserMenu } from "@/components/shared/user-menu";
 import { AdminSidebar } from "@/components/shared/admin-sidebar";
 import { BrandLogo } from "@/components/shared/BrandLogo";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 /**
  * Admin-only layout. Redirects:
@@ -40,8 +41,8 @@ export default async function AdminLayout({
         <div className="px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
-              href="/admin"
-              aria-label="Jotaeme — Admin"
+              href="/"
+              aria-label="Jotaeme — ir al inicio"
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               <BrandLogo variant="isotipo" size={28} />
@@ -50,10 +51,14 @@ export default async function AdminLayout({
               Admin
             </span>
           </div>
-          <UserMenu
-            email={profile.email ?? user.email ?? ""}
-            fullName={profile.full_name}
-          />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <UserMenu
+              email={profile.email ?? user.email ?? ""}
+              fullName={profile.full_name}
+              isAdmin
+            />
+          </div>
         </div>
       </header>
 
