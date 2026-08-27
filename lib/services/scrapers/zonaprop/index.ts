@@ -23,6 +23,9 @@ import { parseListPage } from "./parser";
  *      about the pages it never opened. See ../crawl-completeness.ts.
  */
 
+/** Politeness gap between page fetches, since each one is its own session. */
+const BETWEEN_PAGES_MS = 8000;
+
 export interface ScrapeZonapropOptions {
   /** Partido name (must match PARTIDOS_SLUGS keys) */
   partido: string;
@@ -72,8 +75,6 @@ export async function scrapeZonaprop(
   let crawlEnd: CrawlEnd = "page_cap";
 
   const startedAt = Date.now();
-  const client = await createScraperClient({ headed });
-  const page = await client.newPage();
   const allScraped: ScrapedProperty[] = [];
   const seenExternalIds = new Set<string>();
 
@@ -87,8 +88,24 @@ export async function scrapeZonaprop(
       const url = buildListUrl(partido, pageNum);
       console.log(`[zonaprop] Fetching page ${pageNum}: ${url}`);
 
+      // Zonaprop serves the first navigation of a browser session and 403s
+      // the second, whatever the URL — page 2 loads fine on its own but not
+      // after page 1. So every page gets a fresh browser, which makes each
+      // request "the first one" again. Measured: 3 pages, 3 sessions, 3
+      // successes; the same 3 pages in one session died on the second.
+      //
+      // Costs ~1-2s per page to launch Chromium. Cheap next to the
+      // alternative, which was a paid residential proxy.
+      if (pageNum > 1) {
+        await new Promise((r) => setTimeout(r, BETWEEN_PAGES_MS));
+      }
+
+      const client = await createScraperClient({ headed });
+      let properties: ScrapedProperty[];
       try {
+        const page = await client.newPage();
         await client.gotoRateLimited(page, url);
+        properties = await parseListPage(page, partido);
       } catch (err) {
         console.error(
           `[zonaprop] Failed to load page ${pageNum}:`,
@@ -97,9 +114,10 @@ export async function scrapeZonaprop(
         result.errorCount++;
         crawlEnd = "page_error";
         break;
+      } finally {
+        await client.close();
       }
 
-      const properties = await parseListPage(page, partido);
       console.log(`[zonaprop] Page ${pageNum}: ${properties.length} cards found`);
 
       if (properties.length === 0) {
@@ -159,7 +177,6 @@ export async function scrapeZonaprop(
       }
     }
   } finally {
-    await client.close();
     result.durationMs = Date.now() - startedAt;
   }
 
