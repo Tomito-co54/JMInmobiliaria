@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { Plus, Pencil } from "lucide-react";
 import { getPropertiesAdmin, getDistinctPartidos } from "@/lib/db/admin";
+import { getUsdPerM2MediansByType } from "@/lib/db/market";
+import { usdPerM2 } from "@/lib/market/stats";
+import {
+  describeAge,
+  describePriceVsMarket,
+  listingAgeDays,
+} from "@/lib/market/listing-bands";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { PropertiesFilters } from "./properties-filters";
@@ -71,7 +78,7 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
       ? params.sourceClass
       : "all";
 
-  const [result, partidos] = await Promise.all([
+  const [result, partidos, medians] = await Promise.all([
     getPropertiesAdmin({
       search: params.search,
       partido: params.partido,
@@ -83,6 +90,7 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
       pageSize: 25,
     }),
     getDistinctPartidos(),
+    getUsdPerM2MediansByType(),
   ]);
 
   return (
@@ -114,6 +122,18 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
               <th className="text-left font-medium p-3">Tipo</th>
               <th className="text-right font-medium p-3">Precio</th>
               <th className="text-right font-medium p-3">m²</th>
+              <th
+                className="text-right font-medium p-3"
+                title="Precio por m² sobre la superficie declarada. El color compara contra la mediana de su tipo en el mercado."
+              >
+                USD/m²
+              </th>
+              <th
+                className="text-right font-medium p-3"
+                title="Días desde que se publicó (scrapeadas: desde que la vimos por primera vez)."
+              >
+                Antigüedad
+              </th>
               <th className="text-center font-medium p-3">Estado</th>
               <th className="text-left font-medium p-3">Origen</th>
               <th className="text-center font-medium p-3" title="Rota en la home">★</th>
@@ -125,7 +145,7 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
             {result.rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={12}
                   className="p-8 text-center text-muted-foreground"
                 >
                   Sin propiedades que coincidan con esos filtros.
@@ -134,6 +154,13 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
             ) : (
               result.rows.map((row) => {
                 const isOwner = OWNER_SOURCES.includes(row.source);
+                const perM2 = usdPerM2(row);
+                const priceBand = describePriceVsMarket(
+                  perM2,
+                  medians[row.property_type ?? "(sin tipo)"] ?? null,
+                );
+                const ageDays = listingAgeDays(row);
+                const ageBand = describeAge(ageDays);
                 return (
                   <tr
                     key={row.id}
@@ -158,6 +185,20 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
                     </td>
                     <td className="p-3 text-right text-muted-foreground tabular-nums">
                       {row.surface_total ?? "—"}
+                    </td>
+                    <td
+                      className={`p-3 text-right tabular-nums ${priceBand.className}`}
+                      title={priceBand.title}
+                    >
+                      {perM2 === null
+                        ? "—"
+                        : Math.round(perM2).toLocaleString("es-AR")}
+                    </td>
+                    <td
+                      className={`p-3 text-right tabular-nums ${ageBand.className}`}
+                      title={ageBand.title}
+                    >
+                      {ageDays === null ? "—" : `${ageDays} d`}
                     </td>
                     <td className="p-3 text-center">
                       {isOwner ? (
