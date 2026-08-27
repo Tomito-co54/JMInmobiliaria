@@ -5,6 +5,7 @@ import {
   type UpsertResult,
 } from "../persistence";
 import type { ScrapedProperty, ScraperRunResult } from "../types";
+import { decideDeactivation, type CrawlEnd } from "../crawl-completeness";
 import { buildListUrl, PARTIDOS_SLUGS } from "./urls";
 import { parseListPage } from "./parser";
 
@@ -17,15 +18,24 @@ import { parseListPage } from "./parser";
  *   2. Per property, upsert into DB. New rows = inserted. Existing rows
  *      get updated and diffed; field changes are appended to property_history.
  *   3. After the run, mark any property in this partido that wasn't seen
- *      as inactive (is_active = false).
+ *      as inactive (is_active = false) — but ONLY if the crawl actually
+ *      reached the end of the listing. A truncated crawl has no evidence
+ *      about the pages it never opened. See ../crawl-completeness.ts.
  */
 
 export interface ScrapeZonapropOptions {
   /** Partido name (must match PARTIDOS_SLUGS keys) */
   partido: string;
-  /** Max number of properties to process. Default 50 (testing). */
+  /**
+   * Max number of properties to process. Unlimited by default: a partial
+   * crawl cannot deactivate anything, so capping it silently degrades the
+   * data. Pass a number only for quick manual testing.
+   */
   maxProperties?: number;
-  /** Max number of pages to paginate. Default 5. */
+  /**
+   * Safety bound on pagination, not a target. Default 50 pages (~1250
+   * listings at 25/page). Hitting it marks the crawl as truncated.
+   */
   maxPages?: number;
   /** If true, show the browser window. Default false. */
   headed?: boolean;
@@ -35,8 +45,8 @@ export async function scrapeZonaprop(
   options: ScrapeZonapropOptions,
 ): Promise<ScraperRunResult> {
   const { partido, headed = false } = options;
-  const maxProperties = options.maxProperties ?? 50;
-  const maxPages = options.maxPages ?? 5;
+  const maxProperties = options.maxProperties ?? Number.POSITIVE_INFINITY;
+  const maxPages = options.maxPages ?? 50;
 
   if (!PARTIDOS_SLUGS[partido]) {
     throw new Error(
@@ -53,7 +63,13 @@ export async function scrapeZonaprop(
     deactivatedCount: 0,
     errorCount: 0,
     durationMs: 0,
+    crawlEnd: "page_cap",
+    deactivationReason: "",
   };
+
+  // Pessimistic until proven otherwise: if the loop never reports reaching
+  // the end, the run must not be trusted to deactivate anything.
+  let crawlEnd: CrawlEnd = "page_cap";
 
   const startedAt = Date.now();
   const client = await createScraperClient({ headed });
@@ -63,7 +79,10 @@ export async function scrapeZonaprop(
 
   try {
     for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
-      if (allScraped.length >= maxProperties) break;
+      if (allScraped.length >= maxProperties) {
+        crawlEnd = "property_cap";
+        break;
+      }
 
       const url = buildListUrl(partido, pageNum);
       console.log(`[zonaprop] Fetching page ${pageNum}: ${url}`);
@@ -76,19 +95,26 @@ export async function scrapeZonaprop(
           err instanceof Error ? err.message : err,
         );
         result.errorCount++;
+        crawlEnd = "page_error";
         break;
       }
 
       const properties = await parseListPage(page, partido);
       console.log(`[zonaprop] Page ${pageNum}: ${properties.length} cards found`);
 
-      if (properties.length === 0) break;
+      if (properties.length === 0) {
+        crawlEnd = "exhausted";
+        break;
+      }
 
       for (const prop of properties) {
         if (seenExternalIds.has(prop.externalId)) continue; // dedupe within run
         seenExternalIds.add(prop.externalId);
         allScraped.push(prop);
-        if (allScraped.length >= maxProperties) break;
+        if (allScraped.length >= maxProperties) {
+          crawlEnd = "property_cap";
+          break;
+        }
       }
     }
 
@@ -109,9 +135,15 @@ export async function scrapeZonaprop(
       }
     }
 
-    // Deactivate stale (only if we got at least some results — avoids wiping
-    // everything on a parser failure)
-    if (allScraped.length > 0) {
+    // Only a crawl that reached the end of the listing may declare the
+    // properties it didn't see gone. Anything else and we'd be inventing
+    // data about pages we never opened.
+    result.crawlEnd = crawlEnd;
+    const decision = decideDeactivation(crawlEnd, allScraped.length);
+    result.deactivationReason = decision.reason;
+    console.log(`[zonaprop] Deactivation ${decision.reason}`);
+
+    if (decision.allowed) {
       try {
         result.deactivatedCount = await deactivateStale(
           "zonaprop",

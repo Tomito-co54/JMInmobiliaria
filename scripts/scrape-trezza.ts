@@ -40,6 +40,8 @@ async function main() {
   console.log(`  Actualizadas:      ${result.updatedCount}`);
   console.log(`  Desactivadas:      ${result.deactivatedCount}`);
   console.log(`  Errores:           ${result.errorCount}`);
+  console.log(`  Crawl completo:    ${result.crawlEnd === "exhausted" ? "sí" : `no (${result.crawlEnd})`}`);
+  console.log(`  Desactivación:     ${result.deactivationReason}`);
   console.log(`  Duración:          ${(result.durationMs / 1000).toFixed(1)}s`);
 }
 

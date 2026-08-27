@@ -20,8 +20,10 @@ import { scrapeZonaprop, PARTIDOS_SLUGS } from "@/lib/services/scrapers/zonaprop
 
 async function main() {
   const partido = process.argv[2];
-  const maxProperties = process.argv[3] ? parseInt(process.argv[3], 10) : 50;
-  const maxPages = process.argv[4] ? parseInt(process.argv[4], 10) : 5;
+  // Left undefined so the scraper's own defaults apply. Passing a cap here
+  // is what silently truncated every run and blocked deactivation.
+  const maxProperties = process.argv[3] ? parseInt(process.argv[3], 10) : undefined;
+  const maxPages = process.argv[4] ? parseInt(process.argv[4], 10) : undefined;
 
   if (!partido) {
     console.error("✗ Falta el partido.");
@@ -38,8 +40,8 @@ async function main() {
 
   console.log(`\n=== Scraping Zonaprop ===`);
   console.log(`  Partido:        ${partido}`);
-  console.log(`  Max properties: ${maxProperties}`);
-  console.log(`  Max pages:      ${maxPages}\n`);
+  console.log(`  Max properties: ${maxProperties ?? "sin límite"}`);
+  console.log(`  Max pages:      ${maxPages ?? "tope de seguridad"}\n`);
 
   const result = await scrapeZonaprop({ partido, maxProperties, maxPages });
 
@@ -49,6 +51,8 @@ async function main() {
   console.log(`  Actualizadas:      ${result.updatedCount}`);
   console.log(`  Desactivadas:      ${result.deactivatedCount}`);
   console.log(`  Errores:           ${result.errorCount}`);
+  console.log(`  Crawl completo:    ${result.crawlEnd === "exhausted" ? "sí" : `no (${result.crawlEnd})`}`);
+  console.log(`  Desactivación:     ${result.deactivationReason}`);
   console.log(`  Duración:          ${(result.durationMs / 1000).toFixed(1)}s`);
 }
 
