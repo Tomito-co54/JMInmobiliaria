@@ -19,8 +19,8 @@ import { PARCEL_BOX } from "@/lib/map/tiles";
  * the scroll-triggered, transform/opacity animations.
  *
  * Two tones, per the approved design:
- *   TONE 1 (sober/editorial) — ArbaParcelViz. A parcel polygon draws
- *     itself, the partida appears, the m² counts up. Pedagogical and quiet
+ *   TONE 1 (sober/editorial) — AreaOutlineViz. An outline draws itself over
+ *     real map tiles and names what it is. Pedagogical and quiet
  *     (DIRECCION_DE_ARTE §2.3 — el movimiento explica el proceso de
  *     verificación, no decora). Ink palette, slow draw.
  *   TONE 2 (dynamic/"gamer" controlado) — ScoreRingViz, MatchDemo,
@@ -78,11 +78,9 @@ export function Reveal({
 // ---------------------------------------------------------------------------
 
 /**
- * Fallback outline, used only when the featured property has no cadastral
- * geometry cached — no featured property at all, or ARBA never answered for
- * its partida. Kept deliberately generic rather than passed off as real: the
- * caption beside it is what carries the claim, and it only appears when
- * there is a real partida to caption it with.
+ * Shape of last resort, for when no projected outline arrives. Generic on
+ * purpose: without a projection there is no map either, so it draws as a
+ * plain diagram rather than pretending to sit somewhere real.
  */
 const FALLBACK_POINTS = "34,24 150,16 184,78 168,150 58,142 22,86";
 
@@ -92,31 +90,24 @@ export interface ParcelTile {
   top: number;
 }
 
-export function ArbaParcelViz({
-  surfaceM2,
-  partida,
+export function AreaOutlineViz({
   outline,
+  caption,
+  label,
 }: {
-  /** Real ARBA surface of the featured property; the readout hides when absent. */
-  surfaceM2?: number | null;
-  /** Real partida of the featured property; the readout hides when absent. */
-  partida?: string | null;
   /**
-   * The featured parcel's actual outline and the map tiles under it. Null
-   * falls back to the generic shape with no map — which is honest, because
-   * without geometry there is nothing real to place on a map either.
+   * The shape to draw and the tiles under it, both already projected into
+   * PARCEL_BOX by the server. Null keeps the generic outline with no map —
+   * honest, because without a projection there is no ground to place.
    */
   outline?: { points: string; tiles: ParcelTile[] } | null;
+  /** Names what the shape is. Without it the drawing is decoration. */
+  caption?: string;
+  /** Accessible description. Must say what is actually drawn. */
+  label?: string;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.4 });
   const reduced = usePrefersReducedMotion();
-  const hasSurface = typeof surfaceM2 === "number" && Number.isFinite(surfaceM2);
-  const hasPartida = typeof partida === "string" && partida.trim() !== "";
-  // Long enough that the count is still ticking when the read-out reveals
-  // (~2150ms), so the number is seen *climbing*, not pre-settled.
-  const m2 = useCountUp(hasSurface ? (surfaceM2 as number) : 0, inView, {
-    durationMs: 2900,
-  });
 
   const points = outline?.points ?? FALLBACK_POINTS;
   const tiles = outline?.tiles ?? [];
@@ -125,26 +116,19 @@ export function ArbaParcelViz({
   return (
     <div ref={ref} className="relative mx-auto w-full max-w-sm">
       {/* Ground under the outline. Tiles are positioned in percentages of
-          the same 206x166 box the SVG uses, so the two scale together at any
-          width without a resize listener.
-
-          Desaturated and held back: the map is context, and this block's
-          subject is the navy polygon. A full-colour street map underneath
-          would compete with it and pull the section out of Tone 1's register
-          (DIRECCION_DE_ARTE §"sobrio"). */}
+          the same box the SVG uses, so the two scale together at any width
+          without a resize listener. */}
       {hasMap && (
         <div
           className="absolute inset-0 overflow-hidden rounded-lg"
           aria-hidden="true"
           style={{ opacity: inView ? 1 : 0, transition: "opacity 900ms ease-out" }}
         >
-          {/* Pushed further back than a map normally would be. At the zoom
-              where a single lot is legible, OSM draws street names at full
-              size, and in a 206px box those labels are the loudest thing on
-              screen — the block ends up being about Banfield instead of
-              about the parcel. Desaturated hard and lightened so the streets
-              survive as geometry and the type recedes to a whisper. */}
-          <div className="absolute inset-0 grayscale opacity-[0.32] contrast-[0.75] brightness-[1.08] dark:opacity-[0.22] dark:invert dark:brightness-100">
+          {/* Desaturated so the navy hexagon stays the subject, but not
+              muted past legibility: at this zoom the labels are the town
+              names — Lanús, Banfield, Lomas — and those are the evidence
+              for the caption. Reading them is the point. */}
+          <div className="absolute inset-0 grayscale opacity-[0.5] contrast-[0.9] dark:opacity-[0.3] dark:invert">
             {tiles.map((t) => (
               <Image
                 key={t.url}
@@ -173,13 +157,12 @@ export function ArbaParcelViz({
         viewBox="0 0 206 166"
         className="w-full"
         role="img"
-        aria-label="Polígono catastral de una parcela verificada contra ARBA"
+        aria-label={label ?? caption ?? "Polígono sobre el mapa"}
         style={{ color: "var(--brand-heading)" }}
       >
-        {/* Faint reference grid — drawn lines (no <pattern>), the cadastral
-            lattice. currentColor at low opacity. */}
-        {/* Reference grid — a stand-in for context. With real ground
-            underneath it is just clutter, so it steps aside. */}
+        {/* Reference grid — a stand-in for context, drawn as lines rather
+            than a <pattern>. With real ground underneath it is clutter, so
+            it steps aside. */}
         <g
           stroke="currentColor"
           strokeOpacity={hasMap ? 0 : 0.08}
@@ -193,7 +176,7 @@ export function ArbaParcelViz({
           ))}
         </g>
 
-        {/* Filled parcel — fades in once the outline has finished drawing. */}
+        {/* Fill — fades in once the outline has finished drawing. */}
         <polygon
           points={points}
           fill="currentColor"
@@ -259,42 +242,20 @@ export function ArbaParcelViz({
         })}
       </svg>
 
-      {/* Read-outs below the diagram — the REAL partida + surface of the
-          featured property. Each hides when the data is absent; we never
-          fabricate a value. */}
-      {(hasPartida || hasSurface) && (
-        <div
-          className="mt-4 flex items-center justify-between gap-3 text-sm transition-all duration-500"
+      {/* Names what the shape is. A drawn outline with no caption is
+          decoration; with one it is a claim the reader can check against the
+          town names on the map underneath. */}
+      {caption && (
+        <p
+          className="mt-4 text-center text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground transition-all duration-500"
           style={{
             opacity: inView ? 1 : 0,
             transform: inView ? "translateY(0)" : "translateY(6px)",
             transitionDelay: inView ? "2150ms" : "0ms",
           }}
         >
-          {hasPartida && (
-            <div>
-              <p className="text-[0.65rem] uppercase tracking-wider text-muted-foreground">
-                Partida
-              </p>
-              <p className="font-mono tabular-nums" style={{ color: "var(--brand-heading)" }}>
-                {partida}
-              </p>
-            </div>
-          )}
-          {hasSurface && (
-            <div className="ml-auto text-right">
-              <p className="text-[0.65rem] uppercase tracking-wider text-muted-foreground">
-                Superficie ARBA
-              </p>
-              <p
-                className="font-semibold tabular-nums"
-                style={{ color: "var(--brand-heading)" }}
-              >
-                {Math.round(m2)} m²
-              </p>
-            </div>
-          )}
-        </div>
+          {caption}
+        </p>
       )}
     </div>
   );
