@@ -87,6 +87,12 @@ export function tilesForView(
   zoom: number,
   width: number,
   height: number,
+  // OSM standard. Worth knowing before tuning opacity again: it is a
+  // NAVIGATION map, with type weighted to be read on its own, which is why
+  // it keeps overpowering anything drawn on top of it. If the home block
+  // still fights its basemap, the answer is probably a light style built to
+  // sit under data — CartoDB Positron uses this same tile scheme, so only
+  // this string changes.
   urlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
 ): { tiles: (TileRef & { left: number; top: number })[]; zoom: number } {
   const c = pointToTile(center, zoom);
