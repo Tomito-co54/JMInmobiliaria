@@ -14,6 +14,9 @@ import {
   scoreBandDistribution,
   usdPerM2,
   effectiveSurface,
+  countImplausibleSurfaces,
+  SURFACE_MIN_M2,
+  SURFACE_MAX_M2,
   daysOnMarket,
   classifyChange,
   priceDeltaPct,
@@ -59,6 +62,9 @@ export default async function MercadoPage() {
   ]);
 
   const kpis = computeKpis(rows);
+  // Rows carrying a surface we refuse to price on — each is a scraper
+  // parsing bug, so the count is shown rather than quietly dropped.
+  const surfaceOutliers = countImplausibleSurfaces(rows);
   const dist = distributionByType(rows);
   const scoreDist = scoreBandDistribution(
     rows,
@@ -113,8 +119,9 @@ export default async function MercadoPage() {
       <header>
         <h1 className="text-2xl font-bold tracking-tight">Inteligencia de mercado</h1>
         <p className="text-muted-foreground mt-1">
-          Análisis del inventario scrapeado (Zonaprop · Trezza) — privado, no afecta tu
-          catálogo. Datos de ~2 semanas; muestra chica, leer con cautela.
+          Análisis del inventario scrapeado (Zonaprop · Trezza) — privado, no
+          afecta tu catálogo. {fmtInt(kpis.total)} avisos relevados; el más
+          reciente, {fmtDate(kpis.lastSeenAt)}.
         </p>
       </header>
 
@@ -151,8 +158,22 @@ export default async function MercadoPage() {
           <div>
             <h2 className="text-lg font-semibold tracking-tight">USD/m² por tipo</h2>
             <p className="text-sm text-muted-foreground">
-              Mediana (barra) y rango p25–p75. Usa superficie ARBA cuando existe.
+              Mediana (barra) y rango p25–p75, sobre la{" "}
+              <span className="font-medium text-foreground">
+                superficie declarada
+              </span>{" "}
+              del aviso. Ojo al comparar tipos: en casas ese número suele ser
+              el lote, y en departamentos la unidad.
             </p>
+            {surfaceOutliers > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {surfaceOutliers}{" "}
+                {surfaceOutliers === 1 ? "aviso excluido" : "avisos excluidos"}{" "}
+                por superficie inverosímil (fuera de {SURFACE_MIN_M2}–
+                {SURFACE_MAX_M2.toLocaleString("es-AR")} m²) — error de lectura
+                del scraper, no del mercado.
+              </p>
+            )}
           </div>
           <DistributionChart overall={dist.overall} byType={dist.byType} />
         </section>

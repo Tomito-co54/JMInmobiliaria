@@ -48,28 +48,88 @@ export type SurfaceSource = "arba" | "declared";
  * number), otherwise the declared total. Returns which source was used so
  * the UI can label it honestly.
  */
+/**
+ * Bounds a surface has to fall inside to be believable for a Zona Sur
+ * listing. Scraped values come from parsing free-form listing pages, and a
+ * mis-read lands far outside any real property rather than slightly off:
+ * observed in the wild were a casa at 1 m² (119,900 USD/m²) and another at
+ * 6,000,000 m² — six hundred hectares in Lomas de Zamora.
+ *
+ * Two rows like that are enough to wreck a statistic over 187 properties, so
+ * price metrics exclude them. The upper bound is deliberately generous: a
+ * genuinely large lote should pass.
+ */
+export const SURFACE_MIN_M2 = 10;
+export const SURFACE_MAX_M2 = 100_000;
+
+/** Whether a surface is inside the believable range. */
+export function isPlausibleSurface(value: number | null): value is number {
+  return value !== null && value >= SURFACE_MIN_M2 && value <= SURFACE_MAX_M2;
+}
+
+/**
+ * How many rows carry a declared surface we refuse to price on. Surfaced in
+ * the dashboard so the exclusion is visible instead of silent — each one is
+ * a scraper parsing bug worth chasing.
+ */
+export function countImplausibleSurfaces(
+  rows: Pick<MarketRow, "surface_total">[],
+): number {
+  return rows.filter((r) => {
+    const v = num(r.surface_total);
+    return v !== null && v > 0 && !isPlausibleSurface(v);
+  }).length;
+}
+
 export function effectiveSurface(
   row: Pick<MarketRow, "surface_arba" | "surface_total">,
 ): { value: number | null; source: SurfaceSource | null } {
-  const arba = num(row.surface_arba);
-  if (arba !== null && arba > 0) return { value: arba, source: "arba" };
+  // Declared first. `surface_arba` is the area of the cadastral PARCEL — the
+  // land — which for an apartment is the whole building's lot. It answers a
+  // different question than "how big is this property", so it is only a last
+  // resort for display, never the basis of a price metric.
   const declared = num(row.surface_total);
   if (declared !== null && declared > 0) return { value: declared, source: "declared" };
+  const arba = num(row.surface_arba);
+  if (arba !== null && arba > 0) return { value: arba, source: "arba" };
   return { value: null, source: null };
 }
 
 /**
- * USD per m². Null unless the row is USD-priced AND has a usable surface.
+ * USD per m² over the DECLARED surface. Null unless the row is USD-priced
+ * and carries one.
+ *
+ * It used to divide by `surface_arba` when present, which is the cadastral
+ * parcel area — the land. For an apartment that is the entire building's
+ * lot, so a USD 44,900 unit with 61 m² declared and a 301 m² parcel came out
+ * at 149 USD/m². Measured across the scraped set, the median for
+ * departamentos was 487 that way and 2,024 over declared surface; only the
+ * second is a real Zona Sur price.
+ *
+ * Worse than the wrong level was the inconsistency: rows with cadastral data
+ * were priced per m² of land and the rest per m² of property, then averaged
+ * together. That is what made the standard deviation exceed the mean.
+ *
+ * So there is deliberately no fallback here. A row without a declared
+ * surface is left out of the statistic rather than answered with a different
+ * quantity — /p/[id] made this same call in 56569dc; this module predates it
+ * and was missed.
+ *
+ * Known limitation: Zonaprop's "superficie total" is the lot for houses and
+ * the unit for apartments, so the two types still measure different things.
+ * They are reported separately and labelled. The real fix is capturing
+ * covered surface in the scraper — the listings show it, we just don't parse
+ * it yet (5 of 458 rows have it).
  */
 export function usdPerM2(
-  row: Pick<MarketRow, "price_amount" | "price_currency" | "surface_arba" | "surface_total">,
+  row: Pick<MarketRow, "price_amount" | "price_currency" | "surface_total">,
 ): number | null {
   if (row.price_currency !== "USD") return null;
   const price = num(row.price_amount);
   if (price === null || price <= 0) return null;
-  const { value } = effectiveSurface(row);
-  if (value === null) return null;
-  return price / value;
+  const declared = num(row.surface_total);
+  if (!isPlausibleSurface(declared)) return null;
+  return price / declared;
 }
 
 /** Days the listing has been observed alive (last_seen − first_seen). */
@@ -191,6 +251,8 @@ export interface MarketKpis {
   withPrice: number;
   withUsdPerM2: number;
   geocoded: number;
+  /** Most recent `last_seen_at` across the set — how fresh the data is. */
+  lastSeenAt: string | null;
 }
 
 export function computeKpis(rows: MarketRow[]): MarketKpis {
@@ -199,12 +261,19 @@ export function computeKpis(rows: MarketRow[]): MarketKpis {
   let withPrice = 0;
   let withUsdPerM2 = 0;
   let geocoded = 0;
+  // Freshness of the data itself. The scraper runs by hand from the owner's
+  // machine, so "when was this last relevado" is something the dashboard has
+  // to state rather than assume.
+  let lastSeenAt: string | null = null;
   for (const row of rows) {
     bySource[row.source] = (bySource[row.source] ?? 0) + 1;
     if (row.is_active) active += 1;
     if (num(row.price_amount) !== null) withPrice += 1;
     if (usdPerM2(row) !== null) withUsdPerM2 += 1;
     if (num(row.lat) !== null && num(row.lng) !== null) geocoded += 1;
+    if (row.last_seen_at && (lastSeenAt === null || row.last_seen_at > lastSeenAt)) {
+      lastSeenAt = row.last_seen_at;
+    }
   }
   return {
     total: rows.length,
@@ -214,6 +283,7 @@ export function computeKpis(rows: MarketRow[]): MarketKpis {
     withPrice,
     withUsdPerM2,
     geocoded,
+    lastSeenAt,
   };
 }
 
