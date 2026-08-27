@@ -158,10 +158,25 @@ describe("canPublishProperty", () => {
       "moneda",
       "partido",
       "partida",
-      "datos de ARBA",
       "dirección",
       "al menos una foto",
     ]);
+  });
+
+  it("publishes without ARBA data, as long as the partida is there", () => {
+    // The lookup hits a public provincial service that can be down or simply
+    // not have the parcel. Blocking a listing on that was costing more than
+    // it protected — the partida keeps it traceable to a real parcel either
+    // way, and the home page's verified-% counts the nomenclatura, so a
+    // listing published without the lookup lowers that number honestly.
+    const sinArba = { ...COMPLETE_ROW, nomenclatura_catastral: null };
+    expect(canPublishProperty(sinArba)).toEqual({ ok: true, missing: [] });
+  });
+
+  it("still refuses to publish without a partida", () => {
+    const result = canPublishProperty({ ...COMPLETE_ROW, partida: null });
+    expect(result.ok).toBe(false);
+    expect(result.missing).toContain("partida");
   });
 
   it("treats whitespace-only address as missing", () => {
