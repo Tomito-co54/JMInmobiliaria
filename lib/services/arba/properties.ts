@@ -1,5 +1,6 @@
 import { getAdminClient } from "./client";
 import { lookupParcel } from "./index";
+import { parcelCenter } from "./geometry";
 import { getParcelByPartida } from "./wfs";
 
 /**
@@ -160,14 +161,62 @@ export async function ensurePropertyCadastralByPartida(
     return { ok: false, reason: "partida_not_found" };
   }
 
+  // The parcel outline used to be fetched and dropped on the floor. It is the
+  // thing /p/[id] draws over the map, and without it a published property
+  // shows a bare pin — no evidence of the cadastral check the site is built
+  // on. Cache it keyed by the parcel's own centre.
+  const center = parcelCenter(parcel.rawResponse);
+  if (center) {
+    const { error: cacheError } = await supabase
+      .from("arba_lookups")
+      .upsert(
+        {
+          lat: center.lat,
+          lng: center.lng,
+          partida: parcel.partida,
+          nomenclatura: parcel.nomenclatura,
+          surface_arba: parcel.surfaceM2,
+          tipo: parcel.tipo,
+          match_strategy: "by_partida",
+          distance_meters: 0,
+          raw_response: parcel.rawResponse,
+        } as never,
+        { onConflict: "lat,lng" },
+      );
+    // A cache miss is survivable — the property still gets its data below.
+    if (cacheError) {
+      console.error("ARBA cache write failed for partida", partida, cacheError.message);
+    }
+  }
+
+  const patch: Record<string, unknown> = {
+    partida: parcel.partida,
+    nomenclatura_catastral: parcel.nomenclatura,
+    surface_arba: parcel.surfaceM2,
+    tpa: parcel.tipo,
+  };
+
+  // Owner properties are loaded by partida and never geocoded, so most arrive
+  // with no position at all. The cadastre knows exactly where the parcel is,
+  // which beats resolving the street address. Existing coordinates are left
+  // alone — overwriting a scraped listing's geocode is not this function's
+  // call to make.
+  if (center) {
+    const { data: current } = await supabase
+      .from("properties")
+      .select("lat, lng")
+      .eq("id", propertyId)
+      .maybeSingle();
+    const has = current as { lat: number | null; lng: number | null } | null;
+    if (has && (has.lat === null || has.lng === null)) {
+      patch.lat = center.lat;
+      patch.lng = center.lng;
+    }
+  }
+
   const { error: updateError } = await supabase
     .from("properties")
-    .update({
-      partida: parcel.partida,
-      nomenclatura_catastral: parcel.nomenclatura,
-      surface_arba: parcel.surfaceM2,
-      tpa: parcel.tipo,
-    } as never)
+    .update(patch as never)
     .eq("id", propertyId);
   if (updateError) throw updateError;
 
