@@ -168,7 +168,14 @@ export function canPublishProperty(p: PublishCheckInput): PublishCheckResult {
   if (!p.price_currency) missing.push("moneda");
   if (!p.partido) missing.push("partido");
   if (!p.partida) missing.push("partida");
-  if (!p.nomenclatura_catastral) missing.push("datos de ARBA");
+  // ARBA data is deliberately NOT required. The lookup depends on a public
+  // provincial service that can be down, slow, or simply not have the parcel
+  // — and a listing shouldn't be held hostage to that. The partida still is
+  // required, so every published property remains traceable to a real parcel.
+  //
+  // What this costs: a published property may have no verified surface or
+  // polygon. The home page's "% with ARBA data" counts `nomenclatura_catastral`
+  // precisely so it reflects that instead of overstating.
   if (!p.address || p.address.trim().length === 0) missing.push("dirección");
 
   const photos = Array.isArray(p.photos) ? p.photos : [];

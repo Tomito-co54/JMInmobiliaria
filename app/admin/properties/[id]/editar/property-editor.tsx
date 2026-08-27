@@ -259,6 +259,7 @@ function ArbaSection({
   const [partida, setPartida] = useState(row.partida ?? "");
   const [pending, startTransition] = useTransition();
   const [warning, setWarning] = useState<string | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
 
   const hasArbaData = !!row.nomenclatura_catastral;
 
@@ -277,9 +278,13 @@ function ArbaSection({
 
   function handleLookup() {
     setWarning(null);
+    setLookupError(null);
     startTransition(async () => {
       const result = await lookupArbaByPartidaAction(row.id, partido, partida);
       if (!result.ok) {
+        // A toast disappears, and this is the moment the person needs to know
+        // that a failed lookup no longer blocks them. Keep it on the page.
+        setLookupError(result.error);
         toast.error(result.error);
         return;
       }
@@ -361,7 +366,7 @@ function ArbaSection({
               id="partida"
               value={partida}
               disabled={hasArbaData || pending}
-              placeholder="063-056-604"
+              placeholder="063-047850-2 o 063047850"
               onChange={(e) => setPartida(e.target.value)}
               aria-invalid={
                 inlineValidation && !inlineValidation.ok ? "true" : undefined
@@ -381,9 +386,24 @@ function ArbaSection({
         </div>
 
         {!hasArbaData && (
-          <Button size="sm" disabled={!canLookup} onClick={handleLookup}>
-            {pending ? "Consultando ARBA…" : "Traer datos de ARBA"}
-          </Button>
+          <div className="space-y-2">
+            <Button size="sm" disabled={!canLookup} onClick={handleLookup}>
+              {pending ? "Consultando ARBA…" : "Traer datos de ARBA"}
+            </Button>
+            {lookupError && (
+              <div
+                className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm space-y-1"
+                role="status"
+              >
+                <p className="font-medium">{lookupError}</p>
+                <p className="text-muted-foreground">
+                  Podés publicar igual: alcanza con el partido y la partida. La
+                  ficha va a salir sin superficie ni polígono verificados, y vas
+                  a poder reintentar la consulta cuando quieras.
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
         {hasArbaData && (

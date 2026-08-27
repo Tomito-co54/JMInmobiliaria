@@ -81,14 +81,71 @@ export type PartidaValidation =
     };
 
 /**
- * Validates a partida (9-digit string) against the selected partido.
+ * Validates a partida against the selected partido and returns the 9-digit
+ * key ARBA's WFS actually indexes on (its `pda` field).
  *
- *   1. The partida must be exactly 9 digits.
- *   2. The first 3 digits must match the partido's ARBA code.
+ * ARBA writes a partida as `PPP-NNNNNN-D`: a 3-digit partido code, the
+ * 6-digit parcel number, and a check digit. The `pda` key is the first two
+ * parts concatenated — the check digit is not part of it.
  *
- * Accepts partidas with separators (spaces, dashes, dots) and normalizes
- * them — paper records often format as "063-056-604" or "063 056 604".
+ * People rarely type it that way. A tax bill for parcel 47850 in Lomas de
+ * Zamora reads "063-47850-2", with the leading zero dropped. Stripping the
+ * separators from that gives "063478502", which is nine digits and looks
+ * valid, but silently pastes the check digit where a padding zero belongs
+ * and asks ARBA about a parcel that does not exist. The lookup then comes
+ * back empty and the UI blames the number instead of the parsing.
+ *
+ * So: when the input is grouped, treat the groups as PPP / NNNNNN / D and
+ * pad the middle. Only fall back to plain concatenation when there are no
+ * separators to learn from.
  */
+/**
+ * Turns however a person wrote a partida into the 9-digit key ARBA indexes,
+ * or `null` when it can't be read as one.
+ *
+ * Accepted shapes:
+ *   "063-47850-2"   grouped, check digit present, parcel not zero-padded
+ *   "063-047850-2"  grouped, fully padded
+ *   "063 47850"     grouped, no check digit
+ *   "063047850"     the 9-digit key itself
+ *   "0630478502"    10 digits — the key plus a trailing check digit
+ */
+export function normalizePartida(input: string): string | null {
+  const raw = input.trim();
+  if (raw.length === 0) return null;
+
+  const groups = raw.split(/[\s\-.]+/).filter((g) => g.length > 0);
+  if (groups.some((g) => !/^\d+$/.test(g))) return null;
+
+  if (groups.length === 1) {
+    const digits = groups[0];
+    if (/^\d{9}$/.test(digits)) return digits;
+    // 10 digits is the key with the check digit glued on the end.
+    if (/^\d{10}$/.test(digits)) return digits.slice(0, 9);
+    return null;
+  }
+
+  if (groups.length > 3) return null;
+
+  // A trailing single digit is the check digit, which ARBA's `pda` key does
+  // not carry. Group length is what separates the two formats people use:
+  // "063-047850-2" ends in a check digit, "063-056-604" is just the 9-digit
+  // key split into threes.
+  const parts = groups[groups.length - 1].length === 1 ? groups.slice(0, -1) : groups;
+  if (parts.length === 0) return null;
+
+  const joined = parts.join("");
+  if (/^\d{9}$/.test(joined)) return joined;
+
+  // Shorter than 9 means the parcel number was written without its leading
+  // zeros — "063 47850" for parcel 047850. Pad it back out.
+  if (parts.length === 2 && parts[0].length === 3 && parts[1].length < 6) {
+    return parts[0] + parts[1].padStart(6, "0");
+  }
+
+  return null;
+}
+
 export function validatePartida(
   partido: string,
   partida: string,
@@ -98,12 +155,13 @@ export function validatePartida(
     return { ok: false, reason: "empty", message: "Ingresá la partida." };
   }
 
-  const normalized = trimmed.replace(/[\s\-.]/g, "");
-  if (!/^\d{9}$/.test(normalized)) {
+  const normalized = normalizePartida(trimmed);
+  if (normalized === null) {
     return {
       ok: false,
       reason: "format",
-      message: "La partida debe tener exactamente 9 dígitos.",
+      message:
+        "Formato inválido. Usá partido-partida-verificador (063-47850-2) o los 9 dígitos corridos (063047850).",
     };
   }
 

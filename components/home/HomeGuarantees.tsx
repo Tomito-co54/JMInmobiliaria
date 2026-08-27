@@ -55,7 +55,15 @@ async function getGuaranteeStats(): Promise<{ arbaPct: number; score: number }> 
         .eq("listing_status", PUBLIC_LISTING_STATUS);
 
     const { count: total } = await base();
-    const { count: withArba } = await base().not("partida", "is", null);
+    // Counts `nomenclatura_catastral`, not `partida`: the partida is typed in
+    // by hand, the nomenclatura only exists when ARBA actually answered. Since
+    // publishing no longer requires the lookup, measuring the partida here
+    // would let the page claim verification it doesn't have.
+    const { count: withArba } = await base().not(
+      "nomenclatura_catastral",
+      "is",
+      null,
+    );
 
     // Representative score — the best published listing's score, so the ring
     // showcases a real, achievable number (falls back to a strong sample).

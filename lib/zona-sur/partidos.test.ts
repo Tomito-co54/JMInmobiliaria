@@ -73,10 +73,24 @@ describe("validatePartida", () => {
       ok: false,
       reason: "format",
     });
-    expect(validatePartida("Lomas de Zamora", "1234567890")).toMatchObject({
+    expect(validatePartida("Lomas de Zamora", "12345678")).toMatchObject({
       ok: false,
       reason: "format",
     });
+  });
+
+  it("reads 10 plain digits as the key plus its check digit", () => {
+    // This used to be a format error. It isn't one: ARBA writes partidas as
+    // PPP-NNNNNN-D, so ten digits is a well-formed partida with the check
+    // digit attached. Here it belongs to another partido, and saying so is
+    // more useful than calling the number malformed.
+    expect(validatePartida("Lomas de Zamora", "1234567890")).toMatchObject({
+      ok: false,
+      reason: "prefix_mismatch",
+    });
+    const own = validatePartida("Lomas de Zamora", "0630478502");
+    expect(own.ok).toBe(true);
+    if (own.ok) expect(own.normalized).toBe("063047850");
   });
 
   it("rejects unknown partido", () => {
