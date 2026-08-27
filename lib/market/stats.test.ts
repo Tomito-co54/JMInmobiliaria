@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  countImplausibleSurfaces,
   effectiveSurface,
   usdPerM2,
   daysOnMarket,
@@ -42,16 +43,19 @@ function row(overrides: Partial<MarketRow>): MarketRow {
 }
 
 describe("effectiveSurface", () => {
-  it("prefers ARBA surface over declared", () => {
+  it("prefers the declared surface over the cadastral parcel", () => {
+    // Reversed on purpose. `surface_arba` is the area of the LAND, which for
+    // an apartment is the whole building's lot — a different question from
+    // "how big is this property".
     expect(effectiveSurface({ surface_arba: 120, surface_total: 100 })).toEqual({
-      value: 120,
-      source: "arba",
-    });
-  });
-  it("falls back to declared when no ARBA", () => {
-    expect(effectiveSurface({ surface_arba: null, surface_total: 100 })).toEqual({
       value: 100,
       source: "declared",
+    });
+  });
+  it("falls back to the parcel only when nothing was declared", () => {
+    expect(effectiveSurface({ surface_arba: 120, surface_total: null })).toEqual({
+      value: 120,
+      source: "arba",
     });
   });
   it("returns null when neither is usable", () => {
@@ -71,10 +75,21 @@ describe("usdPerM2", () => {
   it("computes price / surface for USD rows", () => {
     expect(usdPerM2(row({ price_amount: 200000, surface_total: 100 }))).toBe(2000);
   });
-  it("uses ARBA surface when present", () => {
+  it("ignores the cadastral parcel even when it's there", () => {
+    // The old behaviour divided by the parcel and produced land prices for
+    // apartments: a USD 44,900 unit with 61 m² declared sits on a 301 m² lot,
+    // which read as 149 USD/m². Across the scraped set the median for
+    // departamentos was 487 that way versus 2,024 over declared surface.
     expect(usdPerM2(row({ price_amount: 200000, surface_arba: 200, surface_total: 100 }))).toBe(
-      1000,
+      2000,
     );
+  });
+  it("drops the row rather than answering with a different quantity", () => {
+    // No fallback to the parcel: mixing land prices and property prices in
+    // one distribution is what made its standard deviation exceed its mean.
+    expect(
+      usdPerM2(row({ price_amount: 200000, surface_arba: 200, surface_total: null })),
+    ).toBeNull();
   });
   it("returns null for non-USD currency", () => {
     expect(usdPerM2(row({ price_currency: "ARS" }))).toBeNull();
@@ -228,5 +243,36 @@ describe("scoreBandDistribution", () => {
     const d = scoreBandDistribution(rows, bands, classify);
     expect(d.scored).toBe(1);
     expect(d.buckets.find((b) => b.id === "good")?.count).toBe(1);
+  });
+});
+
+describe("implausible surfaces", () => {
+  it("excludes a surface too small to be a property", () => {
+    // Real row: "Boston al 700", USD 119,900 on a parsed surface of 1 m²,
+    // which priced at 119,900 USD/m² and dragged the casa mean far above
+    // its median.
+    expect(usdPerM2(row({ price_amount: 119900, surface_total: 1 }))).toBeNull();
+  });
+
+  it("excludes a surface too large to be real", () => {
+    // Real row: "L. N. Alem 555" at 6,000,000 m² — 600 hectares in Lomas de
+    // Zamora.
+    expect(usdPerM2(row({ price_amount: 540000, surface_total: 6_000_000 }))).toBeNull();
+  });
+
+  it("still prices a large but believable lote", () => {
+    // The ceiling has to leave room for genuinely big land.
+    expect(usdPerM2(row({ price_amount: 500000, surface_total: 5000 }))).toBe(100);
+  });
+
+  it("counts the rows it refuses to price, so the exclusion is visible", () => {
+    const rows = [
+      { surface_total: 1 },
+      { surface_total: 6_000_000 },
+      { surface_total: 120 },
+      { surface_total: null },
+      { surface_total: 0 },
+    ];
+    expect(countImplausibleSurfaces(rows as never)).toBe(2);
   });
 });
