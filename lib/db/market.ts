@@ -120,3 +120,68 @@ export async function getUsdPerM2MediansByType(): Promise<Record<string, number>
   }
   return out;
 }
+
+/**
+ * Every change event, with enough of its property attached to read on its
+ * own. Backs the dedicated changes page.
+ *
+ * The dashboard's feed calls getRecentPropertyHistory(300) and shows the top
+ * fourteen; this returns the whole log so the page can filter across it
+ * rather than across a pre-truncated window — filtering a window would
+ * quietly answer "the price drops among the 300 most recent events", which
+ * is not the question anyone is asking.
+ */
+export interface MarketChangeRow extends RawHistoryRow {
+  address: string | null;
+  partido: string | null;
+  property_type: string | null;
+  source: string;
+  url: string | null;
+  is_active: boolean;
+}
+
+export async function getMarketChanges(limit = 5000): Promise<MarketChangeRow[]> {
+  const supabase = await createClient();
+
+  const [{ data: history, error: histError }, { data: props, error: propError }] =
+    await Promise.all([
+      supabase
+        .from("property_history")
+        .select(
+          "id, property_id, changed_at, field_changed, old_value, new_value, price_at_change, price_currency_at_change",
+        )
+        .order("changed_at", { ascending: false })
+        .limit(limit),
+      supabase
+        .from("properties")
+        .select("id, address, partido, property_type, source, url, is_active")
+        .not("source", "in", NOT_OWNER)
+        .range(0, 9999),
+    ]);
+  if (histError) throw histError;
+  if (propError) throw propError;
+
+  const byId = new Map(
+    ((props ?? []) as unknown as Array<{ id: string } & Record<string, unknown>>).map(
+      (p) => [p.id, p],
+    ),
+  );
+
+  // Events whose property isn't in the scraped set are dropped: this page is
+  // market intelligence, and owner listings are not the market.
+  return ((history ?? []) as unknown as RawHistoryRow[])
+    .map((h) => {
+      const p = byId.get(h.property_id);
+      if (!p) return null;
+      return {
+        ...h,
+        address: (p.address as string | null) ?? null,
+        partido: (p.partido as string | null) ?? null,
+        property_type: (p.property_type as string | null) ?? null,
+        source: p.source as string,
+        url: (p.url as string | null) ?? null,
+        is_active: Boolean(p.is_active),
+      };
+    })
+    .filter((r): r is MarketChangeRow => r !== null);
+}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   TrendingDown,
   TrendingUp,
@@ -20,6 +21,7 @@ import {
   daysOnMarket,
   classifyChange,
   priceDeltaPct,
+  HIGH_SIGNAL_KINDS,
   type MarketRow,
   type UsdM2Summary,
   type ScoreDistribution,
@@ -100,7 +102,10 @@ export default async function MercadoPage() {
   const events = history
     .filter((h) => propMap.has(h.property_id))
     .map((h) => ({ h, kind: classifyChange(h), prop: propMap.get(h.property_id)! }))
-    .filter((e) => e.kind !== "other");
+    // El feed corto se queda con los de mayor senal. El resto — descripciones
+    // reescritas, superficies corregidas — vive en /cambios, donde hay lugar
+    // para filtrar en vez de competir por catorce lugares.
+    .filter((e) => HIGH_SIGNAL_KINDS.includes(e.kind));
 
   const priceDrops = events.filter((e) => e.kind === "price_drop").length;
   const delistings = events.filter((e) => e.kind === "delisted").length;
@@ -181,9 +186,18 @@ export default async function MercadoPage() {
         {/* ---- M4: Feed de cambios ---- */}
         <section className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">Cambios recientes</h2>
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="text-lg font-semibold tracking-tight">Cambios recientes</h2>
+              <Link
+                href="/admin/mercado/cambios"
+                className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline shrink-0"
+              >
+                Ver todos →
+              </Link>
+            </div>
             <p className="text-sm text-muted-foreground">
-              Detectados por el pipeline diario en el historial de avisos.
+              Los últimos movimientos. El registro completo, con filtros, está
+              en la página de cambios.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-3">

@@ -12,6 +12,7 @@ import {
   distributionByType,
   computeKpis,
   classifyChange,
+  HIGH_SIGNAL_KINDS,
   priceDeltaPct,
   scoreBandDistribution,
   type MarketRow,
@@ -190,9 +191,29 @@ describe("classifyChange / priceDeltaPct", () => {
     expect(classifyChange({ field_changed: "is_active", old_value: "true", new_value: "false" })).toBe("delisted");
     expect(classifyChange({ field_changed: "is_active", old_value: "false", new_value: "true" })).toBe("relisted");
   });
-  it("type change and other", () => {
+  it("names every edit it knows about", () => {
+    // These used to collapse into "other" and get filtered out of the feed
+    // entirely. A rewritten ad usually means the seller is repositioning,
+    // and a corrected surface moves every price-per-m² that depends on it —
+    // both are worth seeing on the changes page.
     expect(classifyChange({ field_changed: "property_type", old_value: "casa", new_value: "ph" })).toBe("type_change");
-    expect(classifyChange({ field_changed: "description", old_value: "a", new_value: "b" })).toBe("other");
+    expect(classifyChange({ field_changed: "description", old_value: "a", new_value: "b" })).toBe("description_change");
+    expect(classifyChange({ field_changed: "surface_total", old_value: "80", new_value: "95" })).toBe("surface_change");
+    expect(classifyChange({ field_changed: "surface_covered", old_value: "70", new_value: "72" })).toBe("surface_change");
+    expect(classifyChange({ field_changed: "address", old_value: "a", new_value: "b" })).toBe("address_change");
+  });
+
+  it("still falls back to other for anything unrecognised", () => {
+    expect(classifyChange({ field_changed: "rooms", old_value: "3", new_value: "4" })).toBe("other");
+  });
+
+  it("keeps the dashboard's short feed to the high-signal kinds", () => {
+    // The fourteen-slot feed can't carry description edits without burying
+    // the price moves; the dedicated page filters instead.
+    expect(HIGH_SIGNAL_KINDS).toContain("price_drop");
+    expect(HIGH_SIGNAL_KINDS).toContain("relisted");
+    expect(HIGH_SIGNAL_KINDS).not.toContain("description_change");
+    expect(HIGH_SIGNAL_KINDS).not.toContain("other");
   });
   it("priceDeltaPct computes percent drop", () => {
     expect(priceDeltaPct({ field_changed: "price_amount", old_value: "100", new_value: "90" })).toBeCloseTo(-10, 5);
