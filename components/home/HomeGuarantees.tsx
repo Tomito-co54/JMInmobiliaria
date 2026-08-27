@@ -1,5 +1,5 @@
-import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { parcelShape } from "@/lib/services/arba/geometry";
+import { createClient } from "@/lib/supabase/server";
+import { COVERAGE_AREA, COVERAGE_LABEL } from "@/lib/zona-sur/coverage";
 import {
   zoomForSpan,
   tilesForView,
@@ -7,14 +7,13 @@ import {
   PARCEL_BOX,
   PARCEL_VIEW_FACTOR,
 } from "@/lib/map/tiles";
-import type { FeaturedPropertyRow } from "@/lib/db/properties";
 import {
   PUBLIC_LISTING_STATUS,
   PUBLIC_PROPERTY_SOURCES,
 } from "@/lib/db/property-sources";
 import {
   Reveal,
-  ArbaParcelViz,
+  AreaOutlineViz,
   ScoreRingViz,
   MatchDemo,
   ServiceSteps,
@@ -99,82 +98,59 @@ async function getGuaranteeStats(): Promise<{ arbaPct: number; score: number }> 
 }
 
 /**
- * The featured property's real parcel: outline projected into the diagram's
- * box, plus the tiles that go under it.
+ * The coverage area on real ground: the hexagon projected into the diagram's
+ * box, plus the tiles beneath it.
  *
- * Reads `arba_lookups` with the admin client — the table is admin-read
- * because it holds a row per scraped listing, and the same narrow-path
- * reasoning as /p/[id] applies: one parcel, geometry only, server-side.
- * Returns null on any miss; the diagram keeps its illustrative fallback.
+ * Pure geometry, no database. It used to draw the featured property's own
+ * parcel, which was accurate but answered a question nobody asks first. At
+ * the zoom where a single lot is legible you see one lot and a street name —
+ * true, and mute. Zoomed to the corridor, the same picture says where the
+ * agency works, and the town names on the tiles do the labelling.
+ *
+ * The parcel-level view still exists where it belongs: on /p/[id], about the
+ * property you're looking at.
  */
-async function getParcelOutline(partida: string) {
-  try {
-    const supabase = createAdminClient();
-    const { data } = await supabase
-      .from("arba_lookups")
-      .select("raw_response")
-      .eq("partida", partida)
-      .limit(1);
-    const raw = (data?.[0] as { raw_response?: unknown } | undefined)?.raw_response;
-    if (!raw) return null;
+function getCoverageView() {
+  const lats = COVERAGE_AREA.map((p) => p.lat);
+  const lngs = COVERAGE_AREA.map((p) => p.lng);
+  const center = {
+    lat: (Math.max(...lats) + Math.min(...lats)) / 2,
+    lng: (Math.max(...lngs) + Math.min(...lngs)) / 2,
+  };
 
-    const shape = parcelShape(raw);
-    if (!shape) return null;
+  const METERS_PER_DEGREE = 111_320;
+  const spanMeters = Math.max(
+    (Math.max(...lats) - Math.min(...lats)) * METERS_PER_DEGREE,
+    (Math.max(...lngs) - Math.min(...lngs)) *
+      METERS_PER_DEGREE *
+      Math.cos((center.lat * Math.PI) / 180),
+  );
 
-    // One zoom, one origin, one projection for both layers. The outline is
-    // placed with the same maths that positions the tiles, so it can only
-    // land where the parcel actually is.
-    const zoom = zoomForSpan(
-      shape.center.lat,
-      shape.spanMeters * PARCEL_VIEW_FACTOR,
-      PARCEL_BOX.width,
-    );
-    const { tiles } = tilesForView(
-      shape.center,
-      zoom,
-      PARCEL_BOX.width,
-      PARCEL_BOX.height,
-    );
-    const points = shape.vertices
-      .map((v) => {
-        const p = projectToView(
-          v,
-          shape.center,
-          zoom,
-          PARCEL_BOX.width,
-          PARCEL_BOX.height,
-        );
-        return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
-      })
-      .join(" ");
+  const zoom = zoomForSpan(
+    center.lat,
+    spanMeters * PARCEL_VIEW_FACTOR,
+    PARCEL_BOX.width,
+  );
+  const { tiles } = tilesForView(
+    center,
+    zoom,
+    PARCEL_BOX.width,
+    PARCEL_BOX.height,
+  );
 
-    return { points, tiles };
-  } catch (err) {
-    // Logged rather than swallowed: every failure here degrades silently to
-    // the generic outline, which looks fine and is exactly why nobody would
-    // notice the real one had stopped arriving.
-    console.error("[home] parcel outline failed:", err);
-    return null;
-  }
+  // Same projection as the tiles, so the hexagon sits on the towns it names.
+  const points = COVERAGE_AREA.map((v) => {
+    const p = projectToView(v, center, zoom, PARCEL_BOX.width, PARCEL_BOX.height);
+    return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+  }).join(" ");
+
+  return { points, tiles };
 }
 
-export async function HomeGuarantees({
-  featured,
-}: {
-  featured: FeaturedPropertyRow | null;
-}) {
+export async function HomeGuarantees() {
   const { arbaPct, score } = await getGuaranteeStats();
 
-  // The ARBA parcel diagram shows the REAL partida + surface of the featured
-  // property. When there's no featured property (or it lacks the data), the
-  // viz falls back to its illustrative defaults.
-  const parcelPartida = featured?.partida ?? undefined;
-  const parcelSurface = featured?.surface_arba ?? featured?.surface_total ?? undefined;
-
-  // ...and now the real outline too. The diagram used to draw a hand-written
-  // hexagon next to a paragraph promising "el polígono exacto de la parcela",
-  // because the geometry wasn't stored anywhere. It is now.
-  const parcel = parcelPartida ? await getParcelOutline(parcelPartida) : null;
+  const coverage = getCoverageView();
 
   return (
     <section className="relative px-4 py-20 sm:py-28 overflow-x-clip">
@@ -237,10 +213,10 @@ export async function HomeGuarantees({
             </div>
           </Reveal>
           <Reveal className="order-1 md:order-2" delayMs={120}>
-            <ArbaParcelViz
-              partida={parcelPartida}
-              surfaceM2={parcelSurface}
-              outline={parcel}
+            <AreaOutlineViz
+              outline={coverage}
+              caption={COVERAGE_LABEL}
+              label={`Zona de cobertura sobre el mapa: ${COVERAGE_LABEL}`}
             />
           </Reveal>
         </div>
