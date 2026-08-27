@@ -6,8 +6,10 @@ import {
   CirclePlus,
   Tag,
   ArrowRight,
+  Map as MapIcon,
 } from "lucide-react";
 import { MetricCard } from "@/components/shared/metric-card";
+import { buttonVariants } from "@/components/ui/button";
 import { getScrapedInventory, getRecentPropertyHistory } from "@/lib/db/market";
 import {
   computeKpis,
@@ -121,13 +123,24 @@ export default async function MercadoPage() {
 
   return (
     <div className="px-6 py-8 space-y-8 max-w-6xl">
-      <header>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
         <h1 className="text-2xl font-bold tracking-tight">Inteligencia de mercado</h1>
         <p className="text-muted-foreground mt-1">
           Análisis del inventario scrapeado (Zonaprop · Trezza) — privado, no
           afecta tu catálogo. {fmtInt(kpis.total)} avisos relevados; el más
           reciente, {fmtDate(kpis.lastSeenAt)}.
         </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/admin/mercado/mapa"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            <MapIcon className="size-4" />
+            Ver en el mapa
+          </Link>
+        </div>
       </header>
 
       {/* ---- M1: KPIs de cobertura ---- */}
