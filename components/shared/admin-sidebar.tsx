@@ -45,11 +45,11 @@ export function AdminSidebar() {
 
       <div className="pt-4 mt-4 border-t">
         <Link
-          href="/dashboard"
+          href="/"
           className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
         >
           <Home className="size-4" />
-          <span>Volver a la app</span>
+          <span>Ver el sitio</span>
         </Link>
       </div>
     </nav>

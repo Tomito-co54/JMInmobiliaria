@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import { LogOut, User as UserIcon, FileText, Heart, Search, LayoutDashboard, BookOpen } from "lucide-react";
+import { LogOut, User as UserIcon, FileText, Heart, Search, LayoutDashboard, BookOpen, ShieldCheck } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,9 +19,15 @@ import { signOut } from "@/app/(auth)/actions";
 interface UserMenuProps {
   email: string;
   fullName?: string | null;
+  /**
+   * Adds the way into /admin. Every other entry here is a buyer-facing route
+   * inherited from the upstream portal, so without this the broker had no
+   * link anywhere to his own panel — only a typed URL.
+   */
+  isAdmin?: boolean;
 }
 
-export function UserMenu({ email, fullName }: UserMenuProps) {
+export function UserMenu({ email, fullName, isAdmin = false }: UserMenuProps) {
   const [isPending, startTransition] = useTransition();
 
   const initials = (fullName || email)
@@ -61,6 +67,19 @@ export function UserMenu({ email, fullName }: UserMenuProps) {
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        {isAdmin && (
+          <>
+            <DropdownMenuItem
+              render={
+                <Link href="/admin" className="cursor-pointer">
+                  <ShieldCheck className="mr-2 size-4" />
+                  <span>Panel de administración</span>
+                </Link>
+              }
+            />
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem
           render={
             <Link href="/buscar" className="cursor-pointer">

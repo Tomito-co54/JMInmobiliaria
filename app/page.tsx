@@ -23,6 +23,15 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // The header's logged-in CTA used to send everyone to /dashboard, the
+  // buyer-facing dashboard inherited from the upstream portal. For the
+  // broker that was a dead end: nothing anywhere linked to /admin, so the
+  // only way into his own panel was typing the URL.
+  const { data: profile } = user
+    ? await supabase.from("users").select("role").eq("id", user.id).maybeSingle()
+    : { data: null };
+  const isAdmin = (profile as { role?: string } | null)?.role === "admin";
+
   // The protagonista (rotating featured property) and the catalog slice run
   // in parallel. getFeaturedProperty is deterministic within a day, so the
   // id we exclude from the catalog matches what HomeProtagonist renders.
@@ -64,8 +73,11 @@ export default async function Home() {
               Guía de compra
             </Link>
             {user && (
-              <Link href="/dashboard" className={buttonVariants({ size: "sm" })}>
-                Ir al dashboard
+              <Link
+                href={isAdmin ? "/admin" : "/dashboard"}
+                className={buttonVariants({ size: "sm" })}
+              >
+                {isAdmin ? "Panel" : "Ir al dashboard"}
               </Link>
             )}
           </div>
