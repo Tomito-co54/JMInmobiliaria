@@ -57,24 +57,24 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status (24-ago-2026):** El sitio **está deployado y funcionando en
-producción**, con auto-deploy desde `main` vía la integración GitHub de
-Vercel. El login de admin está verificado. 216 tests passing, `npm run
-build` verde.
+**Status (27-ago-2026):** Deployado y funcionando en producción, con
+auto-deploy desde `main`. **275 tests passing**, `npm run build` verde,
+37 rutas.
 
-Ya no hay un bloqueante técnico para lanzar. Los dos pendientes reales son
-de **contenido y de datos**, no de código:
+El pipeline de scraping **volvió a funcionar** después de tres meses
+muerto, y el centro de datos creció de un dashboard a tres pantallas.
+El único pendiente que queda es de contenido:
 
-1. **El catálogo tiene 1 sola propiedad.** El cargador funciona desde
-   mayo; simplemente no se usó. Es la razón de ser del sitio.
-2. **El pipeline de scraping nunca corrió en este fork.** 90 runs, 0
-   exitosos. Falla en `Verify required secrets are set` porque los forks
-   de GitHub no heredan los secrets del repo original. La data de mercado
-   quedó congelada el 29-jul-2026.
+1. **El catálogo tiene 2 propiedades publicadas.** El cargador funciona;
+   es la razón de ser del sitio y no depende de nada técnico.
+2. **El scraping corre a mano, no automático.** Zonaprop bloquea los
+   runners de GitHub Actions, así que el pipeline vive en la PC de Tomy:
+   `npm run pipeline`, entre 2 y 8 minutos. Automatizarlo con el
+   programador de tareas de Windows quedó diferido a propósito.
 
-El segundo es urgente en un sentido que el primero no: la serie temporal
-que el dashboard v2 necesita **no se puede recuperar retroactivamente**.
-Cada día de pipeline caído es un día de historial perdido para siempre.
+**Recordarle correr el pipeline** cada vez que retome trabajo. Cada día
+sin correr es historial de mercado que no se puede reconstruir después —
+los avisos de la semana pasada ya no están en el portal.
 
 ### Hitos (este fork)
 
@@ -92,11 +92,17 @@ Cada día de pipeline caído es un día de historial perdido para siempre.
 | Fase 7 — Contacto / leads (canal principal) | `lib/brand/contact.ts` (`WHATSAPP_NUMBER`, `whatsappLink`, `propertyLeadMessage`); `WhatsAppButton` como CTA primario en `/p/[id]` panel desktop + barra sticky mobile con mensaje que nombra la dirección; `WhatsAppFloat` en toda la home con mensaje genérico. | `25cd9f2` `2088d0b` `2eb6629` `2cf1e41` (merges) |
 | Fase 8 — Limpieza legacy en cara pública | "Esconder no borrar": se quitó CTA "Ver todas" (iba a `/buscar` viejo); se quitó "Guardar (próximamente)" del top bar de `/p/[id]`; `ShareButton` funcional (Web Share API + fallback a copiar link). Rutas legacy (`/buscar`, `/favoritos`, `/onboarding`, `/mis-servicios`, `/busquedas`) siguen vivas — Tomy puede usarlas como herramienta personal, no las ve el visitante anónimo. | `bfb53be` `873b744` (merge) |
 | Fase 9 — Auth legible en producción | Diagnóstico del supuesto "SMTP roto" (ver más abajo — no lo estaba). `lib/auth/callback-errors.ts` + `/auth/callback` que propaga el `error_code` de Supabase en vez de aplanar todo a un redirect mudo; `AuthCallbackNotice` que lee el fragmento `#error=...` desde el cliente (el servidor no puede verlo). `lib/auth/password-reset-errors.ts`: el form de recuperación deja de anunciar "Email enviado" cuando Supabase devolvió 429. Rate limit de auth subido de 2 a 30 mails/hora vía Management API. 10 tests nuevos. | `8d1710a` `3c2a143` `e22fe6e` (merges) |
+| Fase 10 — Pipeline revivido | Diagnóstico de 90 corridas fallidas (los forks no heredan secrets de Actions). Cargados los dos secrets, el pipeline pasó la barrera pero seguía trayendo cero: Zonaprop sirve la **primera** navegación de una sesión de navegador y rechaza la segunda, sea cual sea la URL. Una sesión nueva por página → de 25 a **251 avisos por corrida**, sin proxy ni costo. `npm run pipeline` encadena los seis pasos. | `f957013` `caf8703` |
+| Fase 11 — Integridad de la data de mercado | `crawl-completeness.ts`: la desactivación exige crawl exhaustivo — el tope de 50 "(testing)" daba por muertos a los que nunca miró, y había cientos de bajas inventadas. Limpieza de 317 bajas demostrablemente falsas (backup previo). Las reactivaciones se registran: el historial tenía 477 bajas y **cero** altas, así que `classifyChange` tenía una rama `relisted` que nunca podía dispararse. Migración 00014: precio al momento del cambio. | `8b0dd2e` `77d641f` `0c9fb47` |
+| Fase 12 — El USD/m² dice la verdad | `effectiveSurface` prefería `surface_arba`, que es la superficie del **terreno**: para un departamento, el lote del edificio entero. Mediana de departamentos: 487 con parcela, **2.024** con superficie declarada. Y peor que el nivel era la mezcla — filas con dato catastral valuadas por m² de terreno y el resto por m² de propiedad, promediadas juntas. Filtro de plausibilidad 10–100.000 m². Mismo arreglo que `/p/[id]` recibió en junio (`56569dc`); este módulo era anterior. | `983badd` |
+| Fase 13 — El centro de datos crece | `/admin/mercado/cambios`: los 231 eventos con filtros y orden por mayor baja, más media y mediana del movimiento porcentual recalculadas sobre lo visible. `/admin/mercado/mapa`: los 324 avisos geolocalizados, coloreados contra la mediana de su tipo, con selección de área por arrastre. Columnas USD/m² y antigüedad con escala de color en `/admin/properties`. | `67ac417` `6f58fb4` `d81046f` `3746c32` |
+| Fase 14 — El mapa muestra la parcela | El polígono de ARBA no se dibujó **nunca**, por tres fallas encadenadas: `arba_lookups` es admin-read y la página pública lee con clave anónima; la vía por partida traía la geometría y la descartaba; y la página buscaba el lookup solo por lat/lng, clave que las propiedades propias nunca tienen. Migración 00015 + `arba/geometry.ts` (centro de parcela, que además da coordenadas más precisas que geocodificar). | `af8bb69` |
+| Fase 15 — Navegación y tema | Toggle claro/oscuro en las seis cabeceras. No había forma de llegar a `/admin` clickeando: el CTA de la home iba a `/dashboard` y el menú listaba rutas legacy del portal de compradores. Dos logos que no volvían a la landing. | `0ef4681` `fe2ac1c` |
 
-**Tests:** 216 passing (arrancamos en 176 al cierre de Fase 1.B; +30 por
-las fases 2-8, +10 por la fase 9).
+**Tests:** 275 passing (176 al cierre de Fase 1.B → 216 tras la fase 9 →
+275 tras las fases 10-15).
 
-**Build:** `npm run build` verde. 34 rutas, First Load JS shared 183 kB.
+**Build:** `npm run build` verde. 37 rutas, First Load JS shared 183 kB.
 3 warnings menores de `@typescript-eslint/no-unused-vars` que no bloquean
 (vars `_omit`, `_req`, `ownerPropertyPublishSchema`).
 
@@ -108,18 +114,17 @@ las fases 2-8, +10 por la fase 9).
 
 **Project location:** `C:\dev\jotaeme-inmobiliaria` (hermano de `C:\dev\jotaeme` que es el original — este fork no toca al original).
 
-**Contenido real (verificado 24-ago-2026):**
+**Contenido real (verificado 27-ago-2026):**
 
 | Qué | Cuánto |
 |---|---|
-| Propiedades propias publicadas | **1** — `a33f1a22`, Belgrano 1285, Lomas de Zamora, `is_featured=true`, creada 28-may |
-| Propiedades propias en borrador | 0 |
-| Scrapeadas de Zonaprop | 274 |
-| Scrapeadas de Trezza | 27 |
-| `property_history` | 510 filas, sin crecer desde el 29-jul |
+| Propiedades propias publicadas | **2** — Belgrano 1285 y 1287, Lomas de Zamora |
+| Scrapeadas | 458 (431 Zonaprop · 27 Trezza) · 297 activas · **324 geolocalizadas** |
+| `property_history` | 231 eventos — 160 bajas, 28 de precio, 31 descripciones |
+| Total en la tabla | 460 |
 
-Cargar más propiedades antes de lanzar: el catálogo público muestra hoy
-una sola ficha.
+El catálogo público muestra dos fichas. Cargar más es lo único que separa
+al sitio de estar listo.
 
 ### Estado de email / auth (resuelto en Fase 9)
 
@@ -148,21 +153,52 @@ mails a terceros (no hay registro público, MercadoPago está apagado, y
 los leads van por WhatsApp). Se vuelve bloqueante el día que se encienda
 el informe ARBA pago; ahí hace falta dominio propio verificado en Resend.
 
-### Estado del pipeline de scraping (roto)
+### Estado del pipeline de scraping (vivo, a mano)
 
+```bash
+npm run pipeline    # los seis pasos encadenados, 2-8 minutos
 ```
-91 runs desde el 26-may-2026.  Exitosos: 0.  Fallidos: 90.
-Muere siempre en: "Verify required secrets are set"
-```
 
-Los forks de GitHub no heredan los secrets del repo original. El workflow
-exige `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` y en
-`Tomito-co54/JMInmobiliaria` nunca se cargaron. Los 302 registros de la
-base los puso el repo original apuntando al mismo Supabase, y ese también
-dejó de alimentarla el 29-jul.
+Corre **desde la PC de Tomy**, no en la nube, y eso no es una comodidad:
+es la única forma en que funciona. Dos bloqueos distintos, descubiertos en
+ese orden:
 
-Arreglo: cargar esos dos secrets en Settings → Secrets and variables →
-Actions del repo. Es la tarea de menor esfuerzo y mayor efecto pendiente.
+1. **Los forks de GitHub no heredan secrets.** 90 corridas murieron en
+   `Verify required secrets are set` desde el día uno del fork. Resuelto
+   cargando `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` en
+   Settings → Secrets and variables → Actions.
+2. **Zonaprop bloquea a los runners de Actions** (IPs de datacenter), y
+   además rechaza el **segundo pedido de cada sesión de navegador**, sea
+   cual sea la URL. Lo segundo se resuelve abriendo un navegador nuevo por
+   página; lo primero, no. De ahí que corra localmente.
+
+Techo conocido: la página 10 devuelve 403. Después de ~9 pedidos aparece
+un límite acumulativo por IP. El crawl queda marcado como truncado y la
+guarda de `crawl-completeness` saltea la desactivación, que es lo
+correcto — no sabemos nada de las páginas que no abrimos.
+
+Automatizarlo con el programador de tareas de Windows está **diferido a
+propósito**. Mientras tanto, recordarle correr el comando.
+
+### Integridad de la data de mercado
+
+Tres cosas que parecían features y eran bugs. Anotadas porque el síntoma
+en los tres casos era un número creíble, no un error:
+
+- **La desactivación inventaba bajas.** `deactivateStale()` marca como
+  inactivo todo lo que el crawl no vio, pero el crawl tenía un tope de 50
+  documentado como *"(testing)"* que nunca se sacó. Cada corrida daba por
+  muertos a los 250 restantes. Se limpiaron 317 bajas demostrablemente
+  falsas; quedan 160 que no se pueden desmentir. Hoy la desactivación
+  exige crawl exhaustivo (`lib/market/crawl-completeness.ts`).
+- **El historial era asimétrico.** 477 bajas, cero altas — no porque
+  ningún aviso volviera, sino porque `is_active` no está en
+  `TRACKED_FIELDS` y la reactivación pasaba en silencio. `classifyChange`
+  tenía una rama `relisted` imposible de disparar.
+- **El USD/m² dividía por el terreno.** `effectiveSurface` prefería
+  `surface_arba`, la superficie de la parcela catastral, que para un
+  departamento es el lote del edificio entero. Mediana de departamentos:
+  487 así, **2.024** con la superficie declarada.
 
 ---
 
@@ -271,7 +307,10 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   ├── admin/                    # ← panel principal de operación
 │   │   ├── page.tsx              # dashboard de métricas
 │   │   ├── properties/           # ← CARGADOR (nueva, listado, [id]/editar)
-│   │   ├── mercado/              # ← Dashboard de inteligencia de mercado v1 (5 módulos)
+│   │   ├── mercado/              # ← Centro de datos (3 pantallas)
+│   │   │   ├── page.tsx          #     dashboard: 5 módulos agregados
+│   │   │   ├── cambios/          #     registro completo, filtros + media %
+│   │   │   └── mapa/             #     mapa con selección por área
 │   │   ├── groups/               # dedup viewer (admin tool)
 │   │   └── users/                # legacy
 │   ├── api/                      # webhooks (MercadoPago, Sentry), admin fulfillment
@@ -286,6 +325,10 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   ├── scoring/                  # QualityScoreRing + Card + Sheet
 │   ├── matching/                 # MatchScoreCard (legacy buyer feature)
 │   ├── home/                     # HomeHero, HomeProtagonist, HomeGuarantees(+Client), HomeCatalog, PropertyPremiumCard, WhatsAppFloat
+│   ├── map/                      # ← AreaMap (+.inner) — mapa multi-propiedad
+│   │                             #   con selección por arrastre. Agnóstico:
+│   │                             #   recibe puntos ya coloreados. Lo comparten
+│   │                             #   el mapa de mercado y (a futuro) el público
 │   ├── shared/                   # BrandLogo, AdminSidebar, UserMenu, MetricCard, etc.
 │   ├── education/                # BuyingProcessAdvisor (legacy)
 │   └── search/                   # SearchProfileForm (legacy)
@@ -296,12 +339,16 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   ├── supabase/                 # clients (server, browser, middleware, admin)
 │   ├── services/
 │   │   ├── arba/                 # WFS client + getParcelByPartida + bridge
+│   │   │                         #   + geometry.ts (centro de parcela)
 │   │   ├── scrapers/             # Zonaprop + Trezza (alimentan inteligencia de mercado)
 │   │   ├── geocoding/            # Nominatim wrapper
 │   │   ├── dedup/                # cross-source matching
 │   │   ├── mercadopago/          # legacy upstream — checkout + webhook
 │   │   ├── email/                # Resend wrappers
 │   │   └── pdf/                  # @react-pdf renderer (informes ARBA)
+│   ├── market/                   # ← lógica del centro de datos (pura, testeable)
+│   │                             #   stats.ts · geo.ts (áreas) · listing-bands.ts
+│   │                             #   (color) · crawl-completeness.ts
 │   ├── scoring/                  # quality.ts + subscores + comparables + bands
 │   ├── matching/                 # match.ts (legacy buyer-side)
 │   ├── validators/               # Zod schemas — auth, property, etc.
@@ -320,7 +367,7 @@ Management API (config de auth, settings de proyecto). Reglas:
 ├── types/                        # tipos compartidos
 ├── public/brand/                 # logos navy/white, isotipo + full
 ├── supabase/
-│   ├── migrations/               # 00001..00013 (00011+12+13 son del fork)
+│   ├── migrations/               # 00001..00015 (00011+ son del fork)
 │   ├── seed.sql
 │   └── reset.sql
 ├── scripts/                      # CLIs: scrape, dedup, geocode, ARBA, score, alerts, db-run
@@ -389,10 +436,18 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 - `users` — perfiles de app extendiendo `auth.users`. Solo vos vas a estar acá.
 - `search_profiles`, `favorites`, `alerts` — sistema de matching buyer-side del upstream. Sigue activo para que vos puedas usarlo "como comprador" si querés.
 - `service_orders` — informes ARBA pagos via MercadoPago (Block 7 del upstream).
-- `property_history` — audit log de cambios.
+- `property_history` — audit log de cambios. Migración 00014 sumó
+  `price_at_change` + `price_currency_at_change`: una baja sin el precio al
+  que se cayó contesta cuándo, no a cuánto, y el precio de la fila se pisa
+  apenas el aviso vuelve — que es el caso interesante.
 - `property_groups` — dedup cross-source.
 - `geocoding_cache` — Nominatim TTL 90d.
-- `arba_lookups` — ARBA WFS TTL 180d (con GeoJSON crudo).
+- `arba_lookups` — ARBA WFS TTL 180d (con GeoJSON crudo). **Admin-read
+  por RLS**: tiene una fila por cada aviso scrapeado, o sea el rastro del
+  crawl. `/p/[id]` la lee con el admin client del lado del servidor,
+  acotado a una propiedad que ya pasó el filtro público. Migración 00015
+  agregó `by_partida` al enum de estrategias (las propiedades propias se
+  cachean bajo el centro de su parcela, no bajo coordenadas geocodificadas).
 
 ---
 
@@ -412,51 +467,56 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 10. **Deploy a producción (Vercel)** ✅ 12-ago-2026 — vinculado por la
     integración GitHub, auto-deploy desde `main`
 11. **Fase 9 — Auth legible en producción** ✅ 24-ago-2026
+12. **Fase 10 — Pipeline revivido** ✅ 27-ago (25 → 251 avisos/corrida)
+13. **Fase 11 — Integridad de la data de mercado** ✅ 27-ago
+14. **Fase 12 — El USD/m² dice la verdad** ✅ 27-ago
+15. **Fase 13 — El centro de datos crece** ✅ 27-ago (cambios + mapa)
+16. **Fase 14 — El mapa muestra la parcela** ✅ 27-ago
+17. **Fase 15 — Navegación y tema** ✅ 27-ago
 
 Detalles de cada fase en **Current progress** más arriba.
 
-### Próximo — ordenado por lo que más destraba
+### Próximo
 
-**1. Reparar el pipeline de scraping** ← empezar por acá
+**1. Cargar propiedades reales** ← lo único que separa al sitio de lanzar
 
-Dos secrets en GitHub (`NEXT_PUBLIC_SUPABASE_URL`,
-`SUPABASE_SERVICE_ROLE_KEY`) en Settings → Secrets and variables →
-Actions. Detalle del diagnóstico en **Current progress**.
+Vía `/admin/properties/nueva`. Hay 2 publicadas. No depende de nada
+técnico: el cargador funciona, ARBA responde, el mapa dibuja la parcela.
 
-Va primero por una razón de tiempo, no de importancia: el historial de
-mercado no se puede reconstruir hacia atrás. Los avisos de Zonaprop de la
-semana pasada ya no existen. Todo lo que el pipeline no capture hoy es
-data que el dashboard v2 nunca va a tener.
+**2. Correr `npm run pipeline` seguido**
 
-**2. Cargar propiedades reales**
+Cada corrida acumula historial que no se puede reconstruir después.
+Además, dos features del centro de datos están construidas y **esperando
+datos** para tener algo que mostrar:
 
-Vía `/admin/properties/nueva`. El catálogo público muestra 1 sola ficha.
-Es la razón de ser del sitio y no depende de nada técnico.
+- **Republicaciones** — un aviso que se da de baja y vuelve más barato.
+  Los cimientos están (las reactivaciones se registran, con precio), pero
+  hasta que no pase una de verdad **con los arreglos puestos**, no hay
+  nada que detectar.
+- **Series temporales de USD/m²** — necesitan meses.
 
-**3. Dashboard de mercado v2** — bloqueado por (1) + semanas de espera
+**3. Mapa de búsqueda público**
 
-> **Área de interés declarada por Tomy (24-ago-2026):** quiere trabajar
-> en este "centro de datos" — el dashboard privado que consume lo
-> scrapeado. Es la mitad del producto que lo sirve a él y no al
-> visitante, y la razón por la que el scraping se mantuvo vivo durante
-> el pivote. Al retomar, arrancar mostrándole qué renderiza ya la v1 con
-> los 302 registros adentro; puede no haberla visto con data real.
+`components/map/AreaMap` ya es agnóstico y está probado con 324 puntos.
+El público es una capa fina encima: cambian de dónde salen los puntos y
+qué hace la selección. Esperando inventario — con 2 fichas no se puede
+evaluar si está bien resuelto.
 
-- Series temporales USD/m² (requiere meses de data)
-- Listings rancios (>90, >180 días)
-- Mapa de calor por zona
-- Atribución por inmobiliaria publicadora — esta sí es código: extender el
-  scraper y agregar columna `publisher_agency` a `properties`
+**4. Superficie cubierta en el scraper**
 
-Las tres primeras necesitan historial, no módulos nuevos. Construirlas
-antes de que el pipeline acumule sería graficar una línea plana. La
-cuarta (atribución por inmobiliaria) es la única que se puede hacer hoy
-mismo: es código puro, no espera data.
+El USD/m² de casas mide el lote, no lo construido, porque Zonaprop
+publica "superficie total". Los avisos **sí** muestran cubiertos y
+descubiertos, pero en la **ficha individual**, no en el listado. Sacarlo
+son 251 pedidos extra por corrida contra un techo de ~9. Bloqueado por
+el mismo límite que el scraping, no por falta de código.
 
-**4. Dominio propio + verificación en Resend**
+**5. Dominio propio + verificación en Resend**
 
-Necesario recién cuando se encienda el informe ARBA pago (ver **Estado de
-email / auth**). Hoy no bloquea nada.
+Necesario recién cuando se encienda el informe ARBA pago. Hoy no bloquea.
+
+**6. Automatizar el pipeline**
+
+Tarea programada de Windows. Diferido a propósito por Tomy.
 
 ### Nice-to-haves post-lanzamiento
 
@@ -658,6 +718,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.3 | Aug 27, 2026 | **Seis fases en un día, y todas empezaron como un bug que parecía un dato.** El pipeline llevaba 90 corridas muertas (los forks no heredan secrets) y, una vez arreglado eso, seguía trayendo cero: Zonaprop rechaza el segundo pedido de cada sesión de navegador. Una sesión por página lo llevó de 25 a **251 avisos por corrida**. Después salieron a la luz tres números que mentían con cara de precisos: la desactivación inventaba bajas por un tope "(testing)" de 50 que nunca se sacó (317 falsas, limpiadas); el historial registraba bajas y no altas, dejando la detección de republicaciones ciega desde la base; y el USD/m² dividía por la superficie del **terreno** — 487 contra 2.024 en departamentos. El centro de datos pasó de un dashboard a tres pantallas (dashboard, cambios, mapa con selección por área). Y el polígono de ARBA, que es la evidencia visual de todo el pitch del sitio, **no se había dibujado nunca**: tres fallas encadenadas, la raíz una política de RLS. **216 → 275 tests**, 34 → 37 rutas, migraciones 00014 y 00015. |
 | 2.2 | Aug 24, 2026 | **Sync con el estado real, tras reconstruir el entorno en una PC nueva.** Se corrigieron seis afirmaciones falsas de la v2.1: (1) el deploy a Vercel no estaba pendiente — está hecho desde el 12-ago y con integración GitHub, la nota "nunca vinculado, no hay `vercel.json` ni `.vercel`" apuntaba a la evidencia equivocada porque la integración Git no deja rastro en el repo; (2) el SMTP nunca estuvo roto — la causa era `rate_limit_email_sent = 2/hora` amplificado por un form que ocultaba el 429; (3) el pipeline no "sigue corriendo" — dispara pero falla desde el run #1 por secrets faltantes en el fork; (4) 206 tests → **216**; (5) 25 rutas → 34; (6) faltaba la Fase 9 entera. Build map reordenado por leverage: el pipeline va primero porque el historial de mercado no se puede reconstruir hacia atrás. Se agregó `lib/auth/` al Project Structure y dos secciones nuevas de estado (email/auth y pipeline). |
 | 2.1 | Aug 12, 2026 | **Actualización pre-deploy.** El rediseño de home + `/p/[id]` + dashboard de mercado + WhatsApp + limpieza legacy están todos mergeados a `main` (HEAD `873b744`). Current progress reescrito como tabla de 8 fases (2-8 son nuevas). Build map colapsado: solo queda **Deploy a Vercel** como bloqueante. **206 tests passing** (+30 desde 2.0), `npm run build` verde (25 rutas). Se agregó `is_featured` al schema; `use-in-view.ts` a hooks; `mercado/` a admin; `WhatsAppButton` + `WhatsAppFloat` + `HomeHero/Protagonist/Guarantees/Catalog` + `PropertyPremiumCard` al Project Structure. |
 | 2.0 | May 27, 2026 | **Fork inicializado.** Rewrite completo del CLAUDE.md para reflejar la identidad del proyecto (inmobiliaria personal, no portal buyer-facing). Conserva historia upstream como referencia. Listado de hitos del fork: separación + cargador + polish B. **176 tests passing** sobre la base de 146 del upstream. |
