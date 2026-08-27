@@ -2,13 +2,14 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { BrandLogo } from "@/components/shared/BrandLogo";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { ShareButton } from "./ShareButton";
 import { cn } from "@/lib/utils";
 
 /**
  * Sticky top bar of the public property page.
  *
- *   ← Volver        [isotipo Jotaeme]        [⤴ Compartir]
+ *   ← Volver        [isotipo Jotaeme]        [☾ tema] [⤴ Compartir]
  *
  * Server Component. The only action is Share (functional via the Web Share
  * API / clipboard fallback). The old decorative "Guardar (próximamente)"
@@ -35,7 +36,10 @@ export function PropertyTopBar({ title }: { title: string }) {
           <BrandLogo variant="isotipo" size={28} />
         </Link>
 
-        <ShareButton title={title} />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <ShareButton title={title} />
+        </div>
       </div>
     </header>
   );

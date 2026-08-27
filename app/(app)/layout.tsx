@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { UserMenu } from "@/components/shared/user-menu";
 import { BrandLogo } from "@/components/shared/BrandLogo";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import { getUnreadAlertsCount, getUserAlerts } from "@/lib/db/alerts";
 
@@ -41,13 +42,14 @@ export default async function AppLayout({
       <header className="border-b bg-background sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link
-            href="/buscar"
-            aria-label="Jotaeme — ver propiedades"
+            href="/"
+            aria-label="Jotaeme — ir al inicio"
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             <BrandLogo variant="isotipo" size={28} />
           </Link>
           <div className="flex items-center gap-1">
+            <ThemeToggle />
             <NotificationBell alerts={alerts} unreadCount={unreadCount} />
             <UserMenu
               email={user.email ?? ""}

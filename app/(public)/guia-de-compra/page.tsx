@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, BookOpen, FileText, ScrollText } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { BrandLogo } from "@/components/shared/BrandLogo";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import {
   GLOSSARY,
   PROCESS_STEPS,
@@ -51,6 +52,7 @@ export default function GuiaDeCompraPage() {
           >
             <BrandLogo variant="isotipo" size={28} />
           </Link>
+          <ThemeToggle />
 
           <Link
             href="/buscar"
