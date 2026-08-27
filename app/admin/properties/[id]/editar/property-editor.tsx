@@ -163,11 +163,7 @@ function StatusBar({
             size="sm"
             disabled={pending || !publishCheck.ok}
             onClick={() => setStatus("publicada")}
-            title={
-              publishCheck.ok
-                ? "Publicar al catálogo"
-                : `Faltan: ${publishCheck.missing.join(", ")}`
-            }
+            title={publishCheck.ok ? "Publicar al catálogo" : undefined}
           >
             Publicar
           </Button>
@@ -213,6 +209,18 @@ function StatusBar({
           Eliminar
         </Button>
       </div>
+
+      {status !== "publicada" && !publishCheck.ok && (
+        // The requirements used to live in the button's `title`, which meant
+        // a greyed-out button and no visible reason — and nothing at all on
+        // a phone, where hover doesn't exist. Say it on the page instead.
+        <p className="w-full text-xs text-muted-foreground" role="status">
+          Para publicar falta cargar:{" "}
+          <span className="font-medium text-foreground">
+            {publishCheck.missing.join(", ")}
+          </span>
+        </p>
+      )}
     </div>
   );
 }
