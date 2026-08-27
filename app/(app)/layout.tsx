@@ -26,7 +26,7 @@ export default async function AppLayout({
 
   const { data: profile } = await supabase
     .from("users")
-    .select("full_name")
+    .select("full_name, role")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -49,7 +49,11 @@ export default async function AppLayout({
           </Link>
           <div className="flex items-center gap-1">
             <NotificationBell alerts={alerts} unreadCount={unreadCount} />
-            <UserMenu email={user.email ?? ""} fullName={profile?.full_name} />
+            <UserMenu
+              email={user.email ?? ""}
+              fullName={profile?.full_name}
+              isAdmin={profile?.role === "admin"}
+            />
           </div>
         </div>
       </header>
