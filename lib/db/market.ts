@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { MarketRow } from "@/lib/market/stats";
+import { usdPerM2, median, type MarketRow } from "@/lib/market/stats";
 
 /**
  * Market-intelligence queries (/admin/mercado). These read the COMPLEMENT
@@ -80,4 +80,43 @@ export async function getRecentPropertyHistory(limit = 300): Promise<RawHistoryR
     .limit(limit);
   if (error) throw error;
   return (data ?? []) as unknown as RawHistoryRow[];
+}
+
+/**
+ * Median USD/m² per property type across the scraped market.
+ *
+ * Used as the yardstick for colouring a listing's price: "expensive" only
+ * means anything next to what comparable properties ask. Reads the scraped
+ * set on purpose — the broker's own listings are what's being measured, so
+ * they can't also be the ruler.
+ *
+ * Selects four columns rather than reusing getScrapedInventory(), which
+ * pulls eighteen: this runs on a paginated list page and shouldn't cost more
+ * than the rows it decorates.
+ */
+export async function getUsdPerM2MediansByType(): Promise<Record<string, number>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("properties")
+    .select("property_type, price_amount, price_currency, surface_total")
+    .not("source", "in", NOT_OWNER)
+    .range(0, 9999);
+  if (error) throw error;
+
+  const groups = new Map<string, number[]>();
+  for (const raw of (data ?? []) as unknown as MarketRow[]) {
+    const v = usdPerM2(raw);
+    if (v === null) continue;
+    const key = raw.property_type ?? "(sin tipo)";
+    const list = groups.get(key) ?? [];
+    list.push(v);
+    groups.set(key, list);
+  }
+
+  const out: Record<string, number> = {};
+  for (const [type, values] of groups) {
+    const m = median(values);
+    if (m !== null) out[type] = m;
+  }
+  return out;
 }
