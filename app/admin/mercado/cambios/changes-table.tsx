@@ -14,7 +14,7 @@ import {
   ExternalLink,
   ArrowRight,
 } from "lucide-react";
-import type { ChangeKind } from "@/lib/market/stats";
+import { mean, median, type ChangeKind } from "@/lib/market/stats";
 
 export interface ChangeRow {
   id: string;
@@ -54,6 +54,11 @@ const SELECT_CLASS =
 
 function fmtInt(n: number): string {
   return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(n);
+}
+
+/** Signed, so a drop always reads as a drop. */
+function fmtPct(n: number): string {
+  return `${n > 0 ? "+" : ""}${n.toFixed(1)}%`;
 }
 
 function fmtDate(iso: string): string {
@@ -111,6 +116,24 @@ export function ChangesTable({
         : a.changedAt.localeCompare(b.changedAt),
     );
   }, [rows, kind, partido, type, sort]);
+
+  // Price movement across whatever is on screen. Recomputed from `visible`
+  // rather than from all rows, so filtering to a partido or a property type
+  // answers the question for that slice — which is the reason to filter.
+  const priceStats = useMemo(() => {
+    const deltas = visible
+      .filter((r) => r.kind === "price_drop" || r.kind === "price_rise")
+      .map((r) => r.deltaPct)
+      .filter((d): d is number => d !== null);
+    if (deltas.length === 0) return null;
+    return {
+      n: deltas.length,
+      drops: deltas.filter((d) => d < 0).length,
+      rises: deltas.filter((d) => d > 0).length,
+      mean: mean(deltas),
+      median: median(deltas),
+    };
+  }, [visible]);
 
   return (
     <div className="space-y-4">
@@ -184,6 +207,35 @@ export function ChangesTable({
             : `${visible.length} de ${rows.length}`}
         </p>
       </div>
+
+      {priceStats && (
+        <div className="rounded-md border bg-card px-4 py-3 flex flex-wrap items-baseline gap-x-6 gap-y-2">
+          <div>
+            <p className="text-xs text-muted-foreground">Movimiento promedio</p>
+            <p
+              className={`text-xl font-semibold tabular-nums ${
+                (priceStats.mean ?? 0) < 0
+                  ? "text-emerald-700 dark:text-emerald-400"
+                  : "text-red-600 dark:text-red-400"
+              }`}
+            >
+              {priceStats.mean === null ? "—" : fmtPct(priceStats.mean)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Mediana</p>
+            <p className="text-xl font-semibold tabular-nums">
+              {priceStats.median === null ? "—" : fmtPct(priceStats.median)}
+            </p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            sobre {priceStats.n}{" "}
+            {priceStats.n === 1 ? "cambio de precio" : "cambios de precio"}
+            {priceStats.rises > 0 &&
+              ` · ${priceStats.drops} ${priceStats.drops === 1 ? "baja" : "bajas"}, ${priceStats.rises} ${priceStats.rises === 1 ? "suba" : "subas"}`}
+          </p>
+        </div>
+      )}
 
       {visible.length === 0 ? (
         <div className="rounded-md border bg-card p-8 text-center text-sm text-muted-foreground">
