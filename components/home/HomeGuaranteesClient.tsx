@@ -120,15 +120,29 @@ export function AreaOutlineViz({
           without a resize listener. */}
       {hasMap && (
         <div
-          className="absolute inset-0 overflow-hidden rounded-lg"
+          className="absolute inset-0 overflow-hidden"
           aria-hidden="true"
-          style={{ opacity: inView ? 1 : 0, transition: "opacity 900ms ease-out" }}
+          style={{
+            opacity: inView ? 1 : 0,
+            transition: "opacity 900ms ease-out",
+            // Dissolve at the edges instead of stopping at a rounded box.
+            // A hard frame reads as a screenshot pasted into the page and
+            // breaks §2.4 — nada corta en seco. The mask lets the map fade
+            // into the section it lives in, so the block has one edge (the
+            // polygon) rather than two competing ones.
+            maskImage:
+              "radial-gradient(ellipse 72% 72% at 50% 50%, #000 45%, transparent 100%)",
+            WebkitMaskImage:
+              "radial-gradient(ellipse 72% 72% at 50% 50%, #000 45%, transparent 100%)",
+          }}
         >
-          {/* Desaturated so the navy hexagon stays the subject, but not
-              muted past legibility: at this zoom the labels are the town
-              names — Lanús, Banfield, Lomas — and those are the evidence
-              for the caption. Reading them is the point. */}
-          <div className="absolute inset-0 grayscale opacity-[0.5] contrast-[0.9] dark:opacity-[0.3] dark:invert">
+          {/* Held back, not drained. Full grayscale at half opacity turned
+              the map into flat grey pulp — legible but dead, and it made the
+              whole block look faded rather than layered. Keeping a little of
+              the map's own colour (the green of the parks, the ochre of the
+              avenues) at higher opacity reads as a real map seen through
+              paper, which is the register this section wants. */}
+          <div className="absolute inset-0 grayscale-[0.55] opacity-[0.78] contrast-[0.95] saturate-[0.9] dark:opacity-[0.4] dark:invert dark:hue-rotate-180">
             {tiles.map((t) => (
               <Image
                 key={t.url}
