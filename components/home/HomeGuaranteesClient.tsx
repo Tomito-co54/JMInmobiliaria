@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { ShieldCheck, ScanSearch, FileCheck2 } from "lucide-react";
 import {
   useInView,
@@ -10,6 +11,7 @@ import {
 } from "@/hooks/use-in-view";
 import { getScoreBand, interpolateRingColor } from "@/lib/scoring/bands";
 import { cn } from "@/lib/utils";
+import { PARCEL_BOX } from "@/lib/map/tiles";
 
 /**
  * Client visuals for the home guarantees section (Block 4 del rediseño).
@@ -75,17 +77,36 @@ export function Reveal({
 // TONE 1 — ARBA parcel verification (sober, pedagogical)
 // ---------------------------------------------------------------------------
 
-/** Irregular lot outline — a believable parcel, not a perfect rectangle. */
-const PARCEL_POINTS = "34,24 150,16 184,78 168,150 58,142 22,86";
+/**
+ * Fallback outline, used only when the featured property has no cadastral
+ * geometry cached — no featured property at all, or ARBA never answered for
+ * its partida. Kept deliberately generic rather than passed off as real: the
+ * caption beside it is what carries the claim, and it only appears when
+ * there is a real partida to caption it with.
+ */
+const FALLBACK_POINTS = "34,24 150,16 184,78 168,150 58,142 22,86";
+
+export interface ParcelTile {
+  url: string;
+  left: number;
+  top: number;
+}
 
 export function ArbaParcelViz({
   surfaceM2,
   partida,
+  outline,
 }: {
   /** Real ARBA surface of the featured property; the readout hides when absent. */
   surfaceM2?: number | null;
   /** Real partida of the featured property; the readout hides when absent. */
   partida?: string | null;
+  /**
+   * The featured parcel's actual outline and the map tiles under it. Null
+   * falls back to the generic shape with no map — which is honest, because
+   * without geometry there is nothing real to place on a map either.
+   */
+  outline?: { points: string; tiles: ParcelTile[] } | null;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.4 });
   const reduced = usePrefersReducedMotion();
@@ -97,8 +118,48 @@ export function ArbaParcelViz({
     durationMs: 2900,
   });
 
+  const points = outline?.points ?? FALLBACK_POINTS;
+  const tiles = outline?.tiles ?? [];
+  const hasMap = tiles.length > 0;
+
   return (
     <div ref={ref} className="relative mx-auto w-full max-w-sm">
+      {/* Ground under the outline. Tiles are positioned in percentages of
+          the same 206x166 box the SVG uses, so the two scale together at any
+          width without a resize listener.
+
+          Desaturated and held back: the map is context, and this block's
+          subject is the navy polygon. A full-colour street map underneath
+          would compete with it and pull the section out of Tone 1's register
+          (DIRECCION_DE_ARTE §"sobrio"). */}
+      {hasMap && (
+        <div
+          className="absolute inset-0 overflow-hidden rounded-lg"
+          aria-hidden="true"
+          style={{ opacity: inView ? 1 : 0, transition: "opacity 900ms ease-out" }}
+        >
+          <div className="absolute inset-0 grayscale-[0.65] opacity-[0.5] dark:opacity-[0.3] dark:invert">
+            {tiles.map((t) => (
+              <Image
+                key={t.url}
+                src={t.url}
+                alt=""
+                width={256}
+                height={256}
+                unoptimized
+                className="absolute max-w-none"
+                style={{
+                  left: `${(t.left / PARCEL_BOX.width) * 100}%`,
+                  top: `${(t.top / PARCEL_BOX.height) * 100}%`,
+                  width: `${(256 / PARCEL_BOX.width) * 100}%`,
+                  height: `${(256 / PARCEL_BOX.height) * 100}%`,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* The cadastral diagram. All paint via currentColor + opacities
           (color is set to the theme-aware heading token below), so it stays
           visible in dark mode and avoids color-mix in SVG paint attributes. */}
@@ -111,7 +172,13 @@ export function ArbaParcelViz({
       >
         {/* Faint reference grid — drawn lines (no <pattern>), the cadastral
             lattice. currentColor at low opacity. */}
-        <g stroke="currentColor" strokeOpacity={0.08} strokeWidth={1}>
+        {/* Reference grid — a stand-in for context. With real ground
+            underneath it is just clutter, so it steps aside. */}
+        <g
+          stroke="currentColor"
+          strokeOpacity={hasMap ? 0 : 0.08}
+          strokeWidth={1}
+        >
           {[34, 69, 103, 137, 172].map((x) => (
             <line key={`v${x}`} x1={x} y1={4} x2={x} y2={162} />
           ))}
@@ -122,7 +189,7 @@ export function ArbaParcelViz({
 
         {/* Filled parcel — fades in once the outline has finished drawing. */}
         <polygon
-          points={PARCEL_POINTS}
+          points={points}
           fill="currentColor"
           fillOpacity={0.12}
           className="transition-opacity duration-700"
@@ -136,7 +203,7 @@ export function ArbaParcelViz({
             pedagogical gesture (§2.3 — el movimiento explica la verificación,
             no decora). The gold pencil dot below traces the same path. */}
         <polygon
-          points={PARCEL_POINTS}
+          points={points}
           fill="none"
           stroke="currentColor"
           strokeWidth="3"
@@ -162,12 +229,12 @@ export function ArbaParcelViz({
               keyTimes="0;1"
               calcMode="spline"
               keySplines="0.65 0 0.35 1"
-              path={`M ${PARCEL_POINTS.split(" ").map((p) => p.replace(",", " ")).join(" L ")} Z`}
+              path={`M ${points.split(" ").map((p) => p.replace(",", " ")).join(" L ")} Z`}
             />
           </circle>
         )}
         {/* Vertex ticks — appear once the outline is drawn. */}
-        {PARCEL_POINTS.split(" ").map((pt, i) => {
+        {points.split(" ").map((pt, i) => {
           const [x, y] = pt.split(",").map(Number);
           return (
             <circle

@@ -45,6 +45,11 @@ const nextConfig: NextConfig = {
     // optimize and serve them through /_next/image; without it we'd be forced
     // to use plain <img> tags and lose lazy-loading + responsive sizing.
     remotePatterns: [
+      // Tiles de OpenStreetMap para el recuadro catastral de la home. Se
+      // sirven con `unoptimized`: ya vienen en el tamaño exacto en que se
+      // dibujan (256px) y pesan poco, así que pasarlos por el optimizador
+      // sería trabajo y costo sin beneficio.
+      { protocol: "https", hostname: "tile.openstreetmap.org" },
       // Zonaprop + portales Navent (la empresa madre)
       { protocol: "https", hostname: "imgar.zonapropcdn.com" },
       { protocol: "https", hostname: "img10.naventcdn.com" },

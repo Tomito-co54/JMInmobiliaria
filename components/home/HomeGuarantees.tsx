@@ -1,4 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { parcelOutline } from "@/lib/services/arba/geometry";
+import { zoomForSpan, tilesForView, PARCEL_BOX } from "@/lib/map/tiles";
 import type { FeaturedPropertyRow } from "@/lib/db/properties";
 import {
   PUBLIC_LISTING_STATUS,
@@ -90,6 +92,55 @@ async function getGuaranteeStats(): Promise<{ arbaPct: number; score: number }> 
   }
 }
 
+/**
+ * The featured property's real parcel: outline projected into the diagram's
+ * box, plus the tiles that go under it.
+ *
+ * Reads `arba_lookups` with the admin client — the table is admin-read
+ * because it holds a row per scraped listing, and the same narrow-path
+ * reasoning as /p/[id] applies: one parcel, geometry only, server-side.
+ * Returns null on any miss; the diagram keeps its illustrative fallback.
+ */
+async function getParcelOutline(partida: string) {
+  try {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from("arba_lookups")
+      .select("raw_response")
+      .eq("partida", partida)
+      .limit(1);
+    const raw = (data?.[0] as { raw_response?: unknown } | undefined)?.raw_response;
+    if (!raw) return null;
+
+    const outline = parcelOutline(raw, PARCEL_BOX.width, PARCEL_BOX.height);
+    if (!outline) return null;
+
+    const spanMeters = Math.max(
+      (outline.bounds.north - outline.bounds.south) * 111_320,
+      (outline.bounds.east - outline.bounds.west) *
+        111_320 *
+        Math.cos((outline.center.lat * Math.PI) / 180),
+    );
+    // A little wider than the lot, so the parcel sits in its block instead of
+    // filling the frame edge to edge.
+    const zoom = zoomForSpan(outline.center.lat, spanMeters * 2.4, PARCEL_BOX.width);
+    const { tiles } = tilesForView(
+      outline.center,
+      zoom,
+      PARCEL_BOX.width,
+      PARCEL_BOX.height,
+    );
+
+    return { points: outline.points, tiles };
+  } catch (err) {
+    // Logged rather than swallowed: every failure here degrades silently to
+    // the generic outline, which looks fine and is exactly why nobody would
+    // notice the real one had stopped arriving.
+    console.error("[home] parcel outline failed:", err);
+    return null;
+  }
+}
+
 export async function HomeGuarantees({
   featured,
 }: {
@@ -102,6 +153,11 @@ export async function HomeGuarantees({
   // viz falls back to its illustrative defaults.
   const parcelPartida = featured?.partida ?? undefined;
   const parcelSurface = featured?.surface_arba ?? featured?.surface_total ?? undefined;
+
+  // ...and now the real outline too. The diagram used to draw a hand-written
+  // hexagon next to a paragraph promising "el polígono exacto de la parcela",
+  // because the geometry wasn't stored anywhere. It is now.
+  const parcel = parcelPartida ? await getParcelOutline(parcelPartida) : null;
 
   return (
     <section className="relative px-4 py-20 sm:py-28 overflow-x-clip">
@@ -164,7 +220,11 @@ export async function HomeGuarantees({
             </div>
           </Reveal>
           <Reveal className="order-1 md:order-2" delayMs={120}>
-            <ArbaParcelViz partida={parcelPartida} surfaceM2={parcelSurface} />
+            <ArbaParcelViz
+              partida={parcelPartida}
+              surfaceM2={parcelSurface}
+              outline={parcel}
+            />
           </Reveal>
         </div>
 
