@@ -59,6 +59,9 @@ export interface RawHistoryRow {
   field_changed: string;
   old_value: string | null;
   new_value: string | null;
+  /** Price the listing carried when the change happened. Null before 00014. */
+  price_at_change: number | string | null;
+  price_currency_at_change: string | null;
 }
 
 /**
@@ -70,7 +73,9 @@ export async function getRecentPropertyHistory(limit = 300): Promise<RawHistoryR
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("property_history")
-    .select("id, property_id, changed_at, field_changed, old_value, new_value")
+    .select(
+      "id, property_id, changed_at, field_changed, old_value, new_value, price_at_change, price_currency_at_change",
+    )
     .order("changed_at", { ascending: false })
     .limit(limit);
   if (error) throw error;

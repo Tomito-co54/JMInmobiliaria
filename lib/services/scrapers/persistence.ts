@@ -151,12 +151,20 @@ export async function upsertScrapedProperty(
 
   // Record changes in history
   if (changes.length > 0) {
+    // Same snapshot as on the way out, so a relisting carries the price it
+    // came back at. With both rows the pair reads on its own: left at
+    // USD 120.000, returned at USD 105.000.
     const historyRows = changes.map((c) => ({
       property_id: existing.id as string,
       changed_at: now,
       field_changed: c.field,
       old_value: c.oldValue,
       new_value: c.newValue,
+      price_at_change:
+        newRow.price_amount === null || newRow.price_amount === undefined
+          ? null
+          : Number(newRow.price_amount),
+      price_currency_at_change: newRow.price_currency ?? null,
     }));
     const { error: histError } = await supabase
       .from("property_history")
@@ -187,7 +195,7 @@ export async function deactivateStale(
   // but were NOT seen in this run
   let query = supabase
     .from("properties")
-    .select("id, external_id")
+    .select("id, external_id, price_amount, price_currency")
     .eq("source", source)
     .eq("partido", partido)
     .eq("is_active", true);
@@ -203,7 +211,12 @@ export async function deactivateStale(
 
   const { data: toDeactivateRaw, error: selectError } = await query;
   if (selectError) throw selectError;
-  const toDeactivate = (toDeactivateRaw ?? []) as Array<{ id: string; external_id: string | null }>;
+  const toDeactivate = (toDeactivateRaw ?? []) as Array<{
+    id: string;
+    external_id: string | null;
+    price_amount: number | string | null;
+    price_currency: string | null;
+  }>;
   if (toDeactivate.length === 0) return 0;
 
   const ids = toDeactivate.map((r) => r.id);
@@ -214,13 +227,18 @@ export async function deactivateStale(
     .in("id", ids);
   if (updateError) throw updateError;
 
-  // Record deactivation in history
+  // Record deactivation in history, with the price the listing carried when
+  // it left. "When did this go" is half the question; a broker wants to know
+  // at what number it stopped, because an ad that disappears after two cuts
+  // reads very differently from one that disappears at asking price.
   const historyRows = toDeactivate.map((r) => ({
     property_id: r.id as string,
     changed_at: now,
     field_changed: "is_active",
     old_value: "true",
     new_value: "false",
+    price_at_change: r.price_amount === null ? null : Number(r.price_amount),
+    price_currency_at_change: r.price_currency,
   }));
   await supabase.from("property_history").insert(historyRows as never);
 
