@@ -297,7 +297,23 @@ export type ChangeKind =
   | "delisted"
   | "relisted"
   | "type_change"
+  | "description_change"
+  | "surface_change"
+  | "address_change"
   | "other";
+
+/**
+ * The kinds worth putting in the dashboard's short feed. The rest are real
+ * events but lower signal, so they live on the dedicated changes page where
+ * there is room to filter rather than competing for fourteen slots.
+ */
+export const HIGH_SIGNAL_KINDS: ChangeKind[] = [
+  "price_drop",
+  "price_rise",
+  "delisted",
+  "relisted",
+  "type_change",
+];
 
 export interface HistoryEntry {
   field_changed: string;
@@ -320,6 +336,14 @@ export function classifyChange(h: HistoryEntry): ChangeKind {
     if (h.old_value === "false" && h.new_value === "true") return "relisted";
   }
   if (h.field_changed === "property_type") return "type_change";
+  // Named rather than lumped into "other": a rewritten description usually
+  // means the seller is repositioning the ad, and a corrected surface moves
+  // every price-per-m² number that depends on it.
+  if (h.field_changed === "description") return "description_change";
+  if (h.field_changed === "surface_total" || h.field_changed === "surface_covered") {
+    return "surface_change";
+  }
+  if (h.field_changed === "address") return "address_change";
   return "other";
 }
 
