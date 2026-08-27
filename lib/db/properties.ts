@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import type { QualityBreakdown } from "@/lib/scoring";
 import type { PropertyHistoryRow } from "@/lib/db/property-history";
 import {
@@ -150,15 +150,7 @@ export async function getPropertyForPublicView(
   const property = rawProperty as unknown as PublicPropertyRow;
 
   // Two independent reads — fire in parallel.
-  const arbaPromise =
-    property.lat !== null && property.lng !== null
-      ? supabase
-          .from("arba_lookups")
-          .select("match_strategy, distance_meters, raw_response")
-          .eq("lat", property.lat)
-          .eq("lng", property.lng)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null });
+  const arbaPromise = findArbaLookup(property);
   const historyPromise = supabase
     .from("property_history")
     .select("*")
@@ -381,4 +373,58 @@ export async function getPropertyCounts() {
     total: totalResult.count ?? 0,
     inactive: (totalResult.count ?? 0) - (activeResult.count ?? 0),
   };
+}
+
+/**
+ * The cadastral row behind a property, tried by partida and then by
+ * coordinates.
+ *
+ * Reads with the admin client, deliberately. `arba_lookups` is admin-read
+ * only, and rightly so: it holds a row for every scraped listing, which is
+ * the private market-intelligence set. Opening the table to anon to draw one
+ * polygon would expose the whole crawl.
+ *
+ * What is safe is this narrow path. The caller has already put the property
+ * through the public gate (owner source, published), the query returns three
+ * columns of geometry belonging to that one parcel, and none of it runs
+ * anywhere near the browser. The parcel outline is public record — ARBA
+ * serves it over an unauthenticated WFS — so the only thing being protected
+ * here is the shape of our own crawl, and this doesn't reveal it.
+ *
+ * The order matters because the two ingestion paths cache under different
+ * keys. A scraped listing is geocoded first and its parcel looked up by
+ * point, so its row is keyed by that lat/lng. An owner property is loaded by
+ * partida, and its row is keyed by the parcel's own centre — coordinates that
+ * are near the property's geocode but never equal to it. Reading only by
+ * lat/lng, which is what this used to do, missed every owner property and
+ * left the public catalogue without the ARBA outline it advertises.
+ */
+async function findArbaLookup(
+  property: PublicPropertyRow,
+): Promise<{ data: unknown; error: unknown }> {
+  const supabase = createAdminClient();
+  const COLS = "match_strategy, distance_meters, raw_response";
+
+  if (property.partida) {
+    const byPartida = await supabase
+      .from("arba_lookups")
+      .select(COLS)
+      .eq("partida", property.partida)
+      .limit(1);
+    if (byPartida.error) return { data: null, error: byPartida.error };
+    if (byPartida.data && byPartida.data.length > 0) {
+      return { data: byPartida.data[0], error: null };
+    }
+  }
+
+  if (property.lat !== null && property.lng !== null) {
+    return await supabase
+      .from("arba_lookups")
+      .select(COLS)
+      .eq("lat", property.lat)
+      .eq("lng", property.lng)
+      .maybeSingle();
+  }
+
+  return { data: null, error: null };
 }
