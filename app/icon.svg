@@ -6,7 +6,7 @@
     .mark { fill: #1A1B5C; }
     @media (prefers-color-scheme: dark) { .mark { fill: #FFFFFF; } }
   </style>
-  <g class="mark" transform="translate(5.66,267.91) scale(0.29121)">
+  <g class="mark" transform="translate(-14.93,258.24) scale(0.30335)">
     <g  transform="translate(0,1590) scale(0.1,-0.1)">
     <path d="M23265 15351 c-33 -28 -87 -73 -120 -101 -33 -28 -94 -74 -135 -102
 -41 -28 -100 -74 -130 -103 -31 -29 -67 -56 -80 -60 -14 -4 -43 -24 -65 -45
