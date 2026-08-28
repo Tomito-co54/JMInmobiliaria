@@ -43,7 +43,20 @@ export interface ProcessStep {
   subtitle: string;
   duration: string;
   what: string;
-  actions: string[];
+  /**
+   * What the agency does at this stage.
+   *
+   * Split from `youDo` because the two answer different questions, and the
+   * first one is the whole pitch. The original single `actions` list was
+   * written for the upstream buyer portal, where the reader was on their own
+   * and the site was a reference — every line started with "pedí", "conseguí",
+   * "coordiná". This is the site of a working agency now: most of that list is
+   * our job, and a guide that tells the reader to do it themselves is
+   * describing a service we are not selling.
+   */
+  weHandle: string[];
+  /** What genuinely stays with the buyer — decisions and their own money. */
+  youDo: string[];
   documentSlugs: DocumentSlug[];
   warnings?: string[];
 }
@@ -230,15 +243,18 @@ export const PROCESS_STEPS: ProcessStep[] = [
     number: 1,
     slug: "pre-busqueda",
     title: "Pre-búsqueda",
-    subtitle: "Ordená la cabeza antes de mirar avisos",
+    subtitle: "Ordenar la cabeza antes de mirar avisos",
     duration: "1 a 3 meses",
-    what: "Esta etapa es la menos glamorosa pero la más importante. Decidir qué buscás, con qué plata y bajo qué condiciones te va a ahorrar meses de perder tiempo con propiedades que no te encajaban desde el principio.",
-    actions: [
-      "Definí presupuesto realista: cuánto tenés en mano + cuánto podrías financiar.",
-      "Si vas con crédito, pedí pre-aprobación bancaria. Te dice cuánto te prestarían sin compromiso.",
-      "Definí no-negociables: ambientes, m², cochera, zona, antigüedad máxima, etc.",
-      "Investigá zonas: precios promedio, transporte, escuelas si aplica, seguridad.",
-      "Mirá cuántos m²/USD compra cada zona — te calibra expectativas.",
+    what:
+      "La etapa menos glamorosa y la más decisiva. Antes de que mires un solo aviso, sentate con nosotros: te decimos qué compra tu presupuesto en cada zona del sur con precios reales de mercado, no con el promedio que muestra un portal.",
+    weHandle: [
+      "Te mostramos qué compra tu presupuesto por zona, con la data de mercado que relevamos todos los días.",
+      "Te ayudamos a separar los no-negociables de los deseos. Es lo que después evita meses perdidos.",
+      "Te explicamos el costo real de comprar: sellos, honorarios, escritura. El precio del aviso nunca es lo que sale.",
+    ],
+    youDo: [
+      "Definir cuánto tenés en mano y cuánto estarías dispuesto a financiar.",
+      "Si vas con crédito, pedir la pre-aprobación en el banco. Ese trámite es tuyo y conviene tenerlo antes de empezar.",
     ],
     documentSlugs: [],
   },
@@ -246,53 +262,62 @@ export const PROCESS_STEPS: ProcessStep[] = [
     number: 2,
     slug: "busqueda",
     title: "Búsqueda y visitas",
-    subtitle: "Filtrar, comparar y conocer en persona",
+    subtitle: "Filtramos nosotros, elegís vos",
     duration: "Semanas a meses",
-    what: "Acá es donde Jotaeme te ayuda más: en vez de revisar 30 avisos por día, te llegan las que matchean tu perfil con un score de calidad ya calculado. Una vez que aparecen candidatos, vas a visitar.",
-    actions: [
-      "Creá tu perfil de búsqueda en Jotaeme. Te llegan alertas cuando aparece algo que te encaja.",
-      "Revisá el Quality Score de cada propiedad: indica calidad del aviso, coherencia con ARBA, tiempo en mercado.",
-      "Visitá las que te interesen en persona. Llevá una checklist (humedad, orientación, ruido, vecinos, presión de agua).",
-      "Sacá fotos durante la visita. Después se te mezclan las casas.",
-      "Pedí siempre: gastos mensuales reales (luz, gas, expensas), expensas extraordinarias últimos 12 meses, antigüedad de instalaciones.",
+    what:
+      "Acá está la mayor parte de nuestro trabajo, y es invisible: descartar. Por cada propiedad que te mostramos hay varias que miramos y no pasaron el filtro, porque la superficie no coincide con el catastro, porque el precio no se sostiene contra los comparables o porque el título tiene algo raro.",
+    weHandle: [
+      "Cruzamos cada propiedad contra ARBA antes de mostrártela: superficie real, partida, nomenclatura, polígono de la parcela.",
+      "Calculamos el Quality Score y te lo mostramos abierto, componente por componente. Sin caja negra.",
+      "Coordinamos las visitas y vamos con vos, con la ficha catastral en la mano.",
+      "Te decimos lo que el aviso no dice: antigüedad real, gastos mensuales, expensas extraordinarias del último año.",
+    ],
+    youDo: [
+      "Ir a conocerlas. Ninguna foto reemplaza pararse en el living un martes a las siete de la tarde.",
+      "Preguntarnos todo lo que te haga ruido, sobre todo lo que parezca una pregunta tonta.",
     ],
     documentSlugs: [],
-    warnings: [
-      "Si una propiedad te encanta en el aviso pero el agente no te deja visitarla rápido, sospechá. Suele ser carnada para llevarte a ver otras.",
-    ],
   },
   {
     number: 3,
     slug: "reserva",
     title: "Reserva",
-    subtitle: "Me la quiero quedar, congelen la operación",
+    subtitle: "Congelamos la operación mientras verificamos",
     duration: "1 a 4 semanas (vigencia de la reserva)",
-    what: "Cuando encontraste la propiedad y querés frenar la operación para que no te la vendan a otro, firmás una reserva. La reserva no te obliga aún a comprar — te obliga a NO arrepentirte sin penalidad. El plazo es lo que tenés para hacer toda la due diligence.",
-    actions: [
-      "Negociá el precio antes de reservar. Una vez reservado, es más difícil bajar.",
-      "Firmá la reserva con plazo suficiente para los informes (mínimo 21 días recomendable).",
-      "Conseguí copia del título, partida y datos del vendedor (DNI, CUIT, estado civil).",
-      "Empezá YA con los informes — no esperes a último momento.",
+    what:
+      "Cuando encontraste la propiedad, la reserva frena la operación para que no se la vendan a otro. Todavía no te obliga a comprar: te obliga a no arrepentirte sin costo. El plazo que pactemos es el tiempo que tenemos para verificar todo.",
+    weHandle: [
+      "Negociamos el precio con comparables del mercado como argumento, no con intuición.",
+      "Redactamos la reserva y fijamos un plazo que alcance para los informes — nunca menos de 21 días.",
+      "Retenemos la seña en garantía, como martillero matriculado, y te damos el recibo.",
+      "Le pedimos al vendedor título, partida y datos personales el mismo día que se firma.",
+    ],
+    youDo: [
+      "Decidir. Es el único paso que no podemos dar por vos: la reserva compromete tu plata.",
     ],
     documentSlugs: ["reserva"],
     warnings: [
-      "Si te retractás de la reserva, perdés el dinero. Si el vendedor se retracta, te devuelve el doble. No firmes sin tener una idea clara de querer comprar.",
+      "Si te retractás de la reserva, perdés la seña. Si se retracta el vendedor, te devuelve el doble. Te lo explicamos antes de que firmes, no después.",
     ],
   },
   {
     number: 4,
     slug: "due-diligence",
     title: "Due diligence",
-    subtitle: "Pedí todos los informes antes del boleto",
+    subtitle: "Pedimos todos los informes antes del boleto",
     duration: "2 a 4 semanas",
-    what: "Esta etapa es donde el comprador descubre si la propiedad tiene problemas legales, fiscales o estructurales que justifiquen bajar el precio — o salir de la operación. Es la etapa más informativa de todo el proceso.",
-    actions: [
-      "Pedí Informe de Dominio. Es no-negociable: te dice quién es el dueño y si hay problemas.",
-      "Pedí Informe de Inhibiciones del titular (y cónyuge si hay sociedad conyugal).",
-      "Pedí Certificado Catastral. Verificá que coincida con lo declarado en el aviso.",
-      "Si la antigüedad lo amerita, Estado Parcelario actualizado.",
-      "Pedí libre deudas: municipal, provincial (ARBA), expensas si es PH.",
-      "Considerá una visita técnica si dudás de la estructura: arquitecto o ingeniero ($).",
+    what:
+      "Es la etapa donde aparecen los problemas legales, fiscales o estructurales que justifican bajar el precio o salir de la operación. Es la parte más técnica del proceso y la hacemos nosotros: pedimos los informes, los leemos y te traducimos qué significa cada uno.",
+    weHandle: [
+      "Pedimos el Informe de Dominio y el de Inhibiciones, y los leemos. Si aparece un embargo, una hipoteca o un usufructo, te explicamos qué implica para tu operación.",
+      "El Certificado Catastral lo sacamos nosotros contra ARBA, al instante.",
+      "Pedimos los libres deuda: municipal, provincial y expensas si es propiedad horizontal.",
+      "Si la antigüedad lo amerita, gestionamos el Estado Parcelario actualizado con agrimensor.",
+      "Si algo no cierra, frenamos la operación antes del boleto. Para eso existe esta etapa.",
+    ],
+    youDo: [
+      "Leer lo que te pasamos. Te lo explicamos las veces que haga falta.",
+      "Si querés una revisión estructural, contratar un arquitecto o ingeniero de tu confianza. Ahí sí conviene un tercero independiente.",
     ],
     documentSlugs: [
       "informe_dominio",
@@ -304,42 +329,49 @@ export const PROCESS_STEPS: ProcessStep[] = [
       "libre_deuda_expensas",
     ],
     warnings: [
-      "Las deudas registradas siguen al inmueble. Si comprás con deudas no canceladas, las heredás. Negociá que el vendedor las cancele antes del boleto.",
-      "Si un informe se demora más que el plazo de la reserva, pedí extensión por escrito — no asumas que está OK.",
+      "Las deudas registradas siguen al inmueble, no al dueño anterior. Negociamos que el vendedor las cancele antes del boleto y lo dejamos por escrito.",
+      "Si un informe se demora más que el plazo de la reserva, pedimos la extensión por escrito. Nunca damos por sobreentendido que está todo bien.",
     ],
   },
   {
     number: 5,
     slug: "boleto-y-escritura",
     title: "Boleto y escritura",
-    subtitle: "Firmamos, pagás, sos dueño",
-    duration: "30 a 60 días desde firma de boleto hasta escritura",
-    what: "Acá la operación se vuelve formal. El boleto te compromete; la escritura te hace dueño. Entre uno y otro pasan típicamente 30-60 días para completar trámites.",
-    actions: [
-      "Firmá el boleto con todos los informes en mano. Si algún informe no llegó, no firmes.",
-      "Pagá el anticipo del boleto (suele ser 30% del precio).",
-      "El escribano arma la escritura con los informes vigentes. Te puede pedir informes adicionales más cerca de la firma.",
-      "Día de la escritura: el saldo se entrega ahí mismo (transferencia o cheque certificado), se firma la escritura, se entregan las llaves.",
-      "Guardá una copia de la escritura. El testimonio inscripto lo recibís 30-60 días después por el escribano.",
+    subtitle: "Se firma, pagás, sos dueño",
+    duration: "30 a 60 días desde el boleto hasta la escritura",
+    what:
+      "Acá la operación se vuelve formal. El boleto te compromete; la escritura te hace dueño. Entre una y otra pasan típicamente 30 a 60 días, y el trabajo de coordinación es nuestro.",
+    weHandle: [
+      "Coordinamos con el escribano y le mandamos los informes vigentes.",
+      "Armamos el boleto y revisamos que no falte ninguna verificación antes de que firmes.",
+      "Controlamos que los informes sigan vigentes al momento de la escritura; algunos vencen.",
+      "Estamos en las dos firmas, con vos.",
+    ],
+    youDo: [
+      "Elegir escribano, si querés uno propio. Si no, trabajamos con el nuestro.",
+      "Tener el dinero disponible el día de la escritura: el saldo se entrega en ese mismo acto.",
     ],
     documentSlugs: ["boleto_compraventa", "escritura"],
     warnings: [
-      "Nunca entregues dinero sin firmar instrumento. Y nunca firmes sin que el dinero esté disponible al momento.",
+      "No se entrega dinero sin instrumento firmado, ni se firma sin que el dinero esté disponible. Es la regla que no negociamos.",
     ],
   },
   {
     number: 6,
     slug: "post-escritura",
     title: "Post-escritura",
-    subtitle: "Mudate y empezá tu vida ahí",
-    duration: "Primeros 30-60 días",
-    what: "Tu trabajo legal terminó pero hay tareas administrativas para cerrar la transición.",
-    actions: [
-      "Cambiá la titularidad de los servicios (luz, gas, agua, internet, cable).",
-      "Notificá al consorcio si es PH/Depto: nuevo titular para expensas.",
-      "Esperá el testimonio de la escritura inscripta en el RPI. Si en 60 días no te llegó, escribile al escribano.",
-      "Si financiaste con crédito hipotecario: la hipoteca queda inscripta sobre el inmueble. Pagá puntual; los atrasos pueden iniciar ejecución.",
-      "Primer impuesto inmobiliario: en provincia, te llega la boleta a tu nombre 2-3 meses después.",
+    subtitle: "Mudate, del resto nos ocupamos",
+    duration: "Primeros 30 a 60 días",
+    what:
+      "La parte legal terminó, pero quedan trámites administrativos para cerrar la transición. No desaparecemos el día de la escritura.",
+    weHandle: [
+      "Le seguimos el testimonio inscripto al escribano hasta que lo tengas en la mano.",
+      "Te dejamos la lista de cambios de titularidad hecha, con a quién llamar en cada caso.",
+      "Notificamos al consorcio el cambio de titular, si es departamento o PH.",
+    ],
+    youDo: [
+      "Cambiar los servicios a tu nombre: luz, gas, agua, internet.",
+      "Mudarte.",
     ],
     documentSlugs: [],
   },

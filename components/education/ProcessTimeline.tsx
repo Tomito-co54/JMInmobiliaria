@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronRight } from "lucide-react";
+import { AlertTriangle, Check, ChevronRight } from "lucide-react";
 import {
   DOCUMENTS,
   type ProcessStep,
@@ -64,15 +64,49 @@ export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
 
             <p className="text-sm sm:text-base leading-relaxed">{step.what}</p>
 
-            {step.actions.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
-                  Qué hacer en esta etapa
+            {/* Our part first, and visually heavier: it is the answer to the
+                question the reader actually has — "¿de qué se encargan
+                ustedes?". The buyer's list follows, deliberately short. */}
+            {step.weHandle.length > 0 && (
+              <div
+                className="space-y-2 rounded-lg p-4"
+                style={{
+                  backgroundColor: "var(--brand-icon-bg)",
+                  borderLeft: "3px solid var(--brand-accent)",
+                }}
+              >
+                <p
+                  className="text-xs uppercase tracking-wider font-semibold"
+                  style={{ color: "var(--brand-heading)" }}
+                >
+                  De esto nos encargamos nosotros
                 </p>
                 <ul className="space-y-2">
-                  {step.actions.map((a, i) => (
+                  {step.weHandle.map((a) => (
                     <li
-                      key={i}
+                      key={a}
+                      className="flex items-start gap-2 text-sm leading-relaxed"
+                    >
+                      <Check
+                        className="size-4 shrink-0 mt-0.5"
+                        style={{ color: "var(--brand-accent)" }}
+                      />
+                      <span>{a}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {step.youDo.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
+                  Lo que queda de tu lado
+                </p>
+                <ul className="space-y-2">
+                  {step.youDo.map((a) => (
+                    <li
+                      key={a}
                       className="flex items-start gap-2 text-sm leading-relaxed"
                     >
                       <ChevronRight

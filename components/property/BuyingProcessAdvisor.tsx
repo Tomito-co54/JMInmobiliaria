@@ -161,7 +161,7 @@ export function BuyingProcessAdvisor({
         {currentDocs.length > 0 ? (
           <>
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
-              Documentos típicos de esta etapa
+              Los informes de esta etapa — los pedimos nosotros
             </p>
             <ul className="space-y-1.5">
               {currentDocs.slice(0, 5).map((doc) => (
@@ -216,7 +216,7 @@ export function BuyingProcessAdvisor({
           />
           <div className="flex-1 min-w-0 space-y-1">
             <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
-              Tu próximo paso
+              El próximo paso
             </p>
             <p
               className="text-sm font-bold font-heading leading-tight"

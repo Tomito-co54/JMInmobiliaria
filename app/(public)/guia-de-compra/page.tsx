@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 export const metadata = {
   title: "Guía de compra — Jotaeme",
   description:
-    "Comprar una propiedad en Argentina, explicado paso a paso. Documentos, plazos, costos y qué función cumple cada cosa.",
+    "Cómo es comprar una propiedad en Zona Sur y de qué nos encargamos nosotros en cada etapa. Documentos, plazos y costos, sin letra chica.",
 };
 
 /**
@@ -82,20 +82,20 @@ export default function GuiaDeCompraPage() {
             className="text-3xl sm:text-5xl font-bold font-heading leading-tight"
             style={{ color: "var(--brand-heading)" }}
           >
-            Comprar una propiedad en Argentina,{" "}
-            <span className="italic">explicado</span>
+            Comprar es un proceso largo.{" "}
+            <span className="italic">Lo caminamos con vos</span>
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
-            Una sola operación en tu vida — o dos. La industria asume que
-            sabés cómo funciona, pero la mayoría llega sin información. Acá
-            te lo explicamos paso por paso: qué tenés que hacer en cada
-            etapa, qué documentos necesitás, qué función cumple cada uno y
-            cuánto cuesta.
+            Vas a comprar una propiedad una vez en tu vida, o dos. Nosotros
+            lo hacemos todas las semanas. Acá está el proceso completo, etapa
+            por etapa, con una distinción que no suele hacerse: qué hacemos
+            nosotros y qué queda de tu lado. Vas a ver que lo segundo es
+            corto.
           </p>
           <p className="text-sm text-muted-foreground italic">
-            Esta guía está pensada para Argentina, con foco en la Provincia
-            de Buenos Aires. Algunos detalles varían en CABA y otras
-            jurisdicciones.
+            Los plazos y costos son de la Provincia de Buenos Aires, que es
+            donde trabajamos. En CABA y otras jurisdicciones algunos detalles
+            cambian.
           </p>
         </div>
       </section>

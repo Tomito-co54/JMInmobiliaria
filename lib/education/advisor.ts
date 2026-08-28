@@ -14,8 +14,11 @@ import {
  *   - the current step (full ProcessStep object)
  *   - the next step (if any)
  *   - the documents associated with the current step
- *   - a "main action" — the single most important thing they should
- *     do next on the property they're viewing
+ *   - a "main action" — the next thing that moves the operation forward
+ *     on the property they're viewing. Usually ours to do, not theirs:
+ *     the copy here says who acts, because a guide that tells the reader
+ *     to go get their own informes is describing a service the agency is
+ *     not selling.
  *
  * Pure function: no I/O, no React. Caller renders the UI.
  */
@@ -80,9 +83,9 @@ function pickMainAction(
   if (stage.slug === "pre-busqueda") {
     return {
       kind: "external_action",
-      title: "Definí presupuesto y criterios",
+      title: "Sentate con nosotros a ordenar el presupuesto",
       description:
-        "Cuando tengas claro qué buscás, marcá la siguiente etapa en tu perfil de búsqueda.",
+        "Te decimos qué compra tu plata en cada zona del sur, con data real de mercado. Escribinos y arrancamos por ahí.",
     };
   }
 
@@ -90,9 +93,9 @@ function pickMainAction(
   if (stage.slug === "busqueda") {
     return {
       kind: "external_action",
-      title: "Guardá la propiedad y compará",
+      title: "Coordinamos la visita",
       description:
-        "Tocá el corazón para guardarla. Si te encaja, avanzá a 'Reserva' en tu perfil.",
+        "Vamos con vos y con la ficha catastral en la mano. Escribinos y la agendamos.",
     };
   }
 
@@ -100,9 +103,9 @@ function pickMainAction(
   if (stage.slug === "reserva") {
     return {
       kind: "external_action",
-      title: "Firmá la reserva con plazo suficiente",
+      title: "Negociamos el precio y redactamos la reserva",
       description:
-        "Pedí al menos 21 días para hacer la due diligence. Cuando firmes, avanzá a 'Pidiendo informes'.",
+        "Con comparables del mercado como argumento, y un plazo que alcance para verificar todo: nunca menos de 21 días.",
     };
   }
 
@@ -116,15 +119,16 @@ function pickMainAction(
         kind: "buy_service",
         documentSlug: arba.slug,
         serviceId: arba.serviceId,
-        title: `Pedí el ${arba.title}`,
+        title: `Te sacamos el ${arba.title}`,
         description:
-          "Te lo entregamos al instante en PDF — es el primer paso del due diligence catastral.",
+          "Lo generamos contra ARBA y te lo damos al instante en PDF. Es el primer paso de la verificación catastral.",
       };
     }
     return {
       kind: "external_action",
-      title: "Pedí los informes del due diligence",
-      description: "Dominio, inhibiciones, libres deuda. Sin esto no se firma boleto.",
+      title: "Pedimos los informes de la due diligence",
+      description:
+        "Dominio, inhibiciones y libres deuda. Los leemos y te explicamos qué dice cada uno. Sin esto no se firma boleto.",
     };
   }
 
@@ -132,9 +136,9 @@ function pickMainAction(
   if (stage.slug === "boleto-y-escritura") {
     return {
       kind: "external_action",
-      title: "Coordiná con tu escribano",
+      title: "Coordinamos con el escribano",
       description:
-        "Pedile los informes actualizados que aún no tenés. La escritura demora 30-60 días después del boleto.",
+        "Le mandamos los informes vigentes y controlamos que no venza ninguno. De la firma del boleto a la escritura pasan 30 a 60 días.",
     };
   }
 
@@ -142,9 +146,9 @@ function pickMainAction(
   if (stage.slug === "post-escritura") {
     return {
       kind: "external_action",
-      title: "Cambiá la titularidad de servicios",
+      title: "Te seguimos el testimonio inscripto",
       description:
-        "Luz, gas, agua, internet, expensas. Pedile el testimonio inscripto al escribano si no llegó en 60 días.",
+        "Se lo reclamamos al escribano hasta que lo tengas. Mientras tanto, cambiá los servicios a tu nombre: luz, gas, agua, internet.",
     };
   }
 
@@ -154,7 +158,7 @@ function pickMainAction(
       kind: "advance_stage",
       title: `Avanzá a ${nextStage.title}`,
       nextStageSlug: nextStage.slug,
-      description: `Cuando termines lo de esta etapa, marcá '${nextStage.title}' en tu perfil.`,
+      description: `Cuando cerremos esta etapa seguimos con '${nextStage.title}'.`,
     };
   }
   return {
