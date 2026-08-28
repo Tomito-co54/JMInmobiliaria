@@ -12,10 +12,9 @@ import {
 import { getScoreBand, interpolateRingColor } from "@/lib/scoring/bands";
 import { cn } from "@/lib/utils";
 import {
-  PARCEL_BOX,
-  TILE_SIZE,
   BASEMAP_ATTRIBUTION,
   BASEMAP_TILE_PIXELS,
+  type PlacedTile,
 } from "@/lib/map/tiles";
 
 /**
@@ -89,12 +88,6 @@ export function Reveal({
  */
 const FALLBACK_POINTS = "34,24 150,16 184,78 168,150 58,142 22,86";
 
-export interface ParcelTile {
-  url: string;
-  left: number;
-  top: number;
-}
-
 export function AreaOutlineViz({
   outline,
   caption,
@@ -105,7 +98,7 @@ export function AreaOutlineViz({
    * PARCEL_BOX by the server. Null keeps the generic outline with no map —
    * honest, because without a projection there is no ground to place.
    */
-  outline?: { points: string; tiles: ParcelTile[] } | null;
+  outline?: { points: string; tiles: PlacedTile[] } | null;
   /** Names what the shape is. Without it the drawing is decoration. */
   caption?: string;
   /** Accessible description. Must say what is actually drawn. */
@@ -119,26 +112,30 @@ export function AreaOutlineViz({
   const hasMap = tiles.length > 0;
 
   return (
-    <div ref={ref} className="relative mx-auto w-full max-w-sm">
-      {/* Ground under the outline. Tiles are positioned in percentages of
-          the same box the SVG uses, so the two scale together at any width
-          without a resize listener. */}
+    <div ref={ref} className="mx-auto w-full max-w-sm">
+      {/* The map frame: the ground and the outline over it, and nothing
+          else. It is its own positioning context because the ground is laid
+          out with `inset-0` — measured against this, it covers exactly the
+          drawing. Measured against the whole component, as it was, the map
+          also ran behind the caption and the credit line below it. */}
+      <div className="relative">
+      {/* Ground under the outline. The server hands the tiles over already
+          positioned in percentages of the drawing box, so the map and the
+          SVG scale together at any width without a resize listener.
+
+          A plain rounded frame, softly cornered. The radial mask this
+          replaces was a workaround for a basemap that fought the polygon:
+          dissolving the edges was one more way of holding the map back. With
+          a basemap built to sit under data, the map can own a real edge —
+          and once it is not competing, a frame reads as a window onto the
+          ground rather than a screenshot dropped into the page. */}
       {hasMap && (
         <div
-          className="absolute inset-0 overflow-hidden"
+          className="absolute inset-0 overflow-hidden rounded-lg"
           aria-hidden="true"
           style={{
             opacity: inView ? 1 : 0,
             transition: "opacity 900ms ease-out",
-            // Dissolve at the edges instead of stopping at a rounded box.
-            // A hard frame reads as a screenshot pasted into the page and
-            // breaks §2.4 — nada corta en seco. The mask lets the map fade
-            // into the section it lives in, so the block has one edge (the
-            // polygon) rather than two competing ones.
-            maskImage:
-              "radial-gradient(ellipse 72% 72% at 50% 50%, #000 45%, transparent 100%)",
-            WebkitMaskImage:
-              "radial-gradient(ellipse 72% 72% at 50% 50%, #000 45%, transparent 100%)",
           }}
         >
           {/* Barely filtered, on purpose. The two earlier rounds fought the
@@ -155,18 +152,24 @@ export function AreaOutlineViz({
                 key={t.url}
                 src={t.url}
                 alt=""
+                // The file's own pixels, which is not the ground it covers:
+                // some providers serve 512 for one tile's worth of map.
                 width={BASEMAP_TILE_PIXELS}
                 height={BASEMAP_TILE_PIXELS}
+                // `unoptimized` so the visitor's browser fetches the tile
+                // itself. Routing these through Next's optimizer would halve
+                // the weight as WebP, but the optimizer fetches server-side
+                // and OSM hands a datacenter request its "Access blocked"
+                // tile — at HTTP 200, so the page just quietly fills with
+                // warning signs. Revisit once NEXT_PUBLIC_BASEMAP_URL points
+                // at a provider with an account.
                 unoptimized
                 className="absolute max-w-none"
                 style={{
-                  left: `${(t.left / PARCEL_BOX.width) * 100}%`,
-                  top: `${(t.top / PARCEL_BOX.height) * 100}%`,
-                  // TILE_SIZE, not the image's own pixel count: a retina
-                  // tile has twice the pixels but still covers one tile of
-                  // ground, and this is the ground measurement.
-                  width: `${(TILE_SIZE / PARCEL_BOX.width) * 100}%`,
-                  height: `${(TILE_SIZE / PARCEL_BOX.height) * 100}%`,
+                  left: t.left,
+                  top: t.top,
+                  width: t.width,
+                  height: t.height,
                 }}
               />
             ))}
@@ -177,9 +180,15 @@ export function AreaOutlineViz({
       {/* The cadastral diagram. All paint via currentColor + opacities
           (color is set to the theme-aware heading token below), so it stays
           visible in dark mode and avoids color-mix in SVG paint attributes. */}
+      {/* `relative` is load-bearing, not a tidy-up. The tiles sit in an
+          absolutely positioned box, and a positioned element paints above a
+          static one whatever the DOM order says — so without this the map
+          covers the outline, and the drawing that is meant to be the
+          evidence shows through it washed out. Every earlier round of "the
+          basemap overpowers the polygon" was partly this bug. */}
       <svg
         viewBox="0 0 206 166"
-        className="w-full"
+        className="relative w-full"
         role="img"
         aria-label={label ?? caption ?? "Polígono sobre el mapa"}
         style={{ color: "var(--brand-heading)" }}
@@ -265,6 +274,7 @@ export function AreaOutlineViz({
           );
         })}
       </svg>
+      </div>
 
       {/* Names what the shape is. A drawn outline with no caption is
           decoration; with one it is a claim the reader can check against the
@@ -402,7 +412,20 @@ export function MatchDemo() {
     0,
   );
   const display = useAnimatedNumber(target, { durationMs: 500 });
-  const band = getScoreBand(Math.round(display));
+  const rounded = Math.round(display);
+  // A perfect match paints in the brand's own blue, not the ramp's gold.
+  // Gold at 95+ is the Quality Score's trophy tier and it is shared with
+  // /p/[id] and /admin — repeating it here would make two different
+  // measurements read as the same badge. And 100 on this meter is not "more
+  // green": it is every criterion met, the one state worth marking with the
+  // brand colour. Theme-aware token because navy on slate is unreadable.
+  //
+  // Keyed off `target`, not the animating `display`: the count-up to 100
+  // passes through 95-99, and reading the colour off it would flash the gold
+  // tier for a frame on the way to navy. The colour eases to its destination
+  // in CSS instead, alongside the bar (§2.4 — nada corta en seco).
+  const meterColor =
+    target >= 100 ? "var(--match-perfect)" : getScoreBand(target).hex;
 
   return (
     <div className="mx-auto w-full max-w-sm">
@@ -412,10 +435,10 @@ export function MatchDemo() {
             Match
           </p>
           <p
-            className="text-4xl font-extrabold tabular-nums leading-none"
-            style={{ color: band.hex }}
+            className="text-4xl font-extrabold tabular-nums leading-none motion-safe:transition-colors motion-safe:duration-[450ms]"
+            style={{ color: meterColor }}
           >
-            {Math.round(display)}
+            {rounded}
           </p>
         </div>
         <p className="text-xs text-muted-foreground pb-1">
@@ -427,9 +450,9 @@ export function MatchDemo() {
           overshoot so the response feels snappy (§2.2). */}
       <div className="mt-3 h-2.5 w-full rounded-full bg-muted overflow-hidden">
         <div
-          className="h-full rounded-full origin-left motion-safe:transition-transform motion-safe:duration-[450ms]"
+          className="h-full rounded-full origin-left motion-safe:transition-[transform,background-color] motion-safe:duration-[450ms]"
           style={{
-            backgroundColor: band.hex,
+            backgroundColor: meterColor,
             transform: `scaleX(${Math.max(0, Math.min(100, display)) / 100})`,
             transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
           }}

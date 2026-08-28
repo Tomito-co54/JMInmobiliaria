@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { MapContainer, TileLayer, Marker, GeoJSON } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { BASEMAP_URL, BASEMAP_ATTRIBUTION } from "@/lib/map/tiles";
 
 /**
  * The actual Leaflet map. Loaded only on the client (no SSR) via the parent
@@ -68,10 +69,10 @@ export default function PropertyMapInner({
       className="h-72 w-full rounded-lg"
       attributionControl
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      {/* Same source as every other map in the app, so a provider swap
+          is one env var and not a hunt through three components. Leaflet is
+          fine with a template that has no {s} subdomain placeholder. */}
+      <TileLayer attribution={BASEMAP_ATTRIBUTION} url={BASEMAP_URL} />
       {geoJson && <GeoJSON data={geoJson} style={() => PARCEL_STYLE} />}
       <Marker position={[lat, lng]} title={address ?? undefined} />
     </MapContainer>
