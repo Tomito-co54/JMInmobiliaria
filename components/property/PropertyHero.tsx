@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
-import { ImageIcon, ShieldCheck } from "lucide-react";
+import { ImageIcon, ShieldCheck, Expand } from "lucide-react";
 import { usePrefersReducedMotion } from "@/hooks/use-in-view";
 import { cn } from "@/lib/utils";
+import { PropertyGallery, PropertyThumbnails } from "./PropertyGallery";
 
 /**
  * Property detail hero (rediseño /p/[id]).
@@ -18,8 +20,11 @@ import { cn } from "@/lib/utils";
  * profundidad con intención (la propiedad "se acerca"). Respects
  * prefers-reduced-motion. Only transform/opacity (§4).
  *
- * Honesty: the scraper brings only photos[0] today, so we keep the "1/N"
- * counter and don't fake a gallery (the swipe gallery is a known follow-up).
+ * The cover opens a fullscreen viewer and a thumbnail strip sits under it.
+ * Both arrived with the owner loader: the hero painted photos[0] and a
+ * hardcoded "1/N" for as long as the scraper brought one photo per listing,
+ * which turned into nineteen unreachable photos the moment real listings
+ * were loaded by hand.
  */
 
 interface PropertyHeroProps {
@@ -48,11 +53,19 @@ export function PropertyHero({
   arbaVerified,
 }: PropertyHeroProps) {
   const reduced = usePrefersReducedMotion();
+  const [openAt, setOpenAt] = useState<number | null>(null);
   const cover = photos[0];
   const total = photos.length;
 
   return (
     <div className="relative -mx-4 lg:mx-0">
+      <PropertyGallery
+        photos={photos}
+        alt={alt}
+        open={openAt !== null}
+        initialIndex={openAt ?? 0}
+        onClose={() => setOpenAt(null)}
+      />
       <div className="relative aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] w-full overflow-hidden bg-muted lg:rounded-3xl">
         {cover ? (
           <Image
@@ -100,11 +113,21 @@ export function PropertyHero({
           )}
         </div>
 
-        {/* Photo counter — honest about gallery state. */}
+        {/* The counter is the affordance now, not a label: it says how many
+            there are and opens them. Covers the whole photo so the obvious
+            gesture — tapping the picture — works too. */}
         {cover && (
-          <div className="absolute top-3 right-3 rounded-md bg-black/55 px-2 py-0.5 text-xs font-medium text-white backdrop-blur-sm">
-            1/{total > 1 ? total : 1}
-          </div>
+          <button
+            type="button"
+            onClick={() => setOpenAt(0)}
+            aria-label={`Ver las ${total} fotos`}
+            className="absolute inset-0 cursor-zoom-in"
+          >
+            <span className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-md bg-black/55 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm">
+              <Expand className="size-3.5" />
+              {total > 1 ? `1/${total}` : "1/1"}
+            </span>
+          </button>
         )}
       </div>
 
@@ -152,6 +175,11 @@ export function PropertyHero({
           Verificada con ARBA
         </div>
       )}
+
+      {/* Below the photo, clearing the medallion that overlaps its corner. */}
+      <div className="px-4 lg:px-0">
+        <PropertyThumbnails photos={photos} alt={alt} onPick={setOpenAt} />
+      </div>
     </div>
   );
 }
