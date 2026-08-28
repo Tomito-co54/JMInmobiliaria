@@ -370,13 +370,17 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   ├── auth/callback/            # OAuth + email confirmation handler
 │   ├── onboarding/               # legacy del upstream (search profiles)
 │   ├── pago/                     # /exito, /pendiente, /error (MP returns)
-│   ├── icon.png                  # ← favicon (Next lo cablea solo). Isotipo
-│   │                             #   completo, blanco sobre navy. Decisión de
-│   │                             #   Tomy: el isotipo es 2.1:1 y a los 16px de
-│   │                             #   una pestaña mide 14x6, así que se lee poco —
-│   │                             #   se evaluó recortar a la casa del centro y se
-│   │                             #   descartó. Marca entera, no un recorte.
-│   ├── apple-icon.png            # ← 180px sin redondear (iOS aplica su máscara)
+│   ├── icon.svg                  # ← favicon (Next lo cablea solo). Isotipo
+│   │                             #   completo, SIN fondo, al 96% del ancho.
+│   │                             #   SVG y no PNG para poder llevar adentro un
+│   │                             #   @media prefers-color-scheme: navy sobre
+│   │                             #   pestaña clara, blanco sobre oscura — sin eso
+│   │                             #   el navy desaparece contra la barra oscura.
+│   │                             #   Se evaluó recortar a la casa del centro (a
+│   │                             #   16px la marca entera mide 14x6) y Tomy lo
+│   │                             #   descartó: va la marca, no un recorte.
+│   ├── apple-icon.png            # ← 180px CON fondo navy: iOS no soporta
+│   │                             #   transparencia y la compone sobre negro
 │   └── layout.tsx
 │
 ├── components/
