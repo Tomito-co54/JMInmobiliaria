@@ -18,7 +18,11 @@ describe("computeQualityScore — aggregation and renormalization", () => {
     expect(out.score).not.toBeNull();
     expect(out.score!).toBeGreaterThan(60);
     expect(out.insufficient_data).toBe(false);
-    expect(out.effective_weight_ratio).toBeGreaterThan(0.9);
+    // "Full data" no longer reaches the full weight: arba_coherence is parked
+    // at confidence 0 (see ARBA_COHERENCE_PARKED), so its 15 never counts.
+    expect(out.effective_weight_ratio).toBeGreaterThan(
+      (NOMINAL_TOTAL - SUBSCORE_WEIGHTS.arba_coherence) / NOMINAL_TOTAL - 0.05,
+    );
   });
 
   it("renormalizes when some sub-scores are skipped (no comparables)", () => {
@@ -26,9 +30,13 @@ describe("computeQualityScore — aggregation and renormalization", () => {
       comparableStats: { medianPricePerM2Usd: null, sampleSize: 0 },
     });
     const out = computeQualityScore(input);
-    // price_vs_comparables (25) is skipped → effective weight = 75/100 = 0.75
+    // price_vs_comparables (25) is skipped, and arba_coherence (15) is parked,
+    // so the effective weight is 60/100.
     expect(out.effective_weight_ratio).toBeCloseTo(
-      (NOMINAL_TOTAL - SUBSCORE_WEIGHTS.price_vs_comparables) / NOMINAL_TOTAL,
+      (NOMINAL_TOTAL -
+        SUBSCORE_WEIGHTS.price_vs_comparables -
+        SUBSCORE_WEIGHTS.arba_coherence) /
+        NOMINAL_TOTAL,
       2,
     );
     expect(out.insufficient_data).toBe(false);

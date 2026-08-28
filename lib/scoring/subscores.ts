@@ -182,10 +182,50 @@ export function documentationSubScore(input: ScoringInput): SubScore {
 // Skipped silently when we can't cross-check. When we can, banded by diff %.
 // ---------------------------------------------------------------------------
 
+/**
+ * Parked on purpose (28-ago-2026). The comparison is not measuring what its
+ * name says.
+ *
+ * `surface_arba` is the area of the cadastral PARCEL. The declared surface is
+ * the built area, or the unit in a building. Those are different things
+ * almost everywhere, so the "diff" this scored was usually not an
+ * incoherence at all — it was a flat on a lot:
+ *
+ *   departamento  95 of 120 with both surfaces "failed" (79%)
+ *   ph            20 of  40                              (50%)
+ *   casa          59 of 128                              (46%)
+ *
+ * Belgrano 1287 made it concrete: 40 m² declared against a 239 m² parcel
+ * scored 20/100 and cost each unit about 10 points of final score, for
+ * being an apartment.
+ *
+ * Same class of error as Fase 12, where USD/m² divided by the parcel — this
+ * is the sub-score nobody re-checked afterwards.
+ *
+ * Left as `confidence: 0` rather than deleted: the score already knows how to
+ * renormalise around a sub-score with no data, the banding below stays intact
+ * for when the comparison is rebuilt against the right denominator, and the
+ * reason string surfaces in the breakdown sheet so it is visible rather than
+ * silently missing.
+ */
+const ARBA_COHERENCE_PARKED = true;
+
 export function arbaCoherenceSubScore(input: ScoringInput): SubScore {
   const declared = input.property.surface_total ?? input.property.surface_covered ?? null;
   const arba = input.property.surface_arba ?? null;
   const weight = SUBSCORE_WEIGHTS.arba_coherence;
+
+  if (ARBA_COHERENCE_PARKED) {
+    return {
+      id: "arba_coherence",
+      value: 0,
+      weight,
+      confidence: 0,
+      reason:
+        "En revisión: la superficie de ARBA es la de la parcela, no la de la unidad",
+      details: { declared, arba },
+    };
+  }
 
   if (declared === null && arba === null) {
     return {

@@ -124,7 +124,31 @@ describe("documentationSubScore", () => {
 // arba_coherence
 // ---------------------------------------------------------------------------
 
-describe("arbaCoherenceSubScore", () => {
+describe("arbaCoherenceSubScore — parked", () => {
+  // The comparison is parked (see ARBA_COHERENCE_PARKED): surface_arba is the
+  // parcel, the declared surface is the unit or the built area, and comparing
+  // them scored 79% of departamentos as incoherent for being departamentos.
+  it("contributes nothing while parked, whatever the surfaces say", () => {
+    for (const [total, arba] of [[100, 98], [40, 239], [100, null], [null, 50]] as const) {
+      const s = arbaCoherenceSubScore(
+        makeInput({ property: makeProperty({ surface_total: total, surface_arba: arba }) }),
+      );
+      expect(s.confidence, `${total} vs ${arba}`).toBe(0);
+    }
+  });
+
+  it("says why, so the breakdown shows it parked and not merely absent", () => {
+    const s = arbaCoherenceSubScore(
+      makeInput({ property: makeProperty({ surface_total: 40, surface_arba: 239 }) }),
+    );
+    expect(s.reason).toContain("parcela");
+  });
+});
+
+// The banding below is the spec to restore when the comparison is rebuilt
+// against the right denominator. Kept, not deleted — flip ARBA_COHERENCE_PARKED
+// and this suite is the acceptance test.
+describe.skip("arbaCoherenceSubScore — banding (en revisión)", () => {
   it("scores 100 when declared and ARBA match within 10%", () => {
     const s = arbaCoherenceSubScore(
       makeInput({ property: makeProperty({ surface_total: 100, surface_arba: 98 }) }),
