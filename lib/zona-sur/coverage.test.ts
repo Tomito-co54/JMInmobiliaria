@@ -3,8 +3,8 @@ import { COVERAGE_AREA, COVERAGE_LABEL } from "./coverage";
 import { isInside, boundsOfPoints } from "@/lib/market/geo";
 
 describe("COVERAGE_AREA", () => {
-  it("is the hexagon the diagram expects", () => {
-    expect(COVERAGE_AREA).toHaveLength(6);
+  it("is the heptagon the diagram expects", () => {
+    expect(COVERAGE_AREA).toHaveLength(7);
   });
 
   it("covers the places its own caption names", () => {

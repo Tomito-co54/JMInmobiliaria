@@ -76,6 +76,127 @@ export function zoomForSpan(
 }
 
 /**
+ * Tile source for every map in the app, and the account it may need.
+ *
+ * OpenStreetMap's own servers are the fallback, not the plan. They are
+ * volunteer-run and their usage policy forbids exactly what this is — a
+ * site handing their tiles to its visitors — and they enforce it: past some
+ * rate they answer **HTTP 200 with a PNG that reads "Access blocked"**.
+ * That is worth stating plainly, because it defeats every check short of
+ * looking at the pixels, and it is the second provider in a row to do it
+ * (CARTO stamps "API KEY REQUIRED" the same way, also at 200).
+ *
+ * So the real answer is a provider with an account. Set
+ * `NEXT_PUBLIC_BASEMAP_URL` to its tile template — CARTO and MapTiler both
+ * have a free tier, both use this same tile scheme, and the key in the URL
+ * is meant to be public for browser-side maps. Until that is set, the maps
+ * run on OSM's goodwill and can go blank without an error anywhere.
+ */
+const OSM_FALLBACK_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+export const BASEMAP_URL =
+  process.env.NEXT_PUBLIC_BASEMAP_URL?.trim() || OSM_FALLBACK_URL;
+
+/**
+ * The credit line a tile URL obliges us to show.
+ *
+ * Every one of these providers redraws OpenStreetMap data, so OSM is always
+ * credited; the provider is added when we can tell who it is. Derived from
+ * the URL rather than configured separately so swapping providers cannot
+ * leave the wrong name under the map.
+ */
+export function attributionFor(url: string): string {
+  const osm = "© OpenStreetMap";
+  if (/cartocdn.com/i.test(url)) return `${osm} · © CARTO`;
+  if (/maptiler.com/i.test(url)) return `${osm} · © MapTiler`;
+  if (/stadiamaps.com/i.test(url)) return `${osm} · © Stadia Maps`;
+  return osm;
+}
+
+/** Credit line the tile licence requires alongside the map. */
+export const BASEMAP_ATTRIBUTION = attributionFor(BASEMAP_URL);
+
+/**
+ * Device pixels we want per tile of ground.
+ *
+ * The box renders wider than its 206 projection pixels — on a phone the
+ * tiles land at roughly 1.7x, and again at the screen's own 2x or 3x — so a
+ * tile taken at face value arrives visibly soft, which reads as sloppiness
+ * on the one block whose job is looking exact. Doubling is where the
+ * returns flatten.
+ */
+const TARGET_TILE_PIXELS = 512;
+
+/**
+ * How many pixels a provider's tile actually has.
+ *
+ * Not cosmetic bookkeeping: MapTiler serves 512-pixel tiles covering the
+ * same ground as everyone else's 256, so with it the doubling is already
+ * paid for. OSM serves 256 and it is not.
+ */
+export function nativeTilePixelsFor(url: string): number {
+  return /maptiler.com/i.test(url) ? 512 : TILE_SIZE;
+}
+
+export const BASEMAP_TILE_PIXELS = nativeTilePixelsFor(BASEMAP_URL);
+
+/**
+ * How many times deeper to take the ground, and shrink it back down.
+ *
+ * The second half of `TARGET_TILE_PIXELS`, for providers that don't hand it
+ * over directly: take zoom+1 into a box of twice the pixels and draw it at
+ * half size. Four times the detail — and, as a side effect that turns out to
+ * matter more, every label rendered at half its usual size, which puts a
+ * general-purpose basemap back underneath the overlay where it belongs
+ * instead of competing with it.
+ *
+ * It costs tiles. The home's view goes from two to six, and z11 over dense
+ * Buenos Aires is much heavier than z10: around 180 kB against 14 kB on OSM.
+ * A provider with native 512-pixel tiles gets both benefits at 1, which is
+ * most of why configuring one is worth the account.
+ */
+export const BASEMAP_SUPERSAMPLE = Math.max(
+  1,
+  Math.round(TARGET_TILE_PIXELS / BASEMAP_TILE_PIXELS),
+);
+
+/** A tile with its position already expressed as CSS percentages. */
+export interface PlacedTile {
+  url: string;
+  left: string;
+  top: string;
+  width: string;
+  height: string;
+}
+
+/**
+ * The ground for a drawing box, ready to drop straight into CSS.
+ *
+ * Percentages rather than pixels so whatever renders these needs to know
+ * nothing about the supersample factor or the box's pixel size: the tiles
+ * scale with the width the box actually gets, without a resize listener.
+ */
+export function placedTilesForBox(
+  center: LatLng,
+  zoom: number,
+  box: { width: number; height: number },
+  supersample = BASEMAP_SUPERSAMPLE,
+  urlTemplate = BASEMAP_URL,
+): PlacedTile[] {
+  const width = box.width * supersample;
+  const height = box.height * supersample;
+  const { tiles } = tilesForView(center, zoom, width, height, urlTemplate);
+  const pct = (n: number) => `${(n * 100).toFixed(4)}%`;
+  return tiles.map((t) => ({
+    url: t.url,
+    left: pct(t.left / width),
+    top: pct(t.top / height),
+    width: pct(TILE_SIZE / width),
+    height: pct(TILE_SIZE / height),
+  }));
+}
+
+/**
  * The tiles covering a box of `width`×`height` pixels centred on a point,
  * each with the pixel offset it should be drawn at.
  *
@@ -87,13 +208,7 @@ export function tilesForView(
   zoom: number,
   width: number,
   height: number,
-  // OSM standard. Worth knowing before tuning opacity again: it is a
-  // NAVIGATION map, with type weighted to be read on its own, which is why
-  // it keeps overpowering anything drawn on top of it. If the home block
-  // still fights its basemap, the answer is probably a light style built to
-  // sit under data — CartoDB Positron uses this same tile scheme, so only
-  // this string changes.
-  urlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  urlTemplate = BASEMAP_URL,
 ): { tiles: (TileRef & { left: number; top: number })[]; zoom: number } {
   const c = pointToTile(center, zoom);
   const n = 2 ** zoom;

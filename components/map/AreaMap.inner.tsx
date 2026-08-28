@@ -12,6 +12,7 @@ import {
 } from "react-leaflet";
 import type { LeafletMouseEvent } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { BASEMAP_URL, BASEMAP_ATTRIBUTION } from "@/lib/map/tiles";
 import {
   boundsFromCorners,
   boundsDiagonalMeters,
@@ -174,10 +175,10 @@ export default function AreaMapInner({
       scrollWheelZoom
       className="h-full w-full rounded-lg z-0"
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      {/* Same source as every other map in the app, so a provider swap
+          is one env var and not a hunt through three components. Leaflet is
+          fine with a template that has no {s} subdomain placeholder. */}
+      <TileLayer attribution={BASEMAP_ATTRIBUTION} url={BASEMAP_URL} />
 
       <FitToPoints points={points} />
       <SelectionLayer selecting={selecting} onSelectionChange={onSelectionChange} />

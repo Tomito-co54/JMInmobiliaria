@@ -2,10 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { COVERAGE_AREA, COVERAGE_LABEL } from "@/lib/zona-sur/coverage";
 import {
   zoomForSpan,
-  tilesForView,
+  placedTilesForBox,
   projectToView,
   PARCEL_BOX,
   PARCEL_VIEW_FACTOR,
+  BASEMAP_SUPERSAMPLE,
 } from "@/lib/map/tiles";
 import {
   PUBLIC_LISTING_STATUS,
@@ -98,7 +99,7 @@ async function getGuaranteeStats(): Promise<{ arbaPct: number; score: number }> 
 }
 
 /**
- * The coverage area on real ground: the hexagon projected into the diagram's
+ * The coverage area on real ground: the outline projected into the diagram's
  * box, plus the tiles beneath it.
  *
  * Pure geometry, no database. It used to draw the featured property's own
@@ -126,22 +127,27 @@ function getCoverageView() {
       Math.cos((center.lat * Math.PI) / 180),
   );
 
+  // The ground is taken at supersample scale — a box of twice the pixels,
+  // one zoom deeper — and drawn at half size. See BASEMAP_SUPERSAMPLE.
+  const s = BASEMAP_SUPERSAMPLE;
   const zoom = zoomForSpan(
     center.lat,
     spanMeters * PARCEL_VIEW_FACTOR,
-    PARCEL_BOX.width,
+    PARCEL_BOX.width * s,
   );
-  const { tiles } = tilesForView(
-    center,
-    zoom,
-    PARCEL_BOX.width,
-    PARCEL_BOX.height,
-  );
+  const tiles = placedTilesForBox(center, zoom, PARCEL_BOX);
 
-  // Same projection as the tiles, so the hexagon sits on the towns it names.
+  // Same projection as the tiles, so the outline sits on the towns it names.
+  // Divided back down by `s` because the SVG's viewBox is the plain box.
   const points = COVERAGE_AREA.map((v) => {
-    const p = projectToView(v, center, zoom, PARCEL_BOX.width, PARCEL_BOX.height);
-    return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+    const p = projectToView(
+      v,
+      center,
+      zoom,
+      PARCEL_BOX.width * s,
+      PARCEL_BOX.height * s,
+    );
+    return `${(p.x / s).toFixed(1)},${(p.y / s).toFixed(1)}`;
   }).join(" ");
 
   return { points, tiles };

@@ -93,6 +93,13 @@
     --score-green: #16A34A;
     --score-gold: #D4A24C;
 
+    /* Match meter, perfect score. NOT part of the score bands above: at 100
+       every criterion is met, which is a different claim from "more green",
+       and the gold at 95+ already belongs to the Quality Score's trophy
+       tier. Reusing it would make two different measurements look like the
+       same badge. See MatchDemo in components/home/HomeGuaranteesClient. */
+    --match-perfect: var(--brand-navy);
+
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -151,6 +158,11 @@
     --brand-soft-tint-2: var(--brand-gold);
     --brand-circle-bg: var(--brand-gold);
     --brand-circle-fg: var(--brand-navy);
+
+    /* Same hue as the brand navy, raised in lightness. The navy itself is
+       23% light — on the slate surfaces it is nearly invisible, which is the
+       same reason --brand-heading flips to white here. */
+    --match-perfect: #8081DB;
 
     --background: #0D1017;            /* cold slate, near-black (page base) */
     --foreground: #FFFFFF;
