@@ -581,7 +581,27 @@ El público es una capa fina encima: cambian de dónde salen los puntos y
 qué hace la selección. Esperando inventario — con 2 fichas no se puede
 evaluar si está bien resuelto.
 
-**4. Superficie cubierta en el scraper**
+**4. Ponderar cubierto y descubierto en el precio** ← idea de Tomy, 28-ago
+
+Hoy el USD/m² divide por una sola superficie. Pero 40 m² cubiertos más 40
+de terraza no valen lo mismo que 80 cubiertos, y el mercado ya sabe cuánto
+menos: está en las 515 scrapeadas. La idea es **sacar de esa data el valor
+del m² cubierto y el del descubierto por separado** y ponderar con eso.
+
+Sirve para dos cosas distintas:
+
+- **Tasar** — dar un precio sugerido para una unidad propia a partir de su
+  mezcla de superficies, en vez de a ojo.
+- **Comparar** — que el Quality Score deje de premiar o castigar mal a una
+  propiedad con mucha expansión. Hoy `effectiveSurface` toma una sola
+  superficie y los comparables terminan mezclando peras con manzanas.
+
+El dato de entrada es el problema, y es exactamente el del punto 5:
+Zonaprop publica "superficie total" en el listado y el desglose
+cubierto/descubierto solo en la ficha individual. Sin ese desglose no hay
+de dónde separar los dos m². **Este punto depende del 5.**
+
+**5. Superficie cubierta en el scraper**
 
 El USD/m² de casas mide el lote, no lo construido, porque Zonaprop
 publica "superficie total". Los avisos **sí** muestran cubiertos y
@@ -589,11 +609,11 @@ descubiertos, pero en la **ficha individual**, no en el listado. Sacarlo
 son 251 pedidos extra por corrida contra un techo de ~9. Bloqueado por
 el mismo límite que el scraping, no por falta de código.
 
-**5. Dominio propio + verificación en Resend**
+**6. Dominio propio + verificación en Resend**
 
 Necesario recién cuando se encienda el informe ARBA pago. Hoy no bloquea.
 
-**6. Automatizar el pipeline**
+**7. Automatizar el pipeline**
 
 Tarea programada de Windows. Diferido a propósito por Tomy.
 
