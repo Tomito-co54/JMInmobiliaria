@@ -69,7 +69,9 @@ describe("parseImportPayload", () => {
   });
 
   it("warns, but allows, a draft with no photos or partida", () => {
-    const { partida: _p, photos: _f, ...rest } = VALID;
+    const rest = { ...VALID } as Partial<typeof VALID>;
+    delete rest.partida;
+    delete rest.photos;
     const r = parseImportPayload(rest);
     expect(r.ok).toBe(true);
     expect(r.warnings.join(" ")).toContain("fotos");
