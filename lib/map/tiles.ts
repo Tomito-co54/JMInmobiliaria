@@ -76,6 +76,46 @@ export function zoomForSpan(
 }
 
 /**
+ * Basemap for the still maps this module draws.
+ *
+ * CartoDB Voyager, not OSM standard, and the reason is not taste. OSM
+ * standard is a NAVIGATION map: its type is weighted to be read on its own,
+ * so the town names end up the darkest ink in the frame and beat anything
+ * drawn on top. Two rounds of tuning opacity on the home block only moved
+ * the problem around — first the map went to grey pulp, then it came back
+ * and won. CARTO's styles are built to sit *under* data, and Voyager is the
+ * one that keeps some ground colour — the green of the parks, the ochre of
+ * the avenues — so the block reads as a real place rather than a diagram.
+ * Same tile scheme, so only this string changes.
+ *
+ * `@2x` because the box is drawn wider than its 206 projection pixels — on
+ * a phone the tiles land at roughly 1.7x, and again at the screen's own 2x
+ * or 3x. A standard tile stretched that far is mush, which reads as
+ * sloppiness on the one block whose whole job is looking exact. The double
+ * resolution costs ~89 kB instead of ~35 kB for this view, and it is spent
+ * on the devices that actually have the pixels to show it.
+ *
+ * Whoever renders these has to show `BASEMAP_ATTRIBUTION` — both licences
+ * require it.
+ */
+export const BASEMAP_URL =
+  "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png";
+
+/**
+ * Intrinsic pixels of a basemap image, which is NOT `TILE_SIZE`.
+ *
+ * `TILE_SIZE` is projection geometry — how much ground a tile covers, and
+ * the unit every offset from `tilesForView` is expressed in. This is how
+ * many pixels the file actually has. Retina tiles double the second without
+ * touching the first, so an `<img>` wants this for its intrinsic size and
+ * `TILE_SIZE` for where to sit.
+ */
+export const BASEMAP_TILE_PIXELS = TILE_SIZE * 2;
+
+/** Credit line the tile licences require alongside the map. */
+export const BASEMAP_ATTRIBUTION = "© OpenStreetMap · © CARTO";
+
+/**
  * The tiles covering a box of `width`×`height` pixels centred on a point,
  * each with the pixel offset it should be drawn at.
  *
@@ -87,13 +127,7 @@ export function tilesForView(
   zoom: number,
   width: number,
   height: number,
-  // OSM standard. Worth knowing before tuning opacity again: it is a
-  // NAVIGATION map, with type weighted to be read on its own, which is why
-  // it keeps overpowering anything drawn on top of it. If the home block
-  // still fights its basemap, the answer is probably a light style built to
-  // sit under data — CartoDB Positron uses this same tile scheme, so only
-  // this string changes.
-  urlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  urlTemplate = BASEMAP_URL,
 ): { tiles: (TileRef & { left: number; top: number })[]; zoom: number } {
   const c = pointToTile(center, zoom);
   const n = 2 ** zoom;

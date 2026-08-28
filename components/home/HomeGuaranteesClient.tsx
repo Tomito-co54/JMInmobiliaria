@@ -11,7 +11,12 @@ import {
 } from "@/hooks/use-in-view";
 import { getScoreBand, interpolateRingColor } from "@/lib/scoring/bands";
 import { cn } from "@/lib/utils";
-import { PARCEL_BOX } from "@/lib/map/tiles";
+import {
+  PARCEL_BOX,
+  TILE_SIZE,
+  BASEMAP_ATTRIBUTION,
+  BASEMAP_TILE_PIXELS,
+} from "@/lib/map/tiles";
 
 /**
  * Client visuals for the home guarantees section (Block 4 del rediseño).
@@ -136,27 +141,32 @@ export function AreaOutlineViz({
               "radial-gradient(ellipse 72% 72% at 50% 50%, #000 45%, transparent 100%)",
           }}
         >
-          {/* Held back, not drained. Full grayscale at half opacity turned
-              the map into flat grey pulp — legible but dead, and it made the
-              whole block look faded rather than layered. Keeping a little of
-              the map's own colour (the green of the parks, the ochre of the
-              avenues) at higher opacity reads as a real map seen through
-              paper, which is the register this section wants. */}
-          <div className="absolute inset-0 grayscale-[0.55] opacity-[0.78] contrast-[0.95] saturate-[0.9] dark:opacity-[0.4] dark:invert dark:hue-rotate-180">
+          {/* Barely filtered, on purpose. The two earlier rounds fought the
+              basemap with CSS — full grayscale went to grey pulp, then
+              partial desaturation brought it back and it won the frame — and
+              both were treating a symptom. The basemap itself is the fix
+              (CARTO Voyager, see BASEMAP_URL): it is drawn to sit under a
+              data layer, so its type is already held back. What is left
+              here is a touch of contrast off the labels, and the dark-mode
+              inversion. */}
+          <div className="absolute inset-0 opacity-[0.92] contrast-[0.88] dark:opacity-[0.5] dark:invert dark:hue-rotate-180">
             {tiles.map((t) => (
               <Image
                 key={t.url}
                 src={t.url}
                 alt=""
-                width={256}
-                height={256}
+                width={BASEMAP_TILE_PIXELS}
+                height={BASEMAP_TILE_PIXELS}
                 unoptimized
                 className="absolute max-w-none"
                 style={{
                   left: `${(t.left / PARCEL_BOX.width) * 100}%`,
                   top: `${(t.top / PARCEL_BOX.height) * 100}%`,
-                  width: `${(256 / PARCEL_BOX.width) * 100}%`,
-                  height: `${(256 / PARCEL_BOX.height) * 100}%`,
+                  // TILE_SIZE, not the image's own pixel count: a retina
+                  // tile has twice the pixels but still covers one tile of
+                  // ground, and this is the ground measurement.
+                  width: `${(TILE_SIZE / PARCEL_BOX.width) * 100}%`,
+                  height: `${(TILE_SIZE / PARCEL_BOX.height) * 100}%`,
                 }}
               />
             ))}
@@ -269,6 +279,22 @@ export function AreaOutlineViz({
           }}
         >
           {caption}
+        </p>
+      )}
+
+      {/* Tile credit. Not optional decoration: both the OSM data licence and
+          CARTO's terms require it wherever their tiles are shown. Leaflet
+          prints its own on the other maps in the app; this block draws the
+          tiles by hand, so it has to print its own too. */}
+      {hasMap && (
+        <p
+          className="mt-1.5 text-center text-[0.55rem] tracking-wide text-muted-foreground/60 transition-opacity duration-500"
+          style={{
+            opacity: inView ? 1 : 0,
+            transitionDelay: inView ? "2300ms" : "0ms",
+          }}
+        >
+          {BASEMAP_ATTRIBUTION}
         </p>
       )}
     </div>

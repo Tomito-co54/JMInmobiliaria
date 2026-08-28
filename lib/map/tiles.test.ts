@@ -7,6 +7,9 @@ import {
   projectToView,
   TILE_SIZE,
   PARCEL_VIEW_FACTOR,
+  BASEMAP_URL,
+  BASEMAP_ATTRIBUTION,
+  BASEMAP_TILE_PIXELS,
 } from "./tiles";
 
 /** Belgrano 1285, Lomas de Zamora — the featured property's parcel. */
@@ -86,11 +89,36 @@ describe("tilesForView", () => {
     expect(Math.min(...tiles.map((t) => t.left))).toBeLessThanOrEqual(0);
   });
 
-  it("builds a real OSM url", () => {
+  it("builds a real basemap url with every placeholder filled", () => {
     const { tiles } = tilesForView(LOMAS, 18, 256, 256);
     const t = tiles[0];
-    expect(t.url).toBe(`https://tile.openstreetmap.org/${t.z}/${t.x}/${t.y}.png`);
+    expect(t.url).toBe(
+      BASEMAP_URL.replace("{z}", String(t.z))
+        .replace("{x}", String(t.x))
+        .replace("{y}", String(t.y)),
+    );
     expect(t.url).not.toContain("{");
+  });
+
+  // A CARTO style over OSM standard is the fix for the home block's basemap
+  // fighting the polygon drawn on it (see BASEMAP_URL). Pinned because
+  // reverting it silently would bring the problem back looking like a
+  // styling regression.
+  it("defaults to a basemap made to sit under data", () => {
+    expect(BASEMAP_URL).toContain("basemaps.cartocdn.com");
+    expect(BASEMAP_URL).toContain("voyager");
+  });
+
+  // The box is drawn wider than its projection pixels and then again by the
+  // screen's own ratio, so a standard tile arrives visibly soft.
+  it("asks for retina tiles", () => {
+    expect(BASEMAP_URL).toContain("@2x");
+    expect(BASEMAP_TILE_PIXELS).toBe(TILE_SIZE * 2);
+  });
+
+  it("credits both tile licences", () => {
+    expect(BASEMAP_ATTRIBUTION).toContain("OpenStreetMap");
+    expect(BASEMAP_ATTRIBUTION).toContain("CARTO");
   });
 
   it("keeps tile indices inside the grid", () => {
