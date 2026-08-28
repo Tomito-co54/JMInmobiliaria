@@ -618,6 +618,20 @@ Sirve para dos cosas distintas:
   propiedad con mucha expansión. Hoy `effectiveSurface` toma una sola
   superficie y los comparables terminan mezclando peras con manzanas.
 
+**Ya tiene un caso concreto en el catálogo propio.** Belgrano 1287, las
+cuatro unidades del mismo edificio, cargadas el 28-ago:
+
+| Unidad | Total | Cubierta | USD/m² | Score |
+|---|---|---|---|---|
+| 1°A · 1°B | 40 | 40 | **2.000** | 69 · 65 |
+| 2°A · 2°B | 80 | 40 | **1.200** | **77** |
+
+Las de arriba son la misma planta con una terraza de 40 m² encima. Cuestan
+USD 16.000 más y aparecen **40% más baratas por metro**. Y el Quality Score
+les da 77 contra 69 y 65, en buena parte porque el sub-score de precio lee
+esos USD 1.200/m² como una ganga contra los comparables. La terraza puntúa
+dos veces: una como superficie y otra como precio por metro.
+
 El dato de entrada es el problema, y es exactamente el del punto 6:
 Zonaprop publica "superficie total" en el listado y el desglose
 cubierto/descubierto solo en la ficha individual. Sin ese desglose no hay
