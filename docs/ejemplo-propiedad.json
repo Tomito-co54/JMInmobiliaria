@@ -1,0 +1,26 @@
+{
+  "address": "Belgrano 1290",
+  "partido": "Lomas de Zamora",
+  "partida": "063-47850-2",
+
+  "property_type": "casa",
+  "operation_type": "venta",
+  "price_amount": 85000,
+  "price_currency": "USD",
+
+  "surface_total": 180,
+  "surface_covered": 120,
+  "rooms": 4,
+  "bedrooms": 3,
+  "bathrooms": 2,
+  "garages": 1,
+
+  "description": "Casa en lote propio a tres cuadras de la estación. Living comedor con salida a patio, cocina independiente, tres dormitorios y dos baños completos. Cochera cubierta para un auto.",
+
+  "photos": [
+    "C:/Users/tomit/Pictures/belgrano-1290/frente.jpg",
+    "C:/Users/tomit/Pictures/belgrano-1290/living.jpg"
+  ],
+
+  "is_featured": false
+}
