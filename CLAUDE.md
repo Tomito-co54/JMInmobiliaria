@@ -63,10 +63,14 @@ auto-deploy desde `main`. **304 tests passing**, `npm run build` verde,
 
 Los mapas quedaron cerrados: el bloque de cobertura de la home dejó de
 pelearse con su basemap y el sitio pasó a tener **proveedor de tiles
-propio** (MapTiler). Lo que queda es de contenido:
+propio** (MapTiler). Y las propiedades ahora se pueden cargar **sin
+navegador**, desde un JSON (`npm run cargar-propiedad`), así Claude puede
+armarlas a partir de una descripción y una carpeta de fotos. Lo que queda
+es de contenido:
 
-1. **El catálogo tiene 2 propiedades publicadas.** El cargador funciona;
-   es la razón de ser del sitio y no depende de nada técnico.
+1. **El catálogo tiene 2 propiedades publicadas.** Hay dos caminos para
+   cargar y los dos funcionan —el formulario de `/admin` y el CLI—; es la
+   razón de ser del sitio y no depende de nada técnico.
 2. **El scraping corre a mano, no automático.** Zonaprop bloquea los
    runners de GitHub Actions, así que el pipeline vive en la PC de Tomy:
    `npm run pipeline`, entre 2 y 8 minutos. Automatizarlo con el
@@ -100,9 +104,10 @@ los avisos de la semana pasada ya no están en el portal.
 | Fase 15 — Navegación y tema | Toggle claro/oscuro en las seis cabeceras. No había forma de llegar a `/admin` clickeando: el CTA de la home iba a `/dashboard` y el menú listaba rutas legacy del portal de compradores. Dos logos que no volvían a la landing. | `0ef4681` `fe2ac1c` |
 | Fase 16 — Mapas de verdad | El bloque de verificación de la home dibujaba un hexágono **inventado** (`"a believable parcel"`) al lado de un texto que promete "el polígono exacto de la parcela". Se reemplazó por la **zona de cobertura** sobre tiles reales de OSM: Lanús · Banfield · Lomas · Temperley, con los nombres de las localidades haciendo de etiqueta. `lib/map/tiles.ts` hace la aritmética de tiles sin Leaflet (~45 kB que no se pagan en la landing) y `projectToView` garantiza que polígono y mapa compartan proyección — en una versión intermedia no la compartían y la parcela aparecía cruzando una avenida. `lib/zona-sur/coverage.ts` + tests que verifican que el hexágono realmente contenga las localidades que nombra. | `086a284` `c651888` `8488028` `d92c899` |
 | Fase 17 — El mapa tiene proveedor | Dos basemaps elegidos y descartados en un día, los dos por el mismo motivo: **devuelven HTTP 200 con la imagen de rechazo adentro**. CARTO estampa "API KEY REQUIRED" en diagonal; OSM, "Access blocked". Ninguna falla — las dos entregan un PNG del tamaño esperado, y solo se ven mirando los píxeles. Lo de OSM además era inevitable: sus servidores son de voluntarios y su política prohíbe exactamente esto, y no era solo la home (`/p/[id]` y `/admin/mercado/mapa` le pegaban directo). Ahora el basemap sale de `NEXT_PUBLIC_BASEMAP_URL` — MapTiler, estilo `landscape`, key con origins cerrados — y la atribución se deduce de la URL, que es un término de licencia y no un pie de foto. Aparecieron además dos bugs que los efectos visuales tapaban: **el mapa pintaba encima del polígono** (`absolute` sobre estático gana sin importar el DOM — todas las rondas anteriores de "el basemap le gana al hexágono" peleaban contra esto), y el marco cubría también el caption. Heptágono de 7 vértices, bordes nítidos con esquinas apenas redondeadas, match al 100 en azul de marca. | `45f9deb` `989be65` `ea712d5` (merge) |
+| Fase 18 — Cargar sin navegador | `scripts/create-property.ts` + `lib/admin/property-import.ts`: una propiedad propia se carga desde un JSON, para que Claude la arme a partir de una descripción y una carpeta de fotos. Reutiliza las piezas del cargador web (schemas de Zod, ARBA por partida, Storage, scorer) — las Server Actions detrás de las que viven solo agregan el chequeo de sesión. Siempre entra como `borrador`; publicar es opt-in y pasa igual por `canPublishProperty`. Dos guardas contra la falla silenciosa, que es el riesgo propio de cargar desde archivo: **campo desconocido es error** (un `precio` en vez de `price_amount` dejaría la ficha sin precio y la corrida diría que salió bien) y **valor impuntable es error** (el schema de borrador nulifica lo que no entiende a propósito, porque el form guarda fichas a medias todo el tiempo — pero un archivo que *dice* "ochenta mil" está afirmando algo). | `e1b0ddd` `349e907` |
 
-**Tests:** 304 passing (176 al cierre de Fase 1.B → 216 tras la fase 9 →
-275 tras las fases 10-15 → 300 tras la 16 → 304 tras la 17).
+**Tests:** 316 passing (176 al cierre de Fase 1.B → 216 tras la fase 9 →
+275 tras las fases 10-15 → 300 tras la 16 → 304 tras la 17 → 316 tras la 18).
 
 **Build:** `npm run build` verde. 37 rutas, First Load JS shared 183 kB.
 3 warnings menores de `@typescript-eslint/no-unused-vars` que no bloquean
@@ -183,6 +188,15 @@ correcto — no sabemos nada de las páginas que no abrimos.
 
 Automatizarlo con el programador de tareas de Windows está **diferido a
 propósito**. Mientras tanto, recordarle correr el comando.
+
+**Si el pipeline muere en la primera línea con `browserType.launch:
+Executable doesn't exist`**, no es el scraper: Playwright se instala como
+paquete de npm pero los navegadores se bajan aparte, y cuando la versión
+sube (la 1.60 pide el build `1223`) hay que volver a bajarlos.
+
+```bash
+npx playwright install
+```
 
 ### Integridad de la data de mercado
 
@@ -393,6 +407,8 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   ├── validators/               # Zod schemas — auth, property, etc.
 │   ├── auth/                     # ← copy de errores de auth (puro, testeable)
 │   │                             #   callback-errors.ts + password-reset-errors.ts
+│   ├── admin/                    # ← property-import.ts: parseo y validacion
+│   │                             #   del JSON del cargador CLI (puro, testeable)
 │   ├── storage/                  # property-photos.ts (upload/delete helpers)
 │   ├── zona-sur/                 # partidos + arbaCode mapping
 │   ├── education/                # guía de compra contenido (legacy)
@@ -409,8 +425,11 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   ├── migrations/               # 00001..00015 (00011+ son del fork)
 │   ├── seed.sql
 │   └── reset.sql
-├── scripts/                      # CLIs: scrape, dedup, geocode, ARBA, score, alerts, db-run
-├── docs/                         # PLAN_MAESTRO, PLAYBOOK_PROMPTS, ARCHITECTURE, TESTING_BLOCK_7
+├── scripts/                      # CLIs: scrape, dedup, geocode, ARBA, score, alerts,
+│                                 #   db-run, db-query, create-property
+├── docs/                         # PLAN_MAESTRO, PLAYBOOK_PROMPTS, ARCHITECTURE,
+│                                 #   TESTING_BLOCK_7, MIGRATION,
+│                                 #   ejemplo-propiedad.json (plantilla del cargador CLI)
 └── CLAUDE.md
 ```
 
@@ -521,8 +540,16 @@ Detalles de cada fase en **Current progress** más arriba.
 
 **1. Cargar propiedades reales** ← lo único que separa al sitio de lanzar
 
-Vía `/admin/properties/nueva`. Hay 2 publicadas. No depende de nada
-técnico: el cargador funciona, ARBA responde, el mapa dibuja la parcela.
+Hay 2 publicadas. No depende de nada técnico: los dos cargadores funcionan,
+ARBA responde, el mapa dibuja la parcela. Dos caminos:
+
+- **Formulario:** `/admin/properties/nueva`, single-screen con fotos
+  drag&drop y autosave por sección.
+- **Desde un JSON:** `npm run cargar-propiedad -- ficha.json [--dry-run]`
+  (`docs/ejemplo-propiedad.json` es la plantilla). Pensado para que Claude
+  arme la ficha a partir de una descripción hablada y una carpeta de fotos:
+  redacta la descripción, valida, consulta ARBA, sube las fotos y scorea.
+  Lo único que no puede inventar son las fotos.
 
 **2. Correr `npm run pipeline` seguido**
 
@@ -705,7 +732,15 @@ código nuestro (`lib/services/email/`).
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-DATABASE_URL=                        # transaction pooler — para migrations via CLI
+DATABASE_URL=                        # transaction pooler — migrations (db-run) y
+                                     # consultas (db-query). Supabase muestra esta
+                                     # password UNA sola vez; si se pierde, la única
+                                     # salida es resetearla en Settings → Database
+                                     # (pasó el 28-ago). Que el pooler conteste
+                                     # "password authentication failed for user
+                                     # postgres" con el usuario postgres.<ref> bien
+                                     # escrito significa que encontró el proyecto y
+                                     # rechazó la clave: es la password, no la URL.
 SUPABASE_MANAGEMENT_TOKEN=           # NEVER cat/echo — solo shell substitution
 
 # Mercado Pago (legacy del upstream, sigue activo)
@@ -763,6 +798,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.6 | Aug 28, 2026 | **Cargar propiedades sin abrir el navegador.** `npm run cargar-propiedad -- ficha.json` hace lo mismo que `/admin/properties/nueva` desde un JSON, reutilizando las piezas del cargador web en vez de reimplementarlas. La idea es que Claude arme la ficha a partir de una descripción y una carpeta de fotos. Entra siempre como borrador y publicar sigue pasando por `canPublishProperty`. Las dos guardas que tiene salieron de pensar cuál es el riesgo propio de cargar desde archivo y no desde un form: la falla no es que explote, es que **salga bien y quede mal** — un `precio` en vez de `price_amount`, o un `"ochenta mil"` que el schema de borrador nulifica en silencio. Las dos ahora son error. Aparte, se documentan dos cosas que costaron esta sesión: el pipeline muere con `Executable doesn't exist` cuando sube la versión de Playwright y hay que correr `npx playwright install`, y la password de `DATABASE_URL` se resetea porque Supabase no la vuelve a mostrar nunca. **304 → 316 tests.** |
 | 2.5 | Aug 28, 2026 | **El mapa ya no es prestado, y tres bugs salieron de atrás de los efectos.** El bloque de cobertura cambió de basemap dos veces en un día y las dos fueron descartadas por el mismo motivo, que vale documentar: **CARTO y OSM devuelven HTTP 200 con la imagen de rechazo adentro** —"API KEY REQUIRED" estampada en diagonal, "Access blocked"— así que verificar por status o por peso no alcanza; hay que mirar los píxeles. Lo de OSM era además inevitable: son servidores de voluntarios cuya política prohíbe justamente esto, y no era solo la home, `/p/[id]` y el mapa de mercado le pegaban directo. Ahora hay proveedor propio (MapTiler, `landscape`, origins cerrados) detrás de `NEXT_PUBLIC_BASEMAP_URL`, una variable para los tres mapas, con la atribución deducida de la URL. Y apareció lo que probablemente explicaba **todas** las rondas anteriores de "el basemap le gana al hexágono": **el mapa pintaba encima del polígono** —`absolute` sobre estático gana sin importar el orden del DOM— y el marco cubría también el caption. El difuminado de bordes, que era otra curita del mismo problema, se reemplazó por esquinas apenas redondeadas. Heptágono de 7 vértices y match al 100 en azul de marca, vía un token propio y **sin** tocar el dorado del Quality Score, que comparten diez surfaces. **300 → 304 tests.** |
 | 2.4 | Aug 27, 2026 | **Mapas.** El bloque de verificación de la home dibujaba un hexágono inventado —el código lo llamaba `"a believable parcel"`— junto a un párrafo que promete el polígono exacto. Ahora muestra la zona de cobertura sobre tiles reales, con Lanús, Banfield y Temperley legibles debajo. Se escribió la aritmética de tiles a mano para no cargar Leaflet en la landing (~45 kB por un recuadro estático), y `projectToView` para que polígono y mapa compartan proyección: en una versión intermedia no la compartían y la parcela se dibujaba cruzando la Avenida Hipólito Yrigoyen. **275 → 300 tests.** Queda sin resolver el equilibrio visual entre el mapa y el hexágono — ver punto 3 del Build map. |
 | 2.3 | Aug 27, 2026 | **Seis fases en un día, y todas empezaron como un bug que parecía un dato.** El pipeline llevaba 90 corridas muertas (los forks no heredan secrets) y, una vez arreglado eso, seguía trayendo cero: Zonaprop rechaza el segundo pedido de cada sesión de navegador. Una sesión por página lo llevó de 25 a **251 avisos por corrida**. Después salieron a la luz tres números que mentían con cara de precisos: la desactivación inventaba bajas por un tope "(testing)" de 50 que nunca se sacó (317 falsas, limpiadas); el historial registraba bajas y no altas, dejando la detección de republicaciones ciega desde la base; y el USD/m² dividía por la superficie del **terreno** — 487 contra 2.024 en departamentos. El centro de datos pasó de un dashboard a tres pantallas (dashboard, cambios, mapa con selección por área). Y el polígono de ARBA, que es la evidencia visual de todo el pitch del sitio, **no se había dibujado nunca**: tres fallas encadenadas, la raíz una política de RLS. **216 → 275 tests**, 34 → 37 rutas, migraciones 00014 y 00015. |
