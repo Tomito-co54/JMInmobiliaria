@@ -57,13 +57,13 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status (27-ago-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **300 tests passing**, `npm run build` verde,
+**Status (28-ago-2026):** Deployado y funcionando en producción, con
+auto-deploy desde `main`. **304 tests passing**, `npm run build` verde,
 37 rutas.
 
-El pipeline de scraping **volvió a funcionar** después de tres meses
-muerto, y el centro de datos creció de un dashboard a tres pantallas.
-El único pendiente que queda es de contenido:
+Los mapas quedaron cerrados: el bloque de cobertura de la home dejó de
+pelearse con su basemap y el sitio pasó a tener **proveedor de tiles
+propio** (MapTiler). Lo que queda es de contenido:
 
 1. **El catálogo tiene 2 propiedades publicadas.** El cargador funciona;
    es la razón de ser del sitio y no depende de nada técnico.
@@ -99,9 +99,10 @@ los avisos de la semana pasada ya no están en el portal.
 | Fase 14 — El mapa muestra la parcela | El polígono de ARBA no se dibujó **nunca**, por tres fallas encadenadas: `arba_lookups` es admin-read y la página pública lee con clave anónima; la vía por partida traía la geometría y la descartaba; y la página buscaba el lookup solo por lat/lng, clave que las propiedades propias nunca tienen. Migración 00015 + `arba/geometry.ts` (centro de parcela, que además da coordenadas más precisas que geocodificar). | `af8bb69` |
 | Fase 15 — Navegación y tema | Toggle claro/oscuro en las seis cabeceras. No había forma de llegar a `/admin` clickeando: el CTA de la home iba a `/dashboard` y el menú listaba rutas legacy del portal de compradores. Dos logos que no volvían a la landing. | `0ef4681` `fe2ac1c` |
 | Fase 16 — Mapas de verdad | El bloque de verificación de la home dibujaba un hexágono **inventado** (`"a believable parcel"`) al lado de un texto que promete "el polígono exacto de la parcela". Se reemplazó por la **zona de cobertura** sobre tiles reales de OSM: Lanús · Banfield · Lomas · Temperley, con los nombres de las localidades haciendo de etiqueta. `lib/map/tiles.ts` hace la aritmética de tiles sin Leaflet (~45 kB que no se pagan en la landing) y `projectToView` garantiza que polígono y mapa compartan proyección — en una versión intermedia no la compartían y la parcela aparecía cruzando una avenida. `lib/zona-sur/coverage.ts` + tests que verifican que el hexágono realmente contenga las localidades que nombra. | `086a284` `c651888` `8488028` `d92c899` |
+| Fase 17 — El mapa tiene proveedor | Dos basemaps elegidos y descartados en un día, los dos por el mismo motivo: **devuelven HTTP 200 con la imagen de rechazo adentro**. CARTO estampa "API KEY REQUIRED" en diagonal; OSM, "Access blocked". Ninguna falla — las dos entregan un PNG del tamaño esperado, y solo se ven mirando los píxeles. Lo de OSM además era inevitable: sus servidores son de voluntarios y su política prohíbe exactamente esto, y no era solo la home (`/p/[id]` y `/admin/mercado/mapa` le pegaban directo). Ahora el basemap sale de `NEXT_PUBLIC_BASEMAP_URL` — MapTiler, estilo `landscape`, key con origins cerrados — y la atribución se deduce de la URL, que es un término de licencia y no un pie de foto. Aparecieron además dos bugs que los efectos visuales tapaban: **el mapa pintaba encima del polígono** (`absolute` sobre estático gana sin importar el DOM — todas las rondas anteriores de "el basemap le gana al hexágono" peleaban contra esto), y el marco cubría también el caption. Heptágono de 7 vértices, bordes nítidos con esquinas apenas redondeadas, match al 100 en azul de marca. | `45f9deb` `989be65` `ea712d5` (merge) |
 
-**Tests:** 300 passing (176 al cierre de Fase 1.B → 216 tras la fase 9 →
-275 tras las fases 10-15 → 300 tras la 16).
+**Tests:** 304 passing (176 al cierre de Fase 1.B → 216 tras la fase 9 →
+275 tras las fases 10-15 → 300 tras la 16 → 304 tras la 17).
 
 **Build:** `npm run build` verde. 37 rutas, First Load JS shared 183 kB.
 3 warnings menores de `@typescript-eslint/no-unused-vars` que no bloquean
@@ -201,6 +202,38 @@ en los tres casos era un número creíble, no un error:
   departamento es el lote del edificio entero. Mediana de departamentos:
   487 así, **2.024** con la superficie declarada.
 
+### El basemap tiene dueño (y contesta 200 cuando dice que no)
+
+Los tres mapas del sitio —bloque de cobertura de la home, `/p/[id]`,
+`/admin/mercado/mapa`— toman sus tiles de **una sola** variable:
+`NEXT_PUBLIC_BASEMAP_URL`. Hoy apunta a **MapTiler**, estilo `landscape`,
+con la key restringida por origin a `localhost` y al dominio de producción.
+
+Lo que hay que saber antes de tocarlo:
+
+- **Un proveedor que te rechaza igual te devuelve 200.** CARTO estampa
+  "API KEY REQUIRED" en diagonal sobre la tile; OSM devuelve una que dice
+  "Access blocked". Las dos son PNG del tamaño esperado. **Verificar un
+  cambio de basemap mirando el status o el peso no sirve: hay que mirar
+  los píxeles.**
+- **Los servidores de OSM no son una opción para este sitio.** Son de
+  voluntarios y su política de uso prohíbe exactamente esto — repartirle
+  sus tiles a los visitantes. Siguen como fallback si la variable no está
+  seteada, para que los mapas dibujen algo en dev, no como plan.
+- **La key es pública a propósito.** Viaja en la URL de cada tile, en el
+  navegador de cada visitante. No se puede ocultar; lo único que protege
+  la cuota es la lista de origins en el panel de MapTiler. Los deploys de
+  **preview** de Vercel usan subdominios distintos y por eso salen sin
+  mapas — es esperable, no un bug.
+- **La atribución se deduce de la URL** (`attributionFor`), así que cambiar
+  de proveedor no puede dejar el crédito equivocado abajo del mapa. Es un
+  término de licencia, no un pie de foto.
+- **Si se cambia de proveedor**, agregar su hostname a
+  `images.remotePatterns` en `next.config.ts`, y revisar
+  `nativeTilePixelsFor()`: MapTiler sirve tiles de 512px por el mismo
+  terreno que los 256 de todos los demás, y de eso depende si hace falta
+  el supersample (ver `BASEMAP_SUPERSAMPLE`).
+
 ---
 
 ## Tech Stack — Fixed Decisions
@@ -220,7 +253,10 @@ Same as upstream — no se cambia stack sin confirmación explícita.
 ### Services
 - **Payments:** Mercado Pago (legacy del upstream — servicios pagos)
 - **Email:** Resend (SMTP de Supabase Auth + emails transaccionales)
-- **Maps:** Leaflet + OpenStreetMap tiles (vista pública de propiedad)
+- **Maps:** Leaflet (`/p/[id]`, mapa de mercado) + aritmética de tiles propia
+  (`lib/map/tiles.ts`, bloque de la home). Las tiles las sirve **MapTiler**
+  vía `NEXT_PUBLIC_BASEMAP_URL` — ver **El basemap tiene dueño** en Current
+  progress
 - **Scraping:** Playwright (Zonaprop + Trezza, vivo, alimenta inteligencia de mercado)
 - **Cadastral data:** ARBA WFS GeoServer (público sin auth)
 - **Geocoding:** Nominatim / OSM (1 req/s, cacheado 90d)
@@ -474,6 +510,8 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 15. **Fase 13 — El centro de datos crece** ✅ 27-ago (cambios + mapa)
 16. **Fase 14 — El mapa muestra la parcela** ✅ 27-ago
 17. **Fase 15 — Navegación y tema** ✅ 27-ago
+18. **Fase 16 — Mapas de verdad** ✅ 27-ago (zona de cobertura sobre tiles)
+19. **Fase 17 — El mapa tiene proveedor** ✅ 28-ago (MapTiler + 2 bugs de pintado)
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -496,36 +534,14 @@ datos** para tener algo que mostrar:
   nada que detectar.
 - **Series temporales de USD/m²** — necesitan meses.
 
-**3. Terminar el mapa de cobertura de la home** ← visual, sin resolver
-
-Funciona y dice la verdad, pero **estéticamente no está.** Dos intentos y
-los dos fallaron por el mismo eje: el equilibrio entre el mapa y el
-hexágono.
-
-- Primer intento: `grayscale` completo al 50% → pulpa gris, muerta.
-- Segundo: 55% de desaturación al 78% → el mapa revivió pero **ahora
-  gana él**. Las etiquetas de OSM en zoom 10 (Avellaneda, Lanús Este,
-  Banfield) son lo más oscuro del cuadro y el hexágono queda de
-  acompañante.
-
-El problema de fondo no es la calibración: **el tile de OSM estándar es
-un mapa de navegación**, con jerarquía tipográfica pensada para leerse
-solo. La respuesta probable no es seguir moviendo opacidades sino cambiar
-de basemap — **CartoDB Positron** es un estilo claro y minimalista hecho
-exactamente para ir debajo de datos. Mismo esquema de tiles, así que
-`lib/map/tiles.ts` no cambia: es cambiar la URL template.
-
-Otras palancas si el basemap no alcanza: engrosar el trazo del hexágono,
-o meter un velo de papel entre mapa y polígono.
-
-**4. Mapa de búsqueda público**
+**3. Mapa de búsqueda público**
 
 `components/map/AreaMap` ya es agnóstico y está probado con 324 puntos.
 El público es una capa fina encima: cambian de dónde salen los puntos y
 qué hace la selección. Esperando inventario — con 2 fichas no se puede
 evaluar si está bien resuelto.
 
-**5. Superficie cubierta en el scraper**
+**4. Superficie cubierta en el scraper**
 
 El USD/m² de casas mide el lote, no lo construido, porque Zonaprop
 publica "superficie total". Los avisos **sí** muestran cubiertos y
@@ -533,11 +549,11 @@ descubiertos, pero en la **ficha individual**, no en el listado. Sacarlo
 son 251 pedidos extra por corrida contra un techo de ~9. Bloqueado por
 el mismo límite que el scraping, no por falta de código.
 
-**6. Dominio propio + verificación en Resend**
+**5. Dominio propio + verificación en Resend**
 
 Necesario recién cuando se encienda el informe ARBA pago. Hoy no bloquea.
 
-**7. Automatizar el pipeline**
+**6. Automatizar el pipeline**
 
 Tarea programada de Windows. Diferido a propósito por Tomy.
 
@@ -711,6 +727,10 @@ SCRAPER_USER_AGENT=
 SCRAPER_PROXY_URL=                   # opcional
 GOOGLE_GEOCODING_API_KEY=            # solo scripts locales / Actions
 
+# Mapas
+NEXT_PUBLIC_BASEMAP_URL=              # template de tiles; sin esto cae a OSM,
+                                      # que devuelve "Access blocked" con 200
+
 # App
 NEXT_PUBLIC_APP_URL=
 INTERNAL_API_KEY=                    # cron auth
@@ -741,6 +761,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.5 | Aug 28, 2026 | **El mapa ya no es prestado, y tres bugs salieron de atrás de los efectos.** El bloque de cobertura cambió de basemap dos veces en un día y las dos fueron descartadas por el mismo motivo, que vale documentar: **CARTO y OSM devuelven HTTP 200 con la imagen de rechazo adentro** —"API KEY REQUIRED" estampada en diagonal, "Access blocked"— así que verificar por status o por peso no alcanza; hay que mirar los píxeles. Lo de OSM era además inevitable: son servidores de voluntarios cuya política prohíbe justamente esto, y no era solo la home, `/p/[id]` y el mapa de mercado le pegaban directo. Ahora hay proveedor propio (MapTiler, `landscape`, origins cerrados) detrás de `NEXT_PUBLIC_BASEMAP_URL`, una variable para los tres mapas, con la atribución deducida de la URL. Y apareció lo que probablemente explicaba **todas** las rondas anteriores de "el basemap le gana al hexágono": **el mapa pintaba encima del polígono** —`absolute` sobre estático gana sin importar el orden del DOM— y el marco cubría también el caption. El difuminado de bordes, que era otra curita del mismo problema, se reemplazó por esquinas apenas redondeadas. Heptágono de 7 vértices y match al 100 en azul de marca, vía un token propio y **sin** tocar el dorado del Quality Score, que comparten diez surfaces. **300 → 304 tests.** |
 | 2.4 | Aug 27, 2026 | **Mapas.** El bloque de verificación de la home dibujaba un hexágono inventado —el código lo llamaba `"a believable parcel"`— junto a un párrafo que promete el polígono exacto. Ahora muestra la zona de cobertura sobre tiles reales, con Lanús, Banfield y Temperley legibles debajo. Se escribió la aritmética de tiles a mano para no cargar Leaflet en la landing (~45 kB por un recuadro estático), y `projectToView` para que polígono y mapa compartan proyección: en una versión intermedia no la compartían y la parcela se dibujaba cruzando la Avenida Hipólito Yrigoyen. **275 → 300 tests.** Queda sin resolver el equilibrio visual entre el mapa y el hexágono — ver punto 3 del Build map. |
 | 2.3 | Aug 27, 2026 | **Seis fases en un día, y todas empezaron como un bug que parecía un dato.** El pipeline llevaba 90 corridas muertas (los forks no heredan secrets) y, una vez arreglado eso, seguía trayendo cero: Zonaprop rechaza el segundo pedido de cada sesión de navegador. Una sesión por página lo llevó de 25 a **251 avisos por corrida**. Después salieron a la luz tres números que mentían con cara de precisos: la desactivación inventaba bajas por un tope "(testing)" de 50 que nunca se sacó (317 falsas, limpiadas); el historial registraba bajas y no altas, dejando la detección de republicaciones ciega desde la base; y el USD/m² dividía por la superficie del **terreno** — 487 contra 2.024 en departamentos. El centro de datos pasó de un dashboard a tres pantallas (dashboard, cambios, mapa con selección por área). Y el polígono de ARBA, que es la evidencia visual de todo el pitch del sitio, **no se había dibujado nunca**: tres fallas encadenadas, la raíz una política de RLS. **216 → 275 tests**, 34 → 37 rutas, migraciones 00014 y 00015. |
 | 2.2 | Aug 24, 2026 | **Sync con el estado real, tras reconstruir el entorno en una PC nueva.** Se corrigieron seis afirmaciones falsas de la v2.1: (1) el deploy a Vercel no estaba pendiente — está hecho desde el 12-ago y con integración GitHub, la nota "nunca vinculado, no hay `vercel.json` ni `.vercel`" apuntaba a la evidencia equivocada porque la integración Git no deja rastro en el repo; (2) el SMTP nunca estuvo roto — la causa era `rate_limit_email_sent = 2/hora` amplificado por un form que ocultaba el 429; (3) el pipeline no "sigue corriendo" — dispara pero falla desde el run #1 por secrets faltantes en el fork; (4) 206 tests → **216**; (5) 25 rutas → 34; (6) faltaba la Fase 9 entera. Build map reordenado por leverage: el pipeline va primero porque el historial de mercado no se puede reconstruir hacia atrás. Se agregó `lib/auth/` al Project Structure y dos secciones nuevas de estado (email/auth y pipeline). |
