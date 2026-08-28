@@ -4,6 +4,7 @@ import {
   type DocumentInfo,
   type ProcessStep,
 } from "./buying-process";
+import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
 
 /**
  * Buying-process advisor.
@@ -113,7 +114,9 @@ function pickMainAction(
   // offer. Prefer cadastral_report since it's the only one currently
   // enabled and instant.
   if (stage.slug === "due-diligence") {
-    const arba = docs.find((d) => d.serviceId === "cadastral_report");
+    const arba = PAID_SERVICES_PUBLIC
+      ? docs.find((d) => d.serviceId === "cadastral_report")
+      : undefined;
     if (arba && arba.serviceId) {
       return {
         kind: "buy_service",

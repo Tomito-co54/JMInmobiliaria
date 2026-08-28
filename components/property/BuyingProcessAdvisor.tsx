@@ -12,6 +12,7 @@ import {
   type AdvisorAction,
 } from "@/lib/education/advisor";
 import { PROCESS_STEPS } from "@/lib/education/buying-process";
+import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
 
 interface BuyingProcessAdvisorProps {
   propertyId: string;
@@ -184,7 +185,7 @@ export function BuyingProcessAdvisor({
                           color: "var(--brand-icon-fg)",
                         }}
                       >
-                        Lo ofrecemos
+                        Lo pedimos nosotros
                       </span>
                     )}
                   </span>
@@ -260,6 +261,10 @@ function ActionCta({
   action: AdvisorAction;
 }) {
   if (action.kind === "buy_service") {
+    // The advisor never builds this action while the services are hidden
+    // (see pickMainAction), but the branch stays so flipping the flag needs
+    // no second edit here.
+    if (!PAID_SERVICES_PUBLIC) return null;
     return (
       <Link
         href={`/p/${propertyId}/servicios`}

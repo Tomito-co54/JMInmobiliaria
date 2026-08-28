@@ -8,6 +8,7 @@ import { WhatsAppButton } from "./WhatsAppButton";
 import { MatchScoreCard } from "@/components/matching/MatchScoreCard";
 import type { QualityBreakdown } from "@/lib/scoring";
 import type { MatchBreakdown } from "@/lib/matching";
+import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
 
 /**
  * The sticky data panel (desktop right column / mobile inline block of the
@@ -133,20 +134,24 @@ export function PropertyDataPanel({
           Guardar + Servicios are secondary below it. */}
       <div className="space-y-3">
         <WhatsAppButton address={address} size="lg" className="w-full" />
-        <div className="grid grid-cols-2 gap-2">
+        {/* One column while the paid services are hidden — a lone button in
+            a two-column grid reads as a missing one. */}
+        <div className={cn("grid gap-2", PAID_SERVICES_PUBLIC && "grid-cols-2")}>
           <FavoriteButton
             propertyId={propertyId}
             initialFavorited={isFavorited}
             variant="full"
             signedOut={signedOut}
           />
-          <Link
-            href={`/p/${propertyId}/servicios`}
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-12 gap-2")}
-          >
-            <FileText className="size-5" />
-            Servicios
-          </Link>
+          {PAID_SERVICES_PUBLIC && (
+            <Link
+              href={`/p/${propertyId}/servicios`}
+              className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-12 gap-2")}
+            >
+              <FileText className="size-5" />
+              Servicios
+            </Link>
+          )}
         </div>
         {sourceUrl && (
           <a
