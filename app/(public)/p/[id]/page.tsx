@@ -173,8 +173,16 @@ export default async function PublicPropertyPage({ params }: PageProps) {
             right. Single column on mobile (panel flows inline after the
             hero + supporting sections). */}
         <div className="lg:grid lg:grid-cols-[1fr_22rem] lg:gap-8 lg:items-start">
-          {/* LEFT — hero + evidence + narrative */}
-          <div className="space-y-12 lg:space-y-14">
+          {/* LEFT — hero + evidence + narrative.
+
+              `min-w-0` is load-bearing: a `1fr` grid track defaults to
+              `min-width: auto`, so its min-content wins over its share. The
+              thumbnail strip is a flex row of eighteen 80px photos — about
+              1500px of min-content — and without this it dragged the whole
+              column, and the hero with it, to 1576px inside a 1120px grid.
+              That is what made the cover look bigger after the gallery
+              landed, not the aspect ratio. */}
+          <div className="min-w-0 space-y-12 lg:space-y-14">
             <PropertyHero
               photos={property.photos}
               alt={altText}
