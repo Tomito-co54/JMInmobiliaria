@@ -129,7 +129,7 @@ function pickMainAction(
     }
     return {
       kind: "external_action",
-      title: "Pedimos los informes de la due diligence",
+      title: "Pedimos los informes",
       description:
         "Dominio, inhibiciones y libres deuda. Los leemos y te explicamos qué dice cada uno. Sin esto no se firma boleto.",
     };
