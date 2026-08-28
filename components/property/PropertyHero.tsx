@@ -58,7 +58,7 @@ export function PropertyHero({
   const total = photos.length;
 
   return (
-    <div className="relative -mx-4 lg:mx-0">
+    <div className="-mx-4 lg:mx-0">
       <PropertyGallery
         photos={photos}
         alt={alt}
@@ -66,7 +66,15 @@ export function PropertyHero({
         initialIndex={openAt ?? 0}
         onClose={() => setOpenAt(null)}
       />
-      <div className="relative aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] w-full overflow-hidden bg-muted lg:rounded-3xl">
+      {/* Own positioning context: the score medallion and the ARBA chip hang
+          off the photo's bottom edge, and measured against the whole
+          component they landed on the thumbnail strip instead. */}
+      <div className="relative">
+      {/* 4:3 on desktop made the hero ~590px tall in a two-column layout —
+          the photo pushed everything else below the fold. Wider and shorter
+          as the viewport grows: the stage should frame the room, not fill
+          the screen with it. */}
+      <div className="relative aspect-[4/3] sm:aspect-[16/10] lg:aspect-[16/9] w-full overflow-hidden bg-muted lg:rounded-3xl">
         {cover ? (
           <Image
             src={cover}
@@ -175,6 +183,7 @@ export function PropertyHero({
           Verificada con ARBA
         </div>
       )}
+      </div>
 
       {/* Below the photo, clearing the medallion that overlaps its corner. */}
       <div className="px-4 lg:px-0">

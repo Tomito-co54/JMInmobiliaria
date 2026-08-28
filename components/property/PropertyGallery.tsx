@@ -162,7 +162,7 @@ export function PropertyThumbnails({
 }) {
   if (photos.length < 2) return null;
   return (
-    <div className="mt-8 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+    <div className="mt-10 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
       {photos.map((src, i) => (
         <button
           key={src}
