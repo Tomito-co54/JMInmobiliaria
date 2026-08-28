@@ -188,7 +188,12 @@ async function main() {
   }
 
   try {
-    const breakdown = await recomputeQualityScore(id, new ComparablesCache());
+    // warmUp() is not optional: the cache throws on `get` until it has
+    // loaded the comparables, and the price sub-score is most of what
+    // separates a scored listing from one the ring shows as "sin datos".
+    const comparables = new ComparablesCache();
+    await comparables.warmUp();
+    const breakdown = await recomputeQualityScore(id, comparables);
     console.log(`✓ Quality score: ${breakdown?.score ?? "sin datos suficientes"}`);
   } catch (err) {
     console.log(`  ⚠ Score falló: ${err instanceof Error ? err.message : err}`);
