@@ -581,7 +581,29 @@ El público es una capa fina encima: cambian de dónde salen los puntos y
 qué hace la selección. Esperando inventario — con 2 fichas no se puede
 evaluar si está bien resuelto.
 
-**4. Ponderar cubierto y descubierto en el precio** ← idea de Tomy, 28-ago
+**4. Configurador de precio en la ficha** ← ideas de Tomy, 28-ago
+
+Una unidad no tiene un precio, tiene una tabla. Belgrano 1287 la muestra
+cruda: contado o financiado, con cochera o sin. El sitio tiene **un** campo
+`price_amount`, y hoy la ficha publica el piso —contado sin cochera— y el
+resto queda en la descripción, que es texto muerto.
+
+Dos piezas, la misma función:
+
+- **Botón de cochera** que suma su valor y recalcula el precio en vivo.
+- **Recuadro de financiación** con el cálculo hecho: anticipo del 60%,
+  saldo hasta en 30 cuotas fijas en dólares, sobre el valor financiado (que
+  no es el de contado).
+
+Ojo con una decisión de datos que esto obliga: hoy el precio es un número
+en una columna. Un configurador necesita **una estructura** —valor base,
+suplemento de cochera, valor financiado— y eso es una tabla nueva o un
+jsonb, no un campo más. Vale pensarlo antes de escribirlo, porque el
+`price_amount` plano es lo que consumen el Quality Score, los comparables
+y el dashboard de mercado: si el precio pasa a ser un objeto, el número
+que esos tres leen tiene que seguir siendo el de contado sin extras.
+
+**5. Ponderar cubierto y descubierto en el precio** ← idea de Tomy, 28-ago
 
 Hoy el USD/m² divide por una sola superficie. Pero 40 m² cubiertos más 40
 de terraza no valen lo mismo que 80 cubiertos, y el mercado ya sabe cuánto
@@ -596,12 +618,12 @@ Sirve para dos cosas distintas:
   propiedad con mucha expansión. Hoy `effectiveSurface` toma una sola
   superficie y los comparables terminan mezclando peras con manzanas.
 
-El dato de entrada es el problema, y es exactamente el del punto 5:
+El dato de entrada es el problema, y es exactamente el del punto 6:
 Zonaprop publica "superficie total" en el listado y el desglose
 cubierto/descubierto solo en la ficha individual. Sin ese desglose no hay
-de dónde separar los dos m². **Este punto depende del 5.**
+de dónde separar los dos m². **Este punto depende del 6.**
 
-**5. Superficie cubierta en el scraper**
+**6. Superficie cubierta en el scraper**
 
 El USD/m² de casas mide el lote, no lo construido, porque Zonaprop
 publica "superficie total". Los avisos **sí** muestran cubiertos y
@@ -609,11 +631,11 @@ descubiertos, pero en la **ficha individual**, no en el listado. Sacarlo
 son 251 pedidos extra por corrida contra un techo de ~9. Bloqueado por
 el mismo límite que el scraping, no por falta de código.
 
-**6. Dominio propio + verificación en Resend**
+**7. Dominio propio + verificación en Resend**
 
 Necesario recién cuando se encienda el informe ARBA pago. Hoy no bloquea.
 
-**7. Automatizar el pipeline**
+**8. Automatizar el pipeline**
 
 Tarea programada de Windows. Diferido a propósito por Tomy.
 
