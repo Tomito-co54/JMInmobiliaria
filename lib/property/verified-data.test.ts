@@ -35,7 +35,7 @@ describe("deriveVerifiedDataItems", () => {
     expect(parcela.status).toBe("missing");
   });
 
-  it("verifies surface coherence within 10%", () => {
+  it("reports both surfaces, each as what it is", () => {
     const items = deriveVerifiedDataItems(
       makeProperty({ surface_total: 98, surface_arba: 100 }),
       null,
@@ -44,26 +44,24 @@ describe("deriveVerifiedDataItems", () => {
     expect(sup.status).toBe("verified");
     expect(sup.detail).toContain("98m²");
     expect(sup.detail).toContain("100m²");
+    expect(sup.detail).toContain("parcela");
   });
 
-  it("warns on 10-25% surface diff", () => {
-    const items = deriveVerifiedDataItems(
-      makeProperty({ surface_total: 120, surface_arba: 100 }),
-      null,
-    );
-    const sup = items.find((i) => i.id === "superficie")!;
-    expect(sup.status).toBe("warning");
-    expect(sup.detail).toMatch(/20%/);
-  });
-
-  it("flags as missing on >25% diff (the Yrigoyen 8900 case)", () => {
-    const items = deriveVerifiedDataItems(
-      makeProperty({ surface_total: 104, surface_arba: 244.94 }),
-      null,
-    );
-    const sup = items.find((i) => i.id === "superficie")!;
-    expect(sup.status).toBe("missing");
-    expect(sup.detail).toContain("departamento");
+  // A flat on a lot is not a discrepancy, and the page that says what has
+  // been verified is the last place to imply otherwise. Both numbers are
+  // reported; neither is judged against the other. Same reason the score's
+  // coherence sub-score is parked.
+  it("never calls a unit-vs-parcel gap a discrepancy", () => {
+    for (const [total, arba] of [[120, 100], [104, 244.94], [40, 239.23]] as const) {
+      const items = deriveVerifiedDataItems(
+        makeProperty({ surface_total: total, surface_arba: arba }),
+        null,
+      );
+      const sup = items.find((i) => i.id === "superficie")!;
+      expect(sup.status, `${total} vs ${arba}`).toBe("verified");
+      expect(sup.detail).toContain(`${arba}m²`);
+      expect(sup.detail).toContain(`${total}m²`);
+    }
   });
 
   it("falls back to surface_covered when surface_total is missing", () => {

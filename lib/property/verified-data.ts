@@ -67,31 +67,20 @@ export function deriveVerifiedDataItems(
   const arba = property.surface_arba;
 
   if (declared !== null && declared !== undefined && arba !== null && arba !== undefined && arba > 0) {
-    const diff = Math.abs(declared - arba) / arba;
-    const declaredFmt = `${declared}m²`;
-    const arbaFmt = `${arba}m²`;
-    if (diff <= 0.10) {
-      items.push({
-        id: "superficie",
-        status: "verified",
-        title: "Superficie coincide con ARBA",
-        detail: `${declaredFmt} declarada · ${arbaFmt} ARBA`,
-      });
-    } else if (diff <= 0.25) {
-      items.push({
-        id: "superficie",
-        status: "warning",
-        title: "Superficie con leve discrepancia",
-        detail: `${declaredFmt} declarada vs ${arbaFmt} ARBA (${Math.round(diff * 100)}% off)`,
-      });
-    } else {
-      items.push({
-        id: "superficie",
-        status: "missing",
-        title: "Discrepancia importante en superficie",
-        detail: `${declaredFmt} declarada vs ${arbaFmt} ARBA (${Math.round(diff * 100)}% off). En departamentos suele significar que el aviso mide la unidad y ARBA mide el terreno completo.`,
-      });
-    }
+    // No comparison, on purpose — same reason the score's coherence sub-score
+    // is parked (see ARBA_COHERENCE_PARKED in lib/scoring/subscores.ts).
+    // `surface_arba` is the PARCEL. The declared surface is the unit, or the
+    // built area. Calling the gap between them a "discrepancia" flagged 79% of
+    // departamentos as suspect for being departamentos — on the one page whose
+    // job is to say what has been verified. Both numbers are reported, each as
+    // what it is, and the reader is not told they should match.
+    items.push({
+      id: "superficie",
+      status: "verified",
+      title: "Superficie de la parcela verificada en ARBA",
+      detail: `${arba}m² de parcela · ${declared}m² declarados en la propiedad. En departamentos y PH la parcela es la del edificio entero.`,
+      termId: "superficie_arba",
+    });
   } else if (arba !== null && arba !== undefined) {
     items.push({
       id: "superficie",
