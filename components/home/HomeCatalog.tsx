@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/home/HomeGuaranteesClient";
+import { buildingKey, type BuildingSummary } from "@/lib/buildings";
 import {
   PropertyPremiumCard,
   type PremiumCardProperty,
@@ -16,10 +17,18 @@ import {
 export function HomeCatalog({
   properties,
   totalProperties,
+  buildings,
 }: {
   properties: PremiumCardProperty[];
   /** Total published count — drives the header copy, not the rendered slice. */
   totalProperties: number;
+  /**
+   * Buildings with more than one published unit, keyed by parcel. A card
+   * whose property is in one shows how many units it shares an address with
+   * — without it, four listings on the same parcel read as four unrelated
+   * properties, or as a duplicate.
+   */
+  buildings?: Map<string, BuildingSummary>;
 }) {
   return (
     <section
@@ -63,7 +72,11 @@ export function HomeCatalog({
                 // so scrolling the catalog has rhythm instead of a flat fade
                 // (§2.4). Each card re-triggers on its own scroll position.
                 <Reveal key={p.id} delayMs={60} direction={flip ? "right" : "left"}>
-                  <PropertyPremiumCard property={p} flip={flip} />
+                  <PropertyPremiumCard
+                    property={p}
+                    flip={flip}
+                    building={buildings?.get(buildingKey(p) ?? "")}
+                  />
                 </Reveal>
               );
             })}

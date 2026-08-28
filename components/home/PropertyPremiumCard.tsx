@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, ShieldCheck, ArrowRight, ImageIcon } from "lucide-react";
 import { getScoreBand } from "@/lib/scoring/bands";
+import type { BuildingSummary } from "@/lib/buildings";
 import type { QualityBreakdown } from "@/lib/scoring";
 
 /**
@@ -35,6 +36,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export interface PremiumCardProperty {
   id: string;
+  nomenclatura_catastral?: string | null;
   property_type: string | null;
   partido: string | null;
   address: string | null;
@@ -57,16 +59,22 @@ function fmtPrice(amount: number): string {
 export function PropertyPremiumCard({
   property,
   flip = false,
+  building,
 }: {
   property: PremiumCardProperty;
   /** When true, the photo sits on the right (desktop). Alternates per row. */
   flip?: boolean;
+  /** Set when this property shares its parcel with other published units. */
+  building?: BuildingSummary;
 }) {
   const cover = property.photos?.[0] ?? null;
   const typeLabel = property.property_type
     ? TYPE_LABELS[property.property_type] ?? property.property_type
     : null;
-  const surface = property.surface_arba ?? property.surface_total ?? null;
+  // Declared first. surface_arba is the PARCEL — for a flat it is the whole
+  // building's lot, so leading with it printed "239 m²" on a 40 m² unit.
+  // Same mistake as Fase 12, on the card nobody re-checked.
+  const surface = property.surface_total ?? property.surface_arba ?? null;
   const score = property.quality_score_breakdown?.score ?? null;
   const band = getScoreBand(score);
   const heading = property.address ?? [typeLabel, property.partido].filter(Boolean).join(" en ");
@@ -146,6 +154,27 @@ export function PropertyPremiumCard({
 
           {specs.length > 0 && (
             <p className="mt-4 text-sm text-muted-foreground">{specs.join(" · ")}</p>
+          )}
+
+          {/* Same building. Without this, four units on one parcel read as
+              four unrelated listings — or as the same one posted four times.
+              Deliberately a line of type and not another chip: the chips
+              below carry the credibility signals and a fifth would dilute
+              them. */}
+          {building && building.unitCount > 1 && (
+            <p
+              className="mt-2 text-sm font-medium"
+              style={{ color: "var(--brand-accent)" }}
+            >
+              {building.unitCount} unidades en este edificio
+              {building.fromPrice !== null && building.fromCurrency && (
+                <span className="text-muted-foreground font-normal">
+                  {" · desde "}
+                  {building.fromCurrency === "USD" ? "USD " : "$ "}
+                  {fmtPrice(building.fromPrice)}
+                </span>
+              )}
+            </p>
           )}
 
           {/* Credibility chips — score + ARBA verification. */}

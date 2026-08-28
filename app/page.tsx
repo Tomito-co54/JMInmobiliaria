@@ -13,6 +13,7 @@ import { HomeHero } from "@/components/home/HomeHero";
 import { HomeProtagonist } from "@/components/home/HomeProtagonist";
 import { HomeGuarantees } from "@/components/home/HomeGuarantees";
 import { HomeCatalog } from "@/components/home/HomeCatalog";
+import { summariseBuildings } from "@/lib/buildings";
 import { WhatsAppFloat } from "@/components/home/WhatsAppFloat";
 import type { PremiumCardProperty } from "@/components/home/PropertyPremiumCard";
 
@@ -51,6 +52,11 @@ export default async function Home() {
     ? allRows.filter((p) => p.id !== featured.id)
     : allRows;
   const catalog = withoutFeatured.length > 0 ? withoutFeatured : allRows;
+
+  // Which of these listings share a building, computed over the rows already
+  // fetched — no extra query. The featured one counts towards its building
+  // even though it is rendered above, so "4 unidades" stays true.
+  const buildings = summariseBuildings(allRows);
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -98,7 +104,11 @@ export default async function Home() {
       <HomeGuarantees />
 
       {/* Catálogo — premium cards alternadas (§5 del rediseño) */}
-      <HomeCatalog properties={catalog} totalProperties={proximity.count} />
+      <HomeCatalog
+        properties={catalog}
+        totalProperties={proximity.count}
+        buildings={buildings}
+      />
 
       {/* Lead CTA flotante — presente en todo el scroll de la home */}
       <WhatsAppFloat />

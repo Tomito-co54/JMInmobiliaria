@@ -169,6 +169,55 @@ export async function getPropertyForPublicView(
   };
 }
 
+/** A sibling unit, for the "otras unidades en este edificio" block. */
+export interface BuildingUnitRow {
+  id: string;
+  address: string | null;
+  property_type: string | null;
+  price_amount: number | null;
+  price_currency: "USD" | "ARS" | null;
+  rooms: number | null;
+  bedrooms: number | null;
+  surface_total: number | null;
+  surface_covered: number | null;
+  photos: string[];
+  quality_score: number | null;
+}
+
+/**
+ * The other published units standing on the same cadastral parcel.
+ *
+ * Goes through the same two-gate public filter as everything else: a
+ * neighbouring unit is still a listing, and a draft must not reach a public
+ * page through the side door of a sibling's page. That also means scraped
+ * properties never appear here even when they share the parcel — they are
+ * market intelligence, not catalog.
+ *
+ * Returns [] when the property has no parcel on file, which is the normal
+ * outcome for anything ARBA could not resolve.
+ */
+export async function getBuildingUnits(
+  nomenclatura: string | null,
+  excludeId: string,
+): Promise<BuildingUnitRow[]> {
+  if (!nomenclatura?.trim()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("properties")
+    .select(
+      "id, address, property_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_covered, photos, quality_score",
+    )
+    .eq("nomenclatura_catastral", nomenclatura.trim())
+    .neq("id", excludeId)
+    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+    .eq("listing_status", PUBLIC_LISTING_STATUS)
+    .order("price_amount", { ascending: true, nullsFirst: false });
+
+  if (error) throw error;
+  return (data ?? []) as unknown as BuildingUnitRow[];
+}
+
 /**
  * Fetches active properties with optional filters.
  */

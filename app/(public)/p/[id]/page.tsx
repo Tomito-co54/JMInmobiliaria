@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPropertyForPublicView } from "@/lib/db/properties";
+import { getPropertyForPublicView, getBuildingUnits } from "@/lib/db/properties";
 import { getPrimarySearchProfile } from "@/lib/db/search-profiles";
 import { computeMatchScore, type PropertyForMatching } from "@/lib/matching";
 import { getCurrentUserId } from "@/lib/db/users";
@@ -13,6 +13,7 @@ import { PropertyMobileBar } from "@/components/property/PropertyMobileBar";
 import { EditorialSection } from "@/components/property/EditorialSection";
 import { VerifiedDataList } from "@/components/property/VerifiedDataList";
 import { PropertyMapSection } from "@/components/property/PropertyMapSection";
+import { BuildingUnits } from "@/components/property/BuildingUnits";
 import { PropertyDescription } from "@/components/property/PropertyDescription";
 import { PropertyHistory } from "@/components/property/PropertyHistory";
 import { BuyingProcessAdvisor } from "@/components/property/BuyingProcessAdvisor";
@@ -82,6 +83,13 @@ export default async function PublicPropertyPage({ params }: PageProps) {
   if (!view) notFound();
 
   const { property, arbaLookup, history } = view;
+
+  // Sibling units on the same parcel. Its own await rather than part of
+  // getPropertyForPublicView because it depends on the row we just read.
+  const buildingUnits = await getBuildingUnits(
+    property.nomenclatura_catastral,
+    property.id,
+  );
   const altText = property.address ?? "Propiedad";
 
   // Compute match against the buyer's primary search profile, if any.
@@ -219,6 +227,19 @@ export default async function PublicPropertyPage({ params }: PageProps) {
             >
               <VerifiedDataList property={property} arbaLookup={arbaLookup} />
             </EditorialSection>
+
+            {buildingUnits.length > 0 && (
+              <EditorialSection
+                title="Otras unidades en este edificio"
+                subtitle={`${buildingUnits.length} ${
+                  buildingUnits.length === 1
+                    ? "unidad más está publicada"
+                    : "unidades más están publicadas"
+                } sobre la misma parcela catastral.`}
+              >
+                <BuildingUnits units={buildingUnits} />
+              </EditorialSection>
+            )}
 
             <EditorialSection title="Ubicación">
               <PropertyMapSection
