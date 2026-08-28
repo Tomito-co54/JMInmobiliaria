@@ -116,14 +116,16 @@ los avisos de la semana pasada ya no están en el portal.
 
 **Project location:** `C:\dev\jotaeme-inmobiliaria` (hermano de `C:\dev\jotaeme` que es el original — este fork no toca al original).
 
-**Contenido real (verificado 27-ago-2026):**
+**Contenido real (verificado 28-ago-2026):**
 
 | Qué | Cuánto |
 |---|---|
 | Propiedades propias publicadas | **2** — Belgrano 1285 y 1287, Lomas de Zamora |
-| Scrapeadas | 458 (431 Zonaprop · 27 Trezza) · 297 activas · **324 geolocalizadas** |
-| `property_history` | 231 eventos — 160 bajas, 28 de precio, 31 descripciones |
-| Total en la tabla | 460 |
+| Scrapeadas | 515 (488 Zonaprop · 27 Trezza) · 376 activas · **357 geolocalizadas** |
+| `property_history` | 264 eventos — 182 de `is_active`, 35 descripciones, 32 de precio |
+| Total en la tabla | 517 |
+
+La corrida del 28-ago sumó **57 avisos nuevos** y 33 eventos de historial.
 
 El catálogo público muestra dos fichas. Cargar más es lo único que separa
 al sitio de estar listo.
