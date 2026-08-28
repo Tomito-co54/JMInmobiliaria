@@ -370,10 +370,12 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   ├── auth/callback/            # OAuth + email confirmation handler
 │   ├── onboarding/               # legacy del upstream (search profiles)
 │   ├── pago/                     # /exito, /pendiente, /error (MP returns)
-│   ├── icon.png                  # ← favicon (Next lo cablea solo). Es la casa
-│   │                             #   DEL CENTRO del isotipo, blanca sobre navy:
-│   │                             #   el isotipo entero es 2.1:1 y a los 16px que
-│   │                             #   renderiza una pestaña mide 13x6 y no lee
+│   ├── icon.png                  # ← favicon (Next lo cablea solo). Isotipo
+│   │                             #   completo, blanco sobre navy. Decisión de
+│   │                             #   Tomy: el isotipo es 2.1:1 y a los 16px de
+│   │                             #   una pestaña mide 14x6, así que se lee poco —
+│   │                             #   se evaluó recortar a la casa del centro y se
+│   │                             #   descartó. Marca entera, no un recorte.
 │   ├── apple-icon.png            # ← 180px sin redondear (iOS aplica su máscara)
 │   └── layout.tsx
 │
