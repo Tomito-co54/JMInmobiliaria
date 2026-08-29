@@ -132,11 +132,14 @@ First Load JS shared 183 kB.
 | Qué | Cuánto |
 |---|---|
 | Propiedades propias publicadas | **4** — Belgrano 1287, unidades 1°A, 1°B, 2°A y 2°B |
-| Scrapeadas | 515 (488 Zonaprop · 27 Trezza) · 376 activas · **361 geolocalizadas** |
-| `property_history` | 264 eventos — 182 de `is_active`, 35 descripciones, 32 de precio |
-| Total en la tabla | 519 |
+| Scrapeadas | **545** · 412 activas · **380 geolocalizadas** |
+| `property_history` | 272 eventos — mayoría de `is_active`, después descripciones y precio |
+| Total en la tabla | 549 |
 
-La corrida del 28-ago sumó **57 avisos nuevos** y 33 eventos de historial.
+El 28-ago se corrió el pipeline dos veces: **57 + 30 avisos nuevos**. La
+segunda corrida scoreó 416 propiedades y volvió a topar con el 403 conocido
+en la página 10 de Zonaprop, que marca el crawl como truncado y saltea la
+desactivación — que es lo correcto.
 
 **El edificio RUMAH (Belgrano 1287, Banfield)** tiene 7 unidades en 4
 tipologías. Están cargadas las cuatro de 2 ambientes: 1°A y 1°B a USD
