@@ -58,8 +58,8 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (28-ago-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **304 tests passing**, `npm run build` verde,
-37 rutas.
+auto-deploy desde `main`. **319 tests passing** (+7 skipped a propósito),
+`npm run build` verde.
 
 Los mapas quedaron cerrados: el bloque de cobertura de la home dejó de
 pelearse con su basemap y el sitio pasó a tener **proveedor de tiles
@@ -68,9 +68,10 @@ navegador**, desde un JSON (`npm run cargar-propiedad`), así Claude puede
 armarlas a partir de una descripción y una carpeta de fotos. Lo que queda
 es de contenido:
 
-1. **El catálogo tiene 2 propiedades publicadas.** Hay dos caminos para
-   cargar y los dos funcionan —el formulario de `/admin` y el CLI—; es la
-   razón de ser del sitio y no depende de nada técnico.
+1. **El catálogo tiene 4 propiedades publicadas** — las cuatro unidades de
+   2 ambientes de Belgrano 1287. Faltan el loft dúplex y el 3 ambientes del
+   mismo edificio, bloqueados solo por fotos. Hay dos caminos para cargar y
+   los dos funcionan: el formulario de `/admin` y el CLI.
 2. **El scraping corre a mano, no automático.** Zonaprop bloquea los
    runners de GitHub Actions, así que el pipeline vive en la PC de Tomy:
    `npm run pipeline`, entre 2 y 8 minutos. Automatizarlo con el
@@ -105,11 +106,16 @@ los avisos de la semana pasada ya no están en el portal.
 | Fase 16 — Mapas de verdad | El bloque de verificación de la home dibujaba un hexágono **inventado** (`"a believable parcel"`) al lado de un texto que promete "el polígono exacto de la parcela". Se reemplazó por la **zona de cobertura** sobre tiles reales de OSM: Lanús · Banfield · Lomas · Temperley, con los nombres de las localidades haciendo de etiqueta. `lib/map/tiles.ts` hace la aritmética de tiles sin Leaflet (~45 kB que no se pagan en la landing) y `projectToView` garantiza que polígono y mapa compartan proyección — en una versión intermedia no la compartían y la parcela aparecía cruzando una avenida. `lib/zona-sur/coverage.ts` + tests que verifican que el hexágono realmente contenga las localidades que nombra. | `086a284` `c651888` `8488028` `d92c899` |
 | Fase 17 — El mapa tiene proveedor | Dos basemaps elegidos y descartados en un día, los dos por el mismo motivo: **devuelven HTTP 200 con la imagen de rechazo adentro**. CARTO estampa "API KEY REQUIRED" en diagonal; OSM, "Access blocked". Ninguna falla — las dos entregan un PNG del tamaño esperado, y solo se ven mirando los píxeles. Lo de OSM además era inevitable: sus servidores son de voluntarios y su política prohíbe exactamente esto, y no era solo la home (`/p/[id]` y `/admin/mercado/mapa` le pegaban directo). Ahora el basemap sale de `NEXT_PUBLIC_BASEMAP_URL` — MapTiler, estilo `landscape`, key con origins cerrados — y la atribución se deduce de la URL, que es un término de licencia y no un pie de foto. Aparecieron además dos bugs que los efectos visuales tapaban: **el mapa pintaba encima del polígono** (`absolute` sobre estático gana sin importar el DOM — todas las rondas anteriores de "el basemap le gana al hexágono" peleaban contra esto), y el marco cubría también el caption. Heptágono de 7 vértices, bordes nítidos con esquinas apenas redondeadas, match al 100 en azul de marca. | `45f9deb` `989be65` `ea712d5` (merge) |
 | Fase 18 — Cargar sin navegador | `scripts/create-property.ts` + `lib/admin/property-import.ts`: una propiedad propia se carga desde un JSON, para que Claude la arme a partir de una descripción y una carpeta de fotos. Reutiliza las piezas del cargador web (schemas de Zod, ARBA por partida, Storage, scorer) — las Server Actions detrás de las que viven solo agregan el chequeo de sesión. Siempre entra como `borrador`; publicar es opt-in y pasa igual por `canPublishProperty`. Dos guardas contra la falla silenciosa, que es el riesgo propio de cargar desde archivo: **campo desconocido es error** (un `precio` en vez de `price_amount` dejaría la ficha sin precio y la corrida diría que salió bien) y **valor impuntable es error** (el schema de borrador nulifica lo que no entiende a propósito, porque el form guarda fichas a medias todo el tiempo — pero un archivo que *dice* "ochenta mil" está afirmando algo). | `e1b0ddd` `349e907` |
+| Fase 19 — La primera carga real, y lo que destapó | Se cargaron las 4 unidades de 2 ambientes de Belgrano 1287 con el CLI. Cargar de verdad rompió cuatro cosas que con una sola propiedad no se veían: el cargador scoreaba sin `warmUp()` del cache de comparables (fallaba el sub-score de precio); la card del catálogo mostraba `surface_arba ?? surface_total`, o sea los 239 m² de la parcela sobre una unidad de 40; y **la coherencia ARBA marcaba en rojo al 79% de los departamentos por ser departamentos** — ver la sección propia más abajo. Se reescribió además la guía de compra: `ProcessStep` pasó de un `actions` único a `weHandle` + `youDo`, porque el contenido venía del portal de compradores del upstream y le decía al lector que fuera a sacar sus propios informes. | `e1b0ddd` `989be65` `ad5a878` |
+| Fase 20 — Edificios, galería y ficha PDF | **Edificios por parcela** (`lib/buildings`): dos unidades con la misma `nomenclatura_catastral` están en el mismo edificio — es una definición, no una heurística. Sección "Otras unidades en este edificio" en `/p/[id]` y línea "4 unidades · desde USD 80.000" en la card. Todo derivado, sin tabla. **Galería**: el hero pintaba `photos[0]` y un "1/N" fijo, honesto cuando el scraper traía una foto y mentiroso con 18; swipe por `scroll-snap` de CSS. **Ficha PDF** en `/p/[id]/ficha.pdf`, reusando el renderer del Block 7. **Servicios pagos escondidos** detrás de `PAID_SERVICES_PUBLIC`. | `989be65` `ad5a878` |
 
-**Tests:** 316 passing (176 al cierre de Fase 1.B → 216 tras la fase 9 →
-275 tras las fases 10-15 → 300 tras la 16 → 304 tras la 17 → 316 tras la 18).
+**Tests:** 319 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
+fase 9 → 275 tras las fases 10-15 → 300 tras la 16 → 316 tras la 18 → 319
+tras la 20). Los 7 saltados son las bandas de coherencia ARBA: quedan como
+spec de vuelta, ver **El dato de ARBA es de la parcela** más abajo.
 
-**Build:** `npm run build` verde. 37 rutas, First Load JS shared 183 kB.
+**Build:** `npm run build` verde. 38 rutas (la nueva es `/p/[id]/ficha.pdf`),
+First Load JS shared 183 kB.
 3 warnings menores de `@typescript-eslint/no-unused-vars` que no bloquean
 (vars `_omit`, `_req`, `ownerPropertyPublishSchema`).
 
@@ -121,16 +127,25 @@ los avisos de la semana pasada ya no están en el portal.
 
 **Project location:** `C:\dev\jotaeme-inmobiliaria` (hermano de `C:\dev\jotaeme` que es el original — este fork no toca al original).
 
-**Contenido real (verificado 28-ago-2026):**
+**Contenido real (verificado 28-ago-2026, cierre del día):**
 
 | Qué | Cuánto |
 |---|---|
-| Propiedades propias publicadas | **2** — Belgrano 1285 y 1287, Lomas de Zamora |
-| Scrapeadas | 515 (488 Zonaprop · 27 Trezza) · 376 activas · **357 geolocalizadas** |
+| Propiedades propias publicadas | **4** — Belgrano 1287, unidades 1°A, 1°B, 2°A y 2°B |
+| Scrapeadas | 515 (488 Zonaprop · 27 Trezza) · 376 activas · **361 geolocalizadas** |
 | `property_history` | 264 eventos — 182 de `is_active`, 35 descripciones, 32 de precio |
-| Total en la tabla | 517 |
+| Total en la tabla | 519 |
 
 La corrida del 28-ago sumó **57 avisos nuevos** y 33 eventos de historial.
+
+**El edificio RUMAH (Belgrano 1287, Banfield)** tiene 7 unidades en 4
+tipologías. Están cargadas las cuatro de 2 ambientes: 1°A y 1°B a USD
+80.000 (40 m²), 2°A y 2°B a USD 96.000 (40 m² + 40 de terraza). Faltan el
+**loft dúplex** (54 m² + 30 de terraza, USD 126.000) y el **3 ambientes de
+planta baja** (55 m² + patio de 22, USD 150.000, unidad única), los dos
+esperando fotos. Los precios de ficha son **contado sin cochera**; la tabla
+completa —financiado, con cochera— está en el folleto y todavía no tiene
+lugar en el sitio (ver punto 4 del Build map).
 
 El catálogo público muestra dos fichas. Cargar más es lo único que separa
 al sitio de estar listo.
@@ -217,6 +232,51 @@ en los tres casos era un número creíble, no un error:
   `surface_arba`, la superficie de la parcela catastral, que para un
   departamento es el lote del edificio entero. Mediana de departamentos:
   487 así, **2.024** con la superficie declarada.
+
+### El dato de ARBA es de la parcela, no de la unidad
+
+`surface_arba` es la superficie de la **parcela catastral**. La declarada es
+lo construido, o la unidad si es un departamento. Son cosas distintas casi
+siempre, y compararlas no mide coherencia: mide si la propiedad es un lote.
+
+    departamento   95 de 120 con ambas superficies "fallaban"  (79%)
+    ph             20 de  40                                   (50%)
+    casa           59 de 128                                   (46%)
+
+Belgrano 1287 lo puso a la vista: 40 m² declarados contra una parcela de
+239 puntuaban 20/100 y le costaban ~10 puntos de score a cada unidad, y en
+la ficha pública salía como *"Discrepancia importante en superficie"*, en
+rojo, en el sitio cuya promesa es la verificación catastral.
+
+Es la misma clase de error que la Fase 12 —donde el USD/m² dividía por el
+terreno— en los lugares que nadie revisó después. **Si aparece un número
+raro de superficie, sospechar de esto primero.**
+
+Estado actual:
+
+- **El sub-score está parkeado** en `confidence: 0` (`ARBA_COHERENCE_PARKED`
+  en `lib/scoring/subscores.ts`). No borrado: el score renormaliza solo, la
+  lógica de bandas sigue entera y el motivo aparece en el breakdown. Los 7
+  tests de bandas quedan en `describe.skip` como spec de vuelta.
+- **La ficha reporta los dos números sin compararlos** — "239 m² de parcela ·
+  40 m² declarados en la propiedad. En departamentos y PH la parcela es la
+  del edificio entero."
+- **Efecto del rescoreo de las 380:** verdes 79 → 106, rojos 61 → 64.
+- **Queda uno sin tocar:** `lib/matching/match.ts:367` usa
+  `surface_arba ?? surface_total` para cruzar contra lo que busca un
+  comprador. Es del match legacy del portal, no urge.
+
+Reconstruirlo bien depende de separar cubierto de descubierto — punto 5 del
+Build map.
+
+### Los servicios pagos están escondidos
+
+`PAID_SERVICES_PUBLIC` en `lib/services/offering.ts` está en `false`. El
+checkout de MercadoPago y el informe ARBA en PDF **funcionan** desde el
+Block 7 del upstream; lo que se apagó son las tres entradas públicas (el
+botón del panel, el CTA del advisor, y que el advisor proponga comprar un
+informe). La ruta `/p/[id]/servicios` sigue resolviendo y el webhook sigue
+cumpliendo órdenes. Misma decisión que la Fase 8: esconder, no borrar.
 
 ### El basemap tiene dueño (y contesta 200 cuando dice que no)
 
@@ -385,7 +445,9 @@ Management API (config de auth, settings de proyecto). Reglas:
 │
 ├── components/
 │   ├── ui/                       # shadcn/ui base
-│   ├── property/                 # PropertyHero, PropertyDataPanel, PropertyMobileBar, WhatsAppButton, ShareButton, PropertyMapSection, etc.
+│   ├── property/                 # PropertyHero, PropertyGallery, PropertyDataPanel,
+│   │                             #   PropertyMobileBar, WhatsAppButton, ShareButton,
+│   │                             #   PropertyMapSection, BuildingUnits, etc.
 │   ├── scoring/                  # QualityScoreRing + Card + Sheet
 │   ├── matching/                 # MatchScoreCard (legacy buyer feature)
 │   ├── home/                     # HomeHero, HomeProtagonist, HomeGuarantees(+Client), HomeCatalog, PropertyPremiumCard, WhatsAppFloat
@@ -409,7 +471,10 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │   ├── dedup/                # cross-source matching
 │   │   ├── mercadopago/          # legacy upstream — checkout + webhook
 │   │   ├── email/                # Resend wrappers
-│   │   └── pdf/                  # @react-pdf renderer (informes ARBA)
+│   │   ├── pdf/                  # @react-pdf renderer — informe ARBA (pago)
+│   │   │                         #   + property-sheet.tsx (ficha publica)
+│   │   └── offering.ts           # ← PAID_SERVICES_PUBLIC: apaga las entradas
+│   │                             #   publicas a los servicios pagos
 │   ├── market/                   # ← lógica del centro de datos (pura, testeable)
 │   │                             #   stats.ts · geo.ts (áreas) · listing-bands.ts
 │   │                             #   (color) · crawl-completeness.ts
@@ -420,6 +485,11 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   callback-errors.ts + password-reset-errors.ts
 │   ├── admin/                    # ← property-import.ts: parseo y validacion
 │   │                             #   del JSON del cargador CLI (puro, testeable)
+│   ├── buildings/                # ← agrupar unidades por parcela catastral.
+│   │                             #   Puro y derivado: buildingKey() es el unico
+│   │                             #   lugar que sabe como se identifica un
+│   │                             #   edificio, asi que una tabla `buildings`
+│   │                             #   entra cambiando solo esa funcion
 │   ├── storage/                  # property-photos.ts (upload/delete helpers)
 │   ├── zona-sur/                 # partidos + arbaCode mapping
 │   ├── education/                # guía de compra contenido (legacy)
@@ -544,6 +614,9 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 17. **Fase 15 — Navegación y tema** ✅ 27-ago
 18. **Fase 16 — Mapas de verdad** ✅ 27-ago (zona de cobertura sobre tiles)
 19. **Fase 17 — El mapa tiene proveedor** ✅ 28-ago (MapTiler + 2 bugs de pintado)
+20. **Fase 18 — Cargar sin navegador** ✅ 28-ago (`npm run cargar-propiedad`)
+21. **Fase 19 — La primera carga real** ✅ 28-ago (4 unidades + 4 bugs destapados)
+22. **Fase 20 — Edificios, galería y ficha PDF** ✅ 28-ago
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -551,8 +624,11 @@ Detalles de cada fase en **Current progress** más arriba.
 
 **1. Cargar propiedades reales** ← lo único que separa al sitio de lanzar
 
-Hay 2 publicadas. No depende de nada técnico: los dos cargadores funcionan,
-ARBA responde, el mapa dibuja la parcela. Dos caminos:
+Hay 4 publicadas, las cuatro de 2 ambientes de Belgrano 1287. Lo siguiente
+son el **loft dúplex** y el **3 ambientes de planta baja** del mismo
+edificio: los datos están en el folleto (`Propiedades/Belgrano 1287/Rumah/`)
+y lo único que falta son las fotos. No depende de nada técnico: los dos
+cargadores funcionan, ARBA responde, el mapa dibuja la parcela. Dos caminos:
 
 - **Formulario:** `/admin/properties/nueva`, single-screen con fotos
   drag&drop y autosave por sección.
@@ -865,6 +941,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.7 | Aug 28, 2026 | **El catálogo dejó de ser una vitrina de una sola ficha, y cargar de verdad rompió cuatro cosas.** Entraron las cuatro unidades de 2 ambientes de Belgrano 1287 con el cargador CLI. Con una propiedad ninguna de estas se veía: el cargador scoreaba sin `warmUp()` del cache de comparables; la card mostraba los 239 m² de la parcela sobre una unidad de 40; y sobre todo **la coherencia ARBA marcaba en rojo al 79% de los departamentos por ser departamentos** —40 m² declarados contra una parcela de 239 puntuaban 20/100— justo en la página cuya promesa es la verificación catastral. Es la Fase 12 otra vez, en los dos lugares que no se revisaron. Parkeado, con las bandas guardadas como spec de vuelta; el rescoreo de las 380 movió los verdes de 79 a 106. Después, tres piezas nuevas: **edificios por parcela** (dos unidades con la misma nomenclatura están en el mismo edificio: es una definición, y ya agrupa 17 parcelas de la data scrapeada, una con diez unidades), **galería de fotos** (el hero mostraba 1 de 18) y **ficha PDF** descargable. Los servicios pagos quedaron escondidos detrás de un flag. Y la guía de compra pasó de decirle al lector que fuera a sacar sus propios informes a decir de qué se encarga JM, cambiando el modelo de datos y no solo el copy. **316 → 319 tests** (+7 skipped a propósito). |
 | 2.6 | Aug 28, 2026 | **Cargar propiedades sin abrir el navegador.** `npm run cargar-propiedad -- ficha.json` hace lo mismo que `/admin/properties/nueva` desde un JSON, reutilizando las piezas del cargador web en vez de reimplementarlas. La idea es que Claude arme la ficha a partir de una descripción y una carpeta de fotos. Entra siempre como borrador y publicar sigue pasando por `canPublishProperty`. Las dos guardas que tiene salieron de pensar cuál es el riesgo propio de cargar desde archivo y no desde un form: la falla no es que explote, es que **salga bien y quede mal** — un `precio` en vez de `price_amount`, o un `"ochenta mil"` que el schema de borrador nulifica en silencio. Las dos ahora son error. Aparte, se documentan dos cosas que costaron esta sesión: el pipeline muere con `Executable doesn't exist` cuando sube la versión de Playwright y hay que correr `npx playwright install`, y la password de `DATABASE_URL` se resetea porque Supabase no la vuelve a mostrar nunca. **304 → 316 tests.** |
 | 2.5 | Aug 28, 2026 | **El mapa ya no es prestado, y tres bugs salieron de atrás de los efectos.** El bloque de cobertura cambió de basemap dos veces en un día y las dos fueron descartadas por el mismo motivo, que vale documentar: **CARTO y OSM devuelven HTTP 200 con la imagen de rechazo adentro** —"API KEY REQUIRED" estampada en diagonal, "Access blocked"— así que verificar por status o por peso no alcanza; hay que mirar los píxeles. Lo de OSM era además inevitable: son servidores de voluntarios cuya política prohíbe justamente esto, y no era solo la home, `/p/[id]` y el mapa de mercado le pegaban directo. Ahora hay proveedor propio (MapTiler, `landscape`, origins cerrados) detrás de `NEXT_PUBLIC_BASEMAP_URL`, una variable para los tres mapas, con la atribución deducida de la URL. Y apareció lo que probablemente explicaba **todas** las rondas anteriores de "el basemap le gana al hexágono": **el mapa pintaba encima del polígono** —`absolute` sobre estático gana sin importar el orden del DOM— y el marco cubría también el caption. El difuminado de bordes, que era otra curita del mismo problema, se reemplazó por esquinas apenas redondeadas. Heptágono de 7 vértices y match al 100 en azul de marca, vía un token propio y **sin** tocar el dorado del Quality Score, que comparten diez surfaces. **300 → 304 tests.** |
 | 2.4 | Aug 27, 2026 | **Mapas.** El bloque de verificación de la home dibujaba un hexágono inventado —el código lo llamaba `"a believable parcel"`— junto a un párrafo que promete el polígono exacto. Ahora muestra la zona de cobertura sobre tiles reales, con Lanús, Banfield y Temperley legibles debajo. Se escribió la aritmética de tiles a mano para no cargar Leaflet en la landing (~45 kB por un recuadro estático), y `projectToView` para que polígono y mapa compartan proyección: en una versión intermedia no la compartían y la parcela se dibujaba cruzando la Avenida Hipólito Yrigoyen. **275 → 300 tests.** Queda sin resolver el equilibrio visual entre el mapa y el hexágono — ver punto 3 del Build map. |
