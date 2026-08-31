@@ -2,6 +2,7 @@ import { createScraperClient } from "../http-client";
 import {
   upsertScrapedProperty,
   deactivateStale,
+  countActiveListings,
   type UpsertResult,
 } from "../persistence";
 import type { ScrapedProperty, ScraperRunResult } from "../types";
@@ -77,6 +78,20 @@ export async function scrapeZonaprop(
   const startedAt = Date.now();
   const allScraped: ScrapedProperty[] = [];
   const seenExternalIds = new Set<string>();
+
+  // Read before the crawl: how much we hold active is the yardstick the run's
+  // coverage is measured against, and the upsert loop below would move it.
+  // A failure here must not stop the scrape — 0 simply waives the coverage
+  // test, leaving the other two guards in place.
+  let activeBefore = 0;
+  try {
+    activeBefore = await countActiveListings("zonaprop", partido);
+  } catch (err) {
+    console.warn(
+      "[zonaprop] Could not read the active baseline:",
+      err instanceof Error ? err.message : err,
+    );
+  }
 
   try {
     for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
@@ -156,8 +171,16 @@ export async function scrapeZonaprop(
     // Only a crawl that reached the end of the listing may declare the
     // properties it didn't see gone. Anything else and we'd be inventing
     // data about pages we never opened.
+    //
+    // "Reached the end" is a weaker claim than it reads: an empty page is
+    // how a soft block looks too (parser.ts returns nothing when the card
+    // selector never appears). Hence the baseline — see crawl-completeness.
     result.crawlEnd = crawlEnd;
-    const decision = decideDeactivation(crawlEnd, allScraped.length);
+    const decision = decideDeactivation(
+      crawlEnd,
+      allScraped.length,
+      activeBefore,
+    );
     result.deactivationReason = decision.reason;
     console.log(`[zonaprop] Deactivation ${decision.reason}`);
 

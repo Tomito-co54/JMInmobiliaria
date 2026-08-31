@@ -180,6 +180,29 @@ export async function upsertScrapedProperty(
 }
 
 /**
+ * How many listings this source+partido currently holds active.
+ *
+ * Read *before* a crawl touches anything, so it is the baseline the run's
+ * coverage is judged against (see crawl-completeness.ts). Taken after the
+ * upsert loop it would be useless: the loop reactivates everything it saw,
+ * which is precisely the number under suspicion.
+ */
+export async function countActiveListings(
+  source: ScrapedProperty["source"],
+  partido: string,
+): Promise<number> {
+  const supabase = getAdminClient();
+  const { count, error } = await supabase
+    .from("properties")
+    .select("id", { count: "exact", head: true })
+    .eq("source", source)
+    .eq("partido", partido)
+    .eq("is_active", true);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+/**
  * Marks properties as inactive if they weren't seen in the latest run.
  * Returns the number of properties deactivated.
  */

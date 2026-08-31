@@ -2,6 +2,7 @@ import { createScraperClient } from "../http-client";
 import {
   upsertScrapedProperty,
   deactivateStale,
+  countActiveListings,
   type UpsertResult,
 } from "../persistence";
 import type { ScraperRunResult } from "../types";
@@ -58,6 +59,20 @@ export async function scrapeTrezza(
   let crawlEnd: CrawlEnd = "page_error";
 
   const startedAt = Date.now();
+
+  // Same baseline as Zonaprop, read before anything is touched. Trezza has
+  // no anti-bot worth the name, but the guard costs one count and the
+  // failure it prevents is unrecoverable.
+  let activeBefore = 0;
+  try {
+    activeBefore = await countActiveListings("trezza", partido);
+  } catch (err) {
+    console.warn(
+      "[trezza] Could not read the active baseline:",
+      err instanceof Error ? err.message : err,
+    );
+  }
+
   // Trezza has no anti-bot to speak of, but we still rate-limit to be polite.
   const client = await createScraperClient({ headed, minDelayMs: 3000 });
   const page = await client.newPage();
@@ -104,7 +119,11 @@ export async function scrapeTrezza(
     // Same rule as Zonaprop: only an exhaustive crawl may declare listings
     // gone. See ../crawl-completeness.ts.
     result.crawlEnd = crawlEnd;
-    const decision = decideDeactivation(crawlEnd, result.scrapedCount);
+    const decision = decideDeactivation(
+      crawlEnd,
+      result.scrapedCount,
+      activeBefore,
+    );
     result.deactivationReason = decision.reason;
     console.log(`[trezza] Deactivation ${decision.reason}`);
 
