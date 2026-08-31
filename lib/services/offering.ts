@@ -9,9 +9,12 @@
  * Hidden, not removed, which is the same call as Fase 8: `/p/[id]/servicios`
  * still resolves, the webhook still fulfils an order, and nothing in the
  * database changes. What disappears is every public way in — the button on
- * the property panel, the CTA in the buying-process advisor, and the "Lo
- * ofrecemos" badge on the documents it would sell.
+ * the property panel, the CTA in the buying-process advisor, the "Lo
+ * ofrecemos" badge on the documents it would sell, and the "Del dato al
+ * informe" block on the landing (added 31-ago: that one was missed on the
+ * first pass, and it was the loudest of the four — a full section of the
+ * home advertising a report you could not buy).
  *
- * Flip this to true and the three surfaces come back as they were.
+ * Flip this to true and the four surfaces come back as they were.
  */
 export const PAID_SERVICES_PUBLIC = false;

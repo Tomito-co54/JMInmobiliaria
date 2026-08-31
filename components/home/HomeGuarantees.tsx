@@ -12,6 +12,7 @@ import {
   PUBLIC_LISTING_STATUS,
   PUBLIC_PROPERTY_SOURCES,
 } from "@/lib/db/property-sources";
+import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
 import {
   Reveal,
   AreaOutlineViz,
@@ -295,29 +296,37 @@ export async function HomeGuarantees() {
               </Reveal>
             </div>
 
-            {/* Movement D — Servicios (numbered sequence; §2.3) */}
-            <div>
-              <Reveal className="text-center max-w-2xl mx-auto">
-                <p
-                  className="text-[0.7rem] uppercase tracking-[0.22em] font-medium"
-                  style={{ color: "var(--brand-gold)" }}
-                >
-                  Servicios
-                </p>
-                <h3
-                  className="mt-3 font-heading font-medium text-2xl sm:text-3xl leading-tight tracking-tight"
-                  style={{ color: "var(--brand-heading)" }}
-                >
-                  Del dato al informe, en tres pasos.
-                </h3>
-                <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed">
-                  El informe catastral se arma solo, en vivo, mientras lo mirás.
-                </p>
-              </Reveal>
-              <div className="mt-10 sm:mt-14">
-                <ServiceSteps />
+            {/* Movement D — Servicios (numbered sequence; §2.3).
+                Hidden with the rest of the paid offering: this section sells
+                the informe catastral ("Generás el informe en PDF"), so it is
+                a fourth public way in that Fase 8 and 20 missed while turning
+                off the other three. Kept whole behind the flag rather than
+                deleted — it is also the slot where the agency's own services
+                will go once there are services to name. */}
+            {PAID_SERVICES_PUBLIC && (
+              <div>
+                <Reveal className="text-center max-w-2xl mx-auto">
+                  <p
+                    className="text-[0.7rem] uppercase tracking-[0.22em] font-medium"
+                    style={{ color: "var(--brand-gold)" }}
+                  >
+                    Servicios
+                  </p>
+                  <h3
+                    className="mt-3 font-heading font-medium text-2xl sm:text-3xl leading-tight tracking-tight"
+                    style={{ color: "var(--brand-heading)" }}
+                  >
+                    Del dato al informe, en tres pasos.
+                  </h3>
+                  <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed">
+                    El informe catastral se arma solo, en vivo, mientras lo mirás.
+                  </p>
+                </Reveal>
+                <div className="mt-10 sm:mt-14">
+                  <ServiceSteps />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
