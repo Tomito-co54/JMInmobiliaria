@@ -262,6 +262,7 @@ igual. Medir movimiento ahí adentro no prueba nada — hay que confirmar
 | Fase 26 — El match en la barra | Los criterios vivían al pie de la landing y en ningún otro lado, así que quien entraba por `/propiedades` —la página que muestra las propiedades— no tenía forma de llegar a ellos. `MatchQuickFilter`: desplegable en el header con medidor, link al mejor match y las seis preguntas. No es segunda fuente de verdad — mismo `sessionStorage`, así que tocar un criterio arriba mueve el medidor de la home en el mismo frame. `bestMatch` salió a `lib/matching` (la cuenta vivía dentro del componente de la home) y la query del catálogo a `lib/db/properties` con `cache`. El header a 375px se resolvió **midiendo**: el isotipo es apaisado y a dos tercios de alto devuelve 17px, Panel queda como ícono debajo de `sm`. Salió el último resto público del Quality Score, en la guía. | `a4e9f2c` |
 | Fase 27 — Transiciones y vida | Pasada de movimiento con la regla rectora de §2 como filtro. **Entre páginas ya no se corta en seco**: `(public)/template.tsx` — template y no layout, porque un layout persiste y un template se vuelve a montar, que es lo que le da entrada a la página nueva. **El click contesta**: `NavPending` (`useLinkStatus`) llena una barra bajo el link tocado, y la página que se va se recuesta (`body[data-navigating]`). No es un skeleton a propósito — Next mantiene la página actual hasta que la siguiente está lista, y para 300ms eso es mejor que vaciar. **El tema se barre desde el botón** (View Transitions API + `clip-path`, un solo paso compuesto; `disableTransitionOnChange` se queda). Movimiento nuevo en `/edificios` y en la guía, que es el proceso numerado de §2.3. El panel tiene su propio template, más quieto: 200ms, sin escala, sin reveals. | `52df257` `626c2da` |
 | Fase 28 — Auditoría de performance | La lentitud al cambiar de pestaña resultó ser **geografía**: base en San Pablo, función en Washington, ~375ms por consulta cruzando el continente. Aislado con una ruta dinámica sin consultas como testigo. Dos commits: código (catálogo del header cacheado entre requests con tag, header en `Promise.all`, íconos de Leaflet traídos a `/public`) y región (`vercel.json` → `gru1`). TTFB de `/edificios` 1,23–2,54s → **0,34s**, contra una base estática de 0,35s. Abrir una propiedad 990–1283ms → **247–508ms**. De paso apareció un bug latente: publicar revalidaba solo `/`, de cuando la landing era el catálogo. Recursos: sin fugas, 428 nodos que vuelven a 428, heap de 11 MB. | `b98a5f3` `c0b9d1f` |
+| Fase 29 — Se va lo que era del portal viejo | El Quality Score sale de los tres lugares que quedaban (medallón del hero de `/p/[id]`, ficha PDF, medallón de la protagonista) — sigue ordenando el catálogo y mandando en `/admin`. Y el **"Historial"** sale de la ficha: decía "Lo seguimos hace 3 días", que es lenguaje del portal agregador, donde seguir el aviso de **otro** en el tiempo era el producto. Acá la publicación es nuestra y contarle al comprador hace cuántos días la miramos no dice nada de la propiedad — con una ficha de tres días dice algo peor. `property_history` sigue alimentando `/admin/mercado`. De paso saca una consulta de hasta 50 filas de la página que más tarda en abrir. | `16ba93a` |
 
 **Tests:** 367 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
 fase 9 → 275 tras las fases 10-15 → 300 tras la 16 → 316 tras la 18 → 319
@@ -439,17 +440,19 @@ registro público. Esa fila solo puede existir para Tomy.
   **El algoritmo no se tocó** — era puro, solo faltaba de dónde sacar el
   perfil. Lo que no se responde queda en null, o sea `confidence: 0`, y el
   match renormaliza sobre lo que sí se expresó.
-- **El Quality Score salió de casi toda la cara pública**: del panel de la
-  ficha, de las cards (`PropertyPremiumCard`), de `BuildingUnits` y de la
-  home. Sigue ordenando el catálogo y mandando en `/admin`.
-  **Corrección (1-sep):** este documento decía que quedaba "solo el medallón
-  de la protagonista" y es falso. Quedan **tres** lugares donde el visitante
-  todavía lo ve: ese medallón, **el del hero de `/p/[id]`** ("71 · QUALITY ·
-  Bueno", que nunca se tocó porque lo que salió en la Fase 21 fue el del
-  panel) y **la ficha PDF**. Los dos últimos están sin decidir — punto 4 del
-  Build map. Lo que sí se fue del todo es el **copy** que lo explicaba: la
-  sección de la home (Fase 24) y la línea de la guía de compra (Fase 26),
-  que le prometía al lector un número que ya no puede auditar.
+- **El Quality Score ya no lo ve ningún visitante** (cerrado el 1-sep). Salió
+  por partes: del panel de la ficha y de las cards (Fase 21), de la home
+  (Fase 24), y finalmente de los tres lugares que quedaban — el **medallón del
+  hero de `/p/[id]`**, la **ficha PDF** y el **medallón de la protagonista**.
+  Los dos primeros eran los peores: sobre la foto al lado del precio se lee
+  como una nota que la propiedad se sacó, y el PDF además se descarga y se
+  reenvía, así que el número salía del sitio y seguía viaje sin nada que lo
+  explicara. El de la protagonista se había defendido como gesto de diseño
+  (§2.1) — pero el gesto es la foto rompiendo el cuadrante; el medallón era
+  solo lo que colgaba de él.
+  **Sigue ordenando el catálogo y sigue mandando en `/admin`**, y sigue
+  visible en `/buscar` y `/favoritos`, que están detrás de login y son
+  herramientas de Tomy, mismo estatus que el panel.
 - **Antigüedad** (`year_built`, migración 00016): no había de dónde sacarla —
   las únicas fechas eran de publicación. Se guarda el **año**, no los años.
   Queda nula en casi todas las scrapeadas y el sub-score lo lee como "no se
@@ -901,6 +904,7 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 28. **Fase 26 — El match en la barra de pestañas** ✅ 1-sep
 29. **Fase 27 — Transiciones y vida** ✅ 1-sep (páginas, tema, panel)
 30. **Fase 28 — Auditoría de performance** ✅ 1-sep (la lentitud era la región)
+31. **Fase 29 — Se va lo que era del portal viejo** ✅ 1-sep (Quality Score + historial)
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -937,25 +941,16 @@ datos** para tener algo que mostrar:
   nada que detectar.
 - **Series temporales de USD/m²** — necesitan meses.
 
-**4. Los 44px que faltan, y el Quality Score que sobra** ← medido 1-sep
+**4. Los 44px que faltan** ← medido 1-sep
 
-Dos restos chicos, los dos de la misma familia: cosas que quedaron de una
-versión anterior y que nadie vuelve a mirar porque no rompen nada.
+La regla de 44px se cumple en los controles protagonistas y no en los
+secundarios. Ver **Mobile aguanta** más arriba para la tabla medida; los que
+valen son los links del nav (28px) y el CTA del hero (35px). Es decisión
+visual: subir el nav engorda el header, que ya está justo de ancho a 375px con
+el match adentro.
 
-- **Tap targets bajo la regla de 44px.** Ver **Mobile aguanta** más arriba
-  para la tabla medida. Los que valen son los links del nav (28px) y el CTA
-  del hero (35px). Es decisión visual: subir el nav engorda el header, que ya
-  está justo de ancho a 375px con el match adentro.
-- **El Quality Score sigue visible en dos lugares** que este documento decía
-  que ya no: el **medallón del hero de `/p/[id]`** ("71 · QUALITY · Bueno") y
-  la **ficha PDF**. Salió del panel en la Fase 21 y del resto en la 24, pero
-  el hero nunca se tocó. Se dejó porque el medallón es un gesto de
-  composición (§2.1, pisa la esquina de la foto) y el de la protagonista se
-  conservó por ese mismo motivo — o sea que existe una versión coherente
-  donde el medallón se queda y lo que se va es la explicación. **Decisión de
-  Tomy.**
-- **`components/scoring/` es código muerto**: el anillo, la card y el sheet
-  ya no los importa nadie, ni el público ni `/admin`.
+(El otro medio punto de esta entrada —el Quality Score que quedaba en el hero
+y en el PDF— se resolvió el 1-sep. Ver la sección del match más arriba.)
 
 **5. Mapa de búsqueda público**
 
@@ -1259,6 +1254,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.12 | Sep 1, 2026 | **Se va lo último que quedaba del portal agregador.** El Quality Score sale de los tres lugares donde un visitante todavía lo veía: el medallón del hero de `/p/[id]`, la **ficha PDF** —la peor, porque se descarga y se reenvía, así que el número salía del sitio y seguía viaje sin nada que lo explicara— y el medallón de la protagonista, que se había defendido como gesto de diseño cuando el gesto es la foto rompiendo el cuadrante y el medallón era solo lo que colgaba de él. Sigue ordenando el catálogo y mandando en `/admin`. Y sale el **"Historial"** de la ficha, que decía *"Lo seguimos hace 3 días"*: eso es lenguaje de un portal donde seguir el aviso de **otro** a lo largo del tiempo era el producto y el comprador quería saber si el precio se había movido antes de que él llegara. Acá la publicación es nuestra. `property_history` sigue registrando todo y sigue siendo la materia prima de `/admin/mercado`, que es donde ese dato significa algo — y sacarlo de la ficha se lleva de paso una consulta de hasta 50 filas en la página que más tarda en abrir. |
 | 2.11 | Sep 1, 2026 | **La lentitud era geografía, y ahora está medida de las dos puntas.** Tomy reportó que cambiar de pestaña y abrir una propiedad tardaban, y que venía de hace rato. No era código: **la base está en San Pablo y la función corría en Washington**, el default de Vercel que nadie eligió, así que cada consulta cruzaba el continente. Aislado con una ruta dinámica sin consultas como testigo — estática 0,35s, dinámica-sin-consultas 0,39s, dinámica-con-dos-consultas 1,13s — o sea **~375ms por consulta**, y nada de eso eran bytes: el payload de una navegación es de 5 a 8 kB. Se arregló en dos commits separados para poder atribuir cada mejora: código (el catálogo del header, que corría en cada página pública sin haber cambiado desde la última publicación, pasa a cachearse entre requests con tag; el header deja de esperar en fila; los íconos de Leaflet dejan de venir de unpkg) y región (`vercel.json` → `gru1`). **`/edificios` pasó de 1,23–2,54s a 0,34s**, contra una línea base estática de 0,35s: las consultas dejaron de costar. Abrir una propiedad, de 990–1283ms a 247–508ms. **Recursos: sanos** — heap de 11 MB contra un límite de 4.096, 428 nodos DOM que vuelven exactamente a 428 tras seis navegaciones, sin fugas. De paso apareció un bug latente: publicar una propiedad revalidaba solo `/`, de cuando la landing era el catálogo, así que `/propiedades` y `/edificios` seguían sirviendo el set anterior. Y otra vez la trampa del panel oculto: ahí `setTimeout` se estrangula a ~1s y cualquier cronómetro propio devuelve 1000ms para todo — las mediciones que valen son las del navegador y las de curl. |
 | 2.10 | Sep 1, 2026 | **Pasada de movimiento: el sitio deja de cortar en seco.** Entre páginas no había transición y desde que la Fase 23 partió la cara pública en tres, moverse entre páginas es lo principal que hace un visitante — cada click cambiaba la pantalla entera en un frame. Ahora hay entrada de página, la página que se va se recuesta, y el click se acusa con una barra bajo el link (`useLinkStatus`). **No hay skeletons a propósito**: Next mantiene la página actual hasta que la siguiente está lista, y para una espera de 300ms eso es mejor que vaciar a un esqueleto — lo que faltaba nunca fue el destino, era la respuesta al toque. El **cambio de tema** pasó de un frame duro a un círculo que crece desde el botón (View Transitions, un solo paso compuesto; `disableTransitionOnChange` se queda porque transicionar cada color por separado es justo lo que arrastra en un teléfono). Movimiento nuevo en `/edificios` y en la guía. El panel tiene el suyo, más quieto. **Dos bugs propios, cazados antes de subir:** `Reveal` pedía `threshold: 0.3`, que es **aritméticamente imposible** para algo más alto que ~3 viewports — la etapa 4 de la guía habría quedado invisible para siempre; y `transition.finished` rechaza al abortar, así que `.finally()` dejaba rechazos sin manejar en cada abort. Y una nota de método: **el panel del navegador oculto no corre rAF, ni transiciones, ni IntersectionObserver**, así que varias mediciones de animación de esta sesión no probaban nada hasta confirmar `visibilityState`. Nuevo en el Build map: **el cambio de pestaña se siente lento** (reportado por Tomy, sin diagnosticar). 367 tests, peso sin cambios. |
 | 2.9 | Sep 1, 2026 | **ARBA sale del eje del discurso, el match sube a la barra, y mobile deja de ser una aspiración para ser una medición.** La cara pública lideraba con el nombre de una agencia de recaudación provincial: el bloque de la home se titulaba "Verificación catastral" y explicaba qué es ARBA *antes* de decir para qué sirve. Cambió **cómo se cuenta, no qué se chequea** — la consulta a la parcela sigue corriendo y sigue habilitando el chip y el porcentaje. ARBA queda nombrada en un solo lugar y a propósito: el catálogo de documentos de la guía, donde "quién lo emite" es la pregunta que esa sección existe para contestar. El match, que vivía al pie de la landing y en ningún otro lado —o sea inalcanzable para quien entra por `/propiedades`, que es la página que muestra las propiedades— ahora se abre desde el header. **Mobile:** Tomy lo probó cinco minutos en el teléfono y anda bien; sobre esa impresión hay ahora una barrida medida a 375px que confirma lo importante (cero overflow horizontal en las cuatro surfaces públicas, 262 kB contra un techo de 500) y encuentra lo que la prueba a mano no delata: la regla de 44px se cumple en los controles protagonistas y no en los secundarios —nav de 28px, CTA del hero de 35px—. Y el documento volvió a mentir en dos cosas que él mismo afirmaba: `match.ts` **ya** no usa `surface_arba` para cruzar contra un comprador (se arregló el 31-ago), y el Quality Score **no** salió entero de la cara pública — sigue en el medallón del hero de `/p/[id]` y en la ficha PDF. **360 → 367 tests**. |

@@ -49,16 +49,6 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
   },
   price: { fontFamily: theme.fonts.heading, fontSize: 26, color: theme.colors.navy },
-  scoreBox: {
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.line,
-    borderRadius: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  scoreValue: { fontSize: 20, fontFamily: theme.fonts.heading, color: theme.colors.navy },
-  scoreLabel: { fontSize: theme.sizes.small, color: theme.colors.inkMuted },
 
   specs: {
     marginTop: 14,
