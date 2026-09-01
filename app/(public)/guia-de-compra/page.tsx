@@ -47,8 +47,14 @@ export default function GuiaDeCompraPage() {
 
           <Link
             href="/"
-            aria-label="Jotaeme"
-            className="shrink-0"
+            aria-label="Jotaeme — inicio"
+            // Mismo acuse al toque que en PublicHeader: es el mismo logo
+            // llevando al mismo lado, y dos cabeceras que responden distinto
+            // al mismo gesto se sienten como dos sitios (§2.5).
+            className={cn(
+              "shrink-0 transition-[opacity,transform] duration-200 ease-out",
+              "hover:opacity-80 motion-safe:active:scale-[0.93] active:opacity-70",
+            )}
           >
             <BrandLogo variant="isotipo" size={28} />
           </Link>

@@ -82,7 +82,16 @@ export async function PublicHeader({
           // shrink-0: without it the flex row pays for a crowded nav by
           // squeezing the logo, and a clipped brand mark is the one thing in
           // this row that must never be what gives way.
-          className="flex shrink-0 items-center gap-2 hover:opacity-80 transition-opacity"
+          // El logo acusa el toque. Es el control mas chico de la fila (24px
+          // de alto) y ademas el unico sin etiqueta, asi que sin respuesta al
+          // tacto no hay forma de saber si registro. Se hunde y vuelve:
+          // transform y opacity, nada que toque el layout (§4), y detras de
+          // motion-safe como todo lo demas.
+          className={cn(
+            "flex shrink-0 items-center gap-2",
+            "transition-[opacity,transform] duration-200 ease-out",
+            "hover:opacity-80 motion-safe:active:scale-[0.93] active:opacity-70",
+          )}
         >
           {/* The isotipo is a wide mark: at 32px tall it is 68px across, the
               single widest thing in this row. Two thirds of that height at
