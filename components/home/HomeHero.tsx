@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { buttonVariants } from "@/components/ui/button";
@@ -108,13 +109,14 @@ export function HomeHero() {
         </p>
 
         {/* CTA. El chevron se desplaza 2px al hover (§2.2 — premia
-            curiosidad). En mobile no hay hover; tap te lleva al ancla. */}
+            curiosidad). Ya no es un ancla: el catálogo vive en /propiedades,
+            así que esto navega en vez de scrollear. */}
         <div
           className="pt-2 flex justify-center home-rise"
           style={{ animationDelay: "600ms" }}
         >
-          <a
-            href="#catalogo"
+          <Link
+            href="/propiedades"
             className={cn(
               buttonVariants({ size: "lg" }),
               "gap-1.5 group px-6",
@@ -122,7 +124,7 @@ export function HomeHero() {
           >
             Ver propiedades
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-          </a>
+          </Link>
         </div>
       </div>
 

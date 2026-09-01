@@ -3,21 +3,28 @@ import { buildingKey, type BuildingSummary } from "@/lib/buildings";
 import {
   PropertyPremiumCard,
   type PremiumCardProperty,
-} from "@/components/home/PropertyPremiumCard";
+} from "@/components/catalog/PropertyPremiumCard";
 
 /**
- * Public home catalog (Block 5 del rediseño). The "resto del catálogo":
- * published properties shown as large premium cards, one per row, the
- * photo side alternating (PropertyPremiumCard.flip). No 2-col grid of
- * fichas (§6 blacklist). The protagonista (HomeProtagonist) is the
- * spotlight above; this lists the rest.
+ * The published catalog: large premium cards, one per row, the photo side
+ * alternating (PropertyPremiumCard.flip). No 2-col grid of fichas (§6
+ * blacklist).
+ *
+ * It lived on the landing until the inventory outgrew it — which the old
+ * comment at the foot of this file predicted almost word for word. Now it is
+ * a page of its own at /propiedades and the landing links to it, so the
+ * landing argues and the catalog lists. The protagonista stays on the home:
+ * it is a showpiece, not a listing.
  *
  * Scroll-reveal per card via the shared Reveal island.
  */
-export function HomeCatalog({
+export function PropertyCatalog({
   properties,
   totalProperties,
   buildings,
+  heading,
+  eyebrow,
+  intro,
 }: {
   properties: PremiumCardProperty[];
   /** Total published count — drives the header copy, not the rendered slice. */
@@ -29,6 +36,10 @@ export function HomeCatalog({
    * properties, or as a duplicate.
    */
   buildings?: Map<string, BuildingSummary>;
+  /** Overridable so the page and any future embed can title it in context. */
+  eyebrow?: string;
+  heading?: string;
+  intro?: string;
 }) {
   return (
     <section
@@ -41,20 +52,23 @@ export function HomeCatalog({
             className="text-xs uppercase tracking-[0.2em] font-medium"
             style={{ color: "var(--brand-gold)" }}
           >
-            El catálogo
+            {eyebrow ?? "El catálogo"}
           </p>
           <h2
             className="mt-3 font-heading font-medium text-3xl sm:text-4xl tracking-tight"
             style={{ color: "var(--brand-heading)" }}
           >
-            Propiedades disponibles
+            {heading ?? "Propiedades disponibles"}
           </h2>
           <p className="mt-3 text-sm sm:text-base text-muted-foreground">
-            {totalProperties > 0
-              ? `${totalProperties} ${
-                  totalProperties === 1 ? "propiedad publicada" : "propiedades publicadas"
-                } en Zona Sur GBA, cada una con scoring de calidad y datos catastrales verificados.`
-              : "Estamos cargando las primeras propiedades."}
+            {intro ??
+              (totalProperties > 0
+                ? `${totalProperties} ${
+                    totalProperties === 1
+                      ? "propiedad publicada"
+                      : "propiedades publicadas"
+                  } en Zona Sur GBA, cada una con la partida verificada contra ARBA.`
+                : "Estamos cargando las primeras propiedades.")}
           </p>
         </Reveal>
 
@@ -82,11 +96,7 @@ export function HomeCatalog({
             })}
           </div>
         )}
-        {/* Nota: el viejo CTA "Ver todas" apuntaba a /buscar (la búsqueda del
-            portal agregador original, con match scoring). Con el inventario
-            propio actual la home ya muestra todo el catálogo, así que se
-            quitó. Cuando el inventario crezca, va una página de listado
-            propia en su lugar. */}
+
       </div>
     </section>
   );

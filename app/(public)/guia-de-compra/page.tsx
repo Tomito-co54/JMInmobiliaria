@@ -55,10 +55,10 @@ export default function GuiaDeCompraPage() {
           <ThemeToggle />
 
           <Link
-            href="/buscar"
+            href="/propiedades"
             className={cn(buttonVariants({ size: "sm" }))}
           >
-            Buscar propiedades
+            Ver propiedades
           </Link>
         </div>
       </header>
@@ -201,12 +201,12 @@ export default function GuiaDeCompraPage() {
             ¿Ya estás buscando?
           </h2>
           <p className="text-sm text-muted-foreground">
-            Configurá tu perfil de búsqueda en Jotaeme y empezá a recibir
-            propiedades que te encajen — con scoring de calidad y datos
-            verificados con ARBA.
+            Decinos qué buscás y te decimos cuánto encaja cada propiedad, con
+            la partida verificada contra ARBA. Sin cuenta y sin dejar tus
+            datos.
           </p>
           <div className="flex justify-center pt-2">
-            <Link href="/buscar" className={buttonVariants({ size: "lg" })}>
+            <Link href="/propiedades" className={buttonVariants({ size: "lg" })}>
               Ver propiedades
             </Link>
           </div>
