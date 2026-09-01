@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { LayoutDashboard } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { MatchQuickFilter } from "@/components/matching/MatchQuickFilter";
+import { getMatchableCatalog } from "@/lib/db/properties";
 
 /**
  * The public header, in one place.
@@ -17,6 +20,12 @@ import { ThemeToggle } from "@/components/shared/theme-toggle";
  * Async server component that reads its own session. The landing used to fetch
  * the user and the role purely to decide this button, which put an auth round
  * trip in a page that otherwise did not need one.
+ *
+ * It also carries the match now. The criteria used to sit at the foot of the
+ * landing only, which meant a visitor who arrived at /propiedades — where the
+ * catalog actually lives — could not reach them at all. The catalog it matches
+ * against is fetched here and handed to the client island: four rows, the same
+ * public gate as every other surface.
  */
 
 const NAV = [
@@ -35,6 +44,8 @@ export async function PublicHeader({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const matchable = await getMatchableCatalog();
 
   // The logged-in CTA used to send everyone to /dashboard, the buyer-facing
   // dashboard inherited from the upstream portal. For the broker that was a
@@ -59,12 +70,27 @@ export async function PublicHeader({
         <Link
           href="/"
           aria-label="Jotaeme — inicio"
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          // shrink-0: without it the flex row pays for a crowded nav by
+          // squeezing the logo, and a clipped brand mark is the one thing in
+          // this row that must never be what gives way.
+          className="flex shrink-0 items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <BrandLogo variant="isotipo" size={32} priority />
+          {/* The isotipo is a wide mark: at 32px tall it is 68px across, the
+              single widest thing in this row. Two thirds of that height at
+              375px buys back the space the match needs without removing a
+              destination or clipping the mark. */}
+          <BrandLogo
+            variant="isotipo"
+            size={32}
+            priority
+            className="h-6 w-auto sm:h-8"
+          />
         </Link>
 
-        <nav className="flex items-center gap-1 sm:gap-2">
+        {/* gap-0.5 at 375px, measured, not guessed: logged in the row holds
+            two catalog links, the match, the theme toggle and the Panel
+            button, and at gap-1 that overflows by about ten pixels. */}
+        <nav className="flex items-center gap-0.5 sm:gap-2">
           {NAV.map((item) => {
             const current = item.href === activeHref;
             return (
@@ -94,13 +120,22 @@ export async function PublicHeader({
               </Link>
             );
           })}
+          <MatchQuickFilter properties={matchable} compact={!!user} />
           <ThemeToggle />
           {user && (
             <Link
               href={isAdmin ? "/admin" : "/dashboard"}
-              className={buttonVariants({ size: "sm" })}
+              aria-label={isAdmin ? "Panel de administración" : "Ir al dashboard"}
+              // Icon-only below sm. The word costs 25px in a row that has
+              // none to spare once the match joins it, and this button exists
+              // for one person on the one screen where the label is least
+              // needed — they know what it is, they put it there.
+              className={cn(buttonVariants({ size: "sm" }), "px-2.5 sm:px-3")}
             >
-              {isAdmin ? "Panel" : "Ir al dashboard"}
+              <LayoutDashboard className="size-4 sm:hidden" aria-hidden />
+              <span className="hidden sm:inline">
+                {isAdmin ? "Panel" : "Ir al dashboard"}
+              </span>
             </Link>
           )}
         </nav>

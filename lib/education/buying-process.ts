@@ -268,7 +268,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
       "Acá está la mayor parte de nuestro trabajo, y es invisible: descartar. Por cada propiedad que te mostramos hay varias que miramos y no pasaron el filtro, porque la superficie no coincide con el catastro, porque el precio no se sostiene contra los comparables o porque el título tiene algo raro.",
     weHandle: [
       "Verificamos cada propiedad antes de mostrártela: la superficie real, la parcela y la ubicación, contra los registros oficiales.",
-      "Calculamos el Quality Score y te lo mostramos abierto, componente por componente. Sin caja negra.",
+      "Te decimos cuánto encaja cada propiedad con lo que buscás, y te lo mostramos abierto, criterio por criterio. Sin caja negra.",
       "Coordinamos las visitas y vamos con vos, con la ficha catastral en la mano.",
       "Te decimos lo que el aviso no dice: antigüedad real, gastos mensuales, expensas extraordinarias del último año.",
     ],

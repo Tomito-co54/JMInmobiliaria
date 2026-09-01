@@ -1,5 +1,7 @@
+import { cache } from "react";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import type { QualityBreakdown } from "@/lib/scoring";
+import type { MatchableProperty } from "@/lib/matching";
 import type { PropertyHistoryRow } from "@/lib/db/property-history";
 import {
   PUBLIC_LISTING_STATUS,
@@ -479,3 +481,40 @@ async function findArbaLookup(
 
   return { data: null, error: null };
 }
+
+/**
+ * The published catalog, reduced to the fields the matcher scores against.
+ *
+ * Small on purpose and small in fact — the public filter is four listings
+ * today — so the whole set ships to the client and the match recomputes on
+ * every tap with no round trip. It honours the same two-door filter as every
+ * other public surface (`lib/db/property-sources`): a visitor must never be
+ * matched against scraped inventory.
+ *
+ * Lives here rather than inline in the home because the header now asks for
+ * it too, on every public page. Two copies of a query whose whole job is to
+ * apply the public gate is exactly the duplication that lets one of them
+ * quietly stop applying it.
+ *
+ * Wrapped in `cache` so the landing — where both the header and the garantías
+ * section want it — pays for one round trip instead of two. Per request, so
+ * nothing is held between visitors.
+ */
+export const getMatchableCatalog = cache(async function getMatchableCatalog(): Promise<MatchableProperty[]> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("properties")
+      .select(
+        "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, description, year_built",
+      )
+      .eq("is_active", true)
+      .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+      .eq("listing_status", PUBLIC_LISTING_STATUS);
+    return (data ?? []) as unknown as MatchableProperty[];
+  } catch {
+    // An empty list degrades to the neutral prompt, which is honest: with no
+    // catalog in hand there is no best match to name.
+    return [];
+  }
+});

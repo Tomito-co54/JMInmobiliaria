@@ -18,10 +18,8 @@ import {
   AreaOutlineViz,
   ServiceSteps,
 } from "@/components/home/HomeGuaranteesClient";
-import {
-  HomeMatchBuilder,
-  type MatchableProperty,
-} from "@/components/home/HomeMatchBuilder";
+import { HomeMatchBuilder } from "@/components/home/HomeMatchBuilder";
+import { getMatchableCatalog } from "@/lib/db/properties";
 
 /**
  * Home "garantías" section (Block 4 del rediseño). Replaces the old 2x2
@@ -93,34 +91,6 @@ async function getVerifiedPct(): Promise<number> {
 }
 
 /**
- * The published catalog, reduced to the fields the matcher scores against.
- *
- * Small on purpose and small in fact — the public filter is four listings
- * today — so the whole set ships to the client and the match recomputes on
- * every tap with no round trip. It honours the same two-door filter as every
- * other public surface (`lib/db/property-sources`): a visitor must never be
- * matched against scraped inventory.
- */
-async function getMatchableProperties(): Promise<MatchableProperty[]> {
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("properties")
-      .select(
-        "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, description, year_built",
-      )
-      .eq("is_active", true)
-      .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
-      .eq("listing_status", PUBLIC_LISTING_STATUS);
-    return (data ?? []) as unknown as MatchableProperty[];
-  } catch {
-    // An empty list degrades to the prompt state, which is honest: with no
-    // catalog in hand there is no best match to name.
-    return [];
-  }
-}
-
-/**
  * The coverage area on real ground: the outline projected into the diagram's
  * box, plus the tiles beneath it.
  *
@@ -177,7 +147,7 @@ function getCoverageView() {
 
 export async function HomeGuarantees() {
   const verifiedPct = await getVerifiedPct();
-  const matchable = await getMatchableProperties();
+  const matchable = await getMatchableCatalog();
 
   const coverage = getCoverageView();
 

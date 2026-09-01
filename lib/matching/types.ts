@@ -126,3 +126,18 @@ export const MATCH_SUBSCORE_WEIGHTS: Record<MatchSubScoreId, number> = {
 };
 
 export const MATCH_MIN_EFFECTIVE_WEIGHT_RATIO = 0.30;
+
+/**
+ * A published listing, reduced to what the matcher scores plus what a UI
+ * needs to name it and link to it.
+ *
+ * It lives here rather than beside one of the components that renders it
+ * because three surfaces now match against the same catalog — the home
+ * builder, the header's quick filter, and (via the same preferences) the
+ * listing panel — and a shape owned by whichever component happened to need
+ * it first is a shape the next one imports sideways.
+ */
+export interface MatchableProperty extends PropertyForMatching {
+  id: string;
+  address: string | null;
+}

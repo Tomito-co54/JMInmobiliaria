@@ -5,8 +5,8 @@ import { ArrowRight } from "lucide-react";
 import { MatchMeter } from "@/components/matching/MatchMeter";
 import { MatchPreferencesForm } from "@/components/matching/MatchPreferencesForm";
 import { useMatchPreferences } from "@/hooks/use-match-preferences";
-import { hasAnyPreference, toSearchProfile } from "@/lib/matching/preferences";
-import { computeMatchScore, type PropertyForMatching } from "@/lib/matching";
+import { hasAnyPreference } from "@/lib/matching/preferences";
+import { bestMatch, type MatchableProperty } from "@/lib/matching";
 
 /**
  * Where the visitor says what they are looking for — the home half of the
@@ -23,10 +23,7 @@ import { computeMatchScore, type PropertyForMatching } from "@/lib/matching";
  * so a listing page can pick them up without asking again. No account, no
  * server, nothing that outlives the tab.
  */
-export interface MatchableProperty extends PropertyForMatching {
-  id: string;
-  address: string | null;
-}
+export type { MatchableProperty };
 
 export function HomeMatchBuilder({
   properties,
@@ -44,17 +41,9 @@ export function HomeMatchBuilder({
   const { preferences, setPreferences, ready } = useMatchPreferences();
   const answered = hasAnyPreference(preferences);
 
-  const best = (() => {
-    if (!answered || properties.length === 0) return null;
-    const profile = toSearchProfile(preferences);
-    let winner: { property: MatchableProperty; score: number } | null = null;
-    for (const property of properties) {
-      const { score } = computeMatchScore(property, profile);
-      if (score === null) continue;
-      if (!winner || score > winner.score) winner = { property, score };
-    }
-    return winner;
-  })();
+  // Shared with the header's quick filter (lib/matching/best-match), so the
+  // two places a visitor can read "tu match" cannot disagree about it.
+  const best = bestMatch(properties, preferences);
 
   // Until the first client read lands, show the neutral prompt rather than a
   // score computed from empty preferences.

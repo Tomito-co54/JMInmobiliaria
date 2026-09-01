@@ -1,4 +1,6 @@
 export { computeMatchScore } from "./match";
+export { bestMatch } from "./best-match";
+export type { BestMatch } from "./best-match";
 export { getMatchBand, interpolateMatchRingColor, listMatchBands } from "./bands";
 export type { MatchBand, MatchBandId } from "./bands";
 export {
@@ -14,6 +16,7 @@ export type {
   MatchSubScore,
   MatchSubScoreBody,
   MatchSubScoreId,
+  MatchableProperty,
   PropertyForMatching,
   SearchProfileForMatching,
   ZonePref,
