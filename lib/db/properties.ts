@@ -58,6 +58,7 @@ export interface PublicPropertyRow {
   bathrooms: number | null;
   garages: number | null;
   description: string | null;
+  year_built: number | null;
   photos: string[];
   first_seen_at: string | null;
   last_seen_at: string | null;
@@ -102,6 +103,7 @@ const PUBLIC_PROPERTY_COLS = [
   "bathrooms",
   "garages",
   "description",
+  "year_built",
   "photos",
   "first_seen_at",
   "last_seen_at",

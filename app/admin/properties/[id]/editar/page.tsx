@@ -33,6 +33,7 @@ export default async function EditPropertyPage({ params }: PageProps) {
         "description",
         "surface_total",
         "surface_covered",
+        "year_built",
         "surface_arba",
         "rooms",
         "bedrooms",
@@ -97,6 +98,7 @@ export interface PropertyRowFromDb {
   bedrooms: number | null;
   bathrooms: number | null;
   garages: number | null;
+  year_built: number | null;
   partido: string | null;
   partida: string | null;
   nomenclatura_catastral: string | null;

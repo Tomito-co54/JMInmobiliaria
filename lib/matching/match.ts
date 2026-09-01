@@ -414,6 +414,97 @@ function surfaceSubScore(p: PropertyForMatching, profile: SearchProfileForMatchi
 }
 
 // ---------------------------------------------------------------------------
+// Sub-score: age of the building
+// ---------------------------------------------------------------------------
+
+/**
+ * How old the building is, in years, or null when it does not say.
+ *
+ * A unit sold before it is finished ("a estrenar", "en pozo") carries a year
+ * in the future and comes back as 0 rather than a negative age — it is brand
+ * new, which is the answer the buyer wants, and a negative number would sort
+ * and read as nonsense.
+ */
+export function buildingAgeYears(
+  yearBuilt: number | null,
+  now: Date = new Date(),
+): number | null {
+  if (yearBuilt === null || !Number.isFinite(yearBuilt)) return null;
+  return Math.max(0, now.getFullYear() - yearBuilt);
+}
+
+function ageSubScore(p: PropertyForMatching, profile: SearchProfileForMatching): MatchSubScore {
+  if (profile.max_age_years === null) {
+    return {
+      id: "age",
+      value: 70,
+      weight: W.age,
+      confidence: 0,
+      reason: "No pusiste un límite de antigüedad",
+      verdict: "partial",
+    };
+  }
+
+  const age = buildingAgeYears(p.year_built);
+  if (age === null) {
+    // Confidence 0, not a penalty. We do not know when this was built, and
+    // scoring an unknown as "probably old" would invent the very number the
+    // buyer is asking about. The match renormalizes over what it does know —
+    // the same call made when the ARBA coherence sub-score was parked.
+    return {
+      id: "age",
+      value: 70,
+      weight: W.age,
+      confidence: 0,
+      reason: "La propiedad no declara año de construcción",
+      verdict: "partial",
+    };
+  }
+
+  const over = age - profile.max_age_years;
+  const built = `construida en ${p.year_built} · ${age === 0 ? "a estrenar" : `${age} años`}`;
+
+  if (over <= 0) {
+    return {
+      id: "age",
+      value: 100,
+      weight: W.age,
+      confidence: 1.0,
+      reason: `${built} — dentro de tu máximo de ${profile.max_age_years}`,
+      verdict: "fulfilled",
+    };
+  }
+
+  // Graded in absolute years rather than as a ratio, because a ratio breaks
+  // exactly where buyers are most specific: "a estrenar" is max_age_years 0,
+  // and every property would be infinitely over it.
+  let value: number;
+  let verdict: MatchSubScore["verdict"];
+  if (over <= 5) {
+    value = 75;
+    verdict = "partial";
+  } else if (over <= 15) {
+    value = 40;
+    verdict = "partial";
+  } else if (over <= 30) {
+    value = 15;
+    verdict = "unfulfilled";
+  } else {
+    value = 5;
+    verdict = "unfulfilled";
+  }
+
+  return {
+    id: "age",
+    value,
+    weight: W.age,
+    confidence: 1.0,
+    reason: `${built} — ${over} ${over === 1 ? "año" : "años"} por encima de tu máximo de ${profile.max_age_years}`,
+    verdict,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Sub-score: must-haves
 // ---------------------------------------------------------------------------
 
@@ -465,6 +556,7 @@ export function computeMatchScore(
     operationSubScore(property, profile),
     roomsSubScore(property, profile),
     surfaceSubScore(property, profile),
+    ageSubScore(property, profile),
     mustHavesSubScore(property, profile),
   ];
 

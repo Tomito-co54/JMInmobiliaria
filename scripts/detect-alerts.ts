@@ -65,6 +65,7 @@ interface PropertyRow {
   surface_arba: number | string | null;
   garages: number | null;
   description: string | null;
+  year_built: number | null;
   first_seen_at: string;
   is_active: boolean;
 }
@@ -116,6 +117,8 @@ function rowToProfile(row: RawProfile): SearchProfileForMatching {
     operation_type: row.operation_type,
     rooms_min: row.rooms_min,
     surface_min: toNumber(row.surface_min),
+    // `search_profiles` has no age column — see lib/db/search-profiles.ts.
+    max_age_years: null,
     must_haves: row.must_haves ?? [],
   };
 }
@@ -133,6 +136,7 @@ function rowToProperty(row: PropertyRow): PropertyForMatching {
     surface_arba: toNumber(row.surface_arba),
     garages: row.garages,
     description: row.description,
+    year_built: row.year_built,
   };
 }
 
@@ -161,7 +165,7 @@ async function main() {
   const { data: recentRaw, error: recentErr } = await supabase
     .from("properties")
     .select(
-      "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, description, first_seen_at, is_active",
+      "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, description, year_built, first_seen_at, is_active",
     )
     .eq("is_active", true)
     .gte("first_seen_at", recentCutoff);
@@ -311,7 +315,7 @@ async function main() {
     const { data: dropRaw } = await supabase
       .from("properties")
       .select(
-        "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, description, first_seen_at, is_active",
+        "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, description, year_built, first_seen_at, is_active",
       )
       .in("id", Array.from(dropPropertyIds));
     for (const r of (dropRaw ?? []) as unknown as PropertyRow[]) {

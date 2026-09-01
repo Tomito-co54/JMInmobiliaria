@@ -117,7 +117,7 @@ async function getMatchableProperties(): Promise<MatchableProperty[]> {
     const { data } = await supabase
       .from("properties")
       .select(
-        "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, description",
+        "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, description, year_built",
       )
       .eq("is_active", true)
       .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])

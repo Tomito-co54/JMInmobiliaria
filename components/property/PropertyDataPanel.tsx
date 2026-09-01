@@ -1,4 +1,4 @@
-import { BedDouble, Bath, Maximize2, Car, FileText, ExternalLink, Download } from "lucide-react";
+import { BedDouble, Bath, Maximize2, Car, CalendarClock, FileText, ExternalLink, Download } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -6,6 +6,7 @@ import { FavoriteButton } from "./FavoriteButton";
 import { PropertyMatchPanel } from "./PropertyMatchPanel";
 import { WhatsAppButton } from "./WhatsAppButton";
 import type { PropertyForMatching } from "@/lib/matching";
+import { buildingAgeYears } from "@/lib/matching/match";
 import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
 
 /**
@@ -48,6 +49,7 @@ interface PropertyDataPanelProps {
   garages: number | null;
   surfaceTotal: number | null;
   surfaceArba: number | null;
+  yearBuilt: number | null;
   /** Fields the client-side matcher scores against. */
   propertyForMatching: PropertyForMatching;
   source: string;
@@ -67,6 +69,7 @@ export function PropertyDataPanel({
   garages,
   surfaceTotal,
   surfaceArba,
+  yearBuilt,
   propertyForMatching,
   source,
   sourceUrl,
@@ -84,9 +87,16 @@ export function PropertyDataPanel({
   // contradicted itself two lines down, where the USD/m² already divided by
   // the declared surface.
   const surface = surfaceTotal ?? surfaceArba;
+  const age = buildingAgeYears(yearBuilt);
   const sourceLabel = SOURCE_LABELS[source] ?? source;
 
-  const specs = [
+  type Spec = {
+    icon: typeof BedDouble | null;
+    value: number | string;
+    label: string;
+  };
+
+  const specs: Spec[] = ([
     rooms !== null ? { icon: null, value: rooms, label: "amb" } : null,
     bedrooms !== null ? { icon: BedDouble, value: bedrooms, label: "dorm" } : null,
     bathrooms !== null
@@ -96,7 +106,16 @@ export function PropertyDataPanel({
       ? { icon: Car, value: garages, label: garages === 1 ? "cochera" : "cocheras" }
       : null,
     surface !== null ? { icon: Maximize2, value: surface, label: "m²" } : null,
-  ].filter((s): s is { icon: typeof BedDouble | null; value: number; label: string } => s !== null);
+    // Age of the BUILDING, derived at render time from the construction year.
+    // Deliberately not `first_seen_at`, which is how old the ad is.
+    age !== null
+      ? {
+          icon: CalendarClock,
+          value: age === 0 ? "a estrenar" : age,
+          label: age === 0 ? "" : age === 1 ? "año" : "años",
+        }
+      : null,
+  ] as (Spec | null)[]).filter((s): s is Spec => s !== null);
 
   return (
     <div className="rounded-3xl border bg-card p-5 sm:p-6 lg:p-7 space-y-6">

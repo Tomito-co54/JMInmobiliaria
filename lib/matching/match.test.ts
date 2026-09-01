@@ -20,6 +20,7 @@ function makeProperty(overrides: Partial<PropertyForMatching> = {}): PropertyFor
     surface_arba: 118,
     garages: 1,
     description: "Casa amplia con cochera y patio en barrio tranquilo.",
+    year_built: null,
     ...overrides,
   };
 }
@@ -32,6 +33,7 @@ function makeProfile(overrides: Partial<SearchProfileForMatching> = {}): SearchP
     price_min: 100000,
     price_max: 200000,
     price_currency: "USD",
+    max_age_years: null,
     property_types: ["casa"],
     operation_type: "venta",
     rooms_min: 3,
@@ -53,10 +55,10 @@ describe("computeMatchScore — happy path", () => {
     expect(out.insufficient_data).toBe(false);
   });
 
-  it("each of the 7 sub-scores is present", () => {
+  it("each of the 8 sub-scores is present", () => {
     const out = computeMatchScore(makeProperty(), makeProfile());
     expect(Object.keys(out.subscores).sort()).toEqual(
-      ["zone", "price", "type", "operation", "rooms", "surface", "must_haves"].sort(),
+      ["zone", "price", "type", "operation", "rooms", "surface", "age", "must_haves"].sort(),
     );
   });
 });

@@ -1,9 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { MapPin, ShieldCheck, ArrowRight, ImageIcon } from "lucide-react";
-import { getScoreBand } from "@/lib/scoring/bands";
 import type { BuildingSummary } from "@/lib/buildings";
-import type { QualityBreakdown } from "@/lib/scoring";
 
 /**
  * Premium editorial card for the public home catalog (Block 5 del
@@ -23,7 +21,7 @@ import type { QualityBreakdown } from "@/lib/scoring";
  *   §2.2 — hover reveals: the photo zooms slightly; en mobile el tap
  *          navega a la propiedad (toda la card es un Link).
  *   §1   — Fraunces para la dirección (alma editorial), datos en Inter;
- *          el score + ARBA son el ancla seria.
+ *          la verificación ARBA es el ancla seria.
  */
 
 const TYPE_LABELS: Record<string, string> = {
@@ -49,7 +47,6 @@ export interface PremiumCardProperty {
   surface_arba: number | null;
   partida: string | null;
   photos: string[];
-  quality_score_breakdown: QualityBreakdown | null;
 }
 
 function fmtPrice(amount: number): string {
@@ -75,8 +72,6 @@ export function PropertyPremiumCard({
   // building's lot, so leading with it printed "239 m²" on a 40 m² unit.
   // Same mistake as Fase 12, on the card nobody re-checked.
   const surface = property.surface_total ?? property.surface_arba ?? null;
-  const score = property.quality_score_breakdown?.score ?? null;
-  const band = getScoreBand(score);
   const heading = property.address ?? [typeLabel, property.partido].filter(Boolean).join(" en ");
 
   const specs = [
@@ -177,24 +172,13 @@ export function PropertyPremiumCard({
             </p>
           )}
 
-          {/* Credibility chips — score + ARBA verification. */}
+          {/* Credibility chip — ARBA verification.
+              The Quality Score chip used to sit alongside it and was removed
+              with the one on /p/[id]: it grades a listing against every other
+              listing, which is a question the catalog answers by what it
+              chooses to publish, not one to put on each card. The score still
+              ranks the catalog and drives /admin. */}
           <div className="mt-5 flex flex-wrap items-center gap-2">
-            {score !== null && (
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
-                style={{
-                  color: band.hex,
-                  borderColor: `${band.hex}40`,
-                  backgroundColor: `${band.hex}14`,
-                }}
-              >
-                <span className="text-muted-foreground/80 text-[0.65rem] uppercase tracking-wider">
-                  Quality
-                </span>
-                <span className="font-bold tabular-nums">{score}</span>
-                <span className="opacity-80">{band.label}</span>
-              </span>
-            )}
             {property.partida && (
               <span
                 className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"

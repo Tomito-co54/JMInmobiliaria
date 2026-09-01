@@ -600,6 +600,9 @@ function TecnicosSection({
   const [garages, setGarages] = useState(
     row.garages !== null ? String(row.garages) : "",
   );
+  const [yearBuilt, setYearBuilt] = useState(
+    row.year_built !== null ? String(row.year_built) : "",
+  );
 
   const values = useMemo(
     () => ({
@@ -609,8 +612,9 @@ function TecnicosSection({
       bedrooms,
       bathrooms,
       garages,
+      year_built: yearBuilt,
     }),
-    [surfaceTotal, surfaceCovered, rooms, bedrooms, bathrooms, garages],
+    [surfaceTotal, surfaceCovered, rooms, bedrooms, bathrooms, garages, yearBuilt],
   );
 
   const { status, lastError } = useAutoSave(values, async () => {
@@ -625,6 +629,7 @@ function TecnicosSection({
       bedrooms: toInt(bedrooms),
       bathrooms: toInt(bathrooms),
       garages: toInt(garages),
+      year_built: toInt(yearBuilt),
     });
   });
 
@@ -637,7 +642,7 @@ function TecnicosSection({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-7 gap-3">
           <NumberField
             id="surface_total"
             label="m² total"
@@ -649,6 +654,13 @@ function TecnicosSection({
             label="m² cubierto"
             value={surfaceCovered}
             onChange={setSurfaceCovered}
+          />
+          <NumberField
+            id="year_built"
+            label="Año construcción"
+            value={yearBuilt}
+            onChange={setYearBuilt}
+            integer
           />
           <NumberField
             id="rooms"

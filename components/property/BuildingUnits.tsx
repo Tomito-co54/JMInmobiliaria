@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import type { BuildingUnitRow } from "@/lib/db/properties";
-import { getScoreBand } from "@/lib/scoring/bands";
 
 /**
  * "Otras unidades en este edificio" — the sibling listings standing on the
@@ -38,7 +37,6 @@ export function BuildingUnits({ units }: { units: BuildingUnitRow[] }) {
     <ul className="space-y-2">
       {units.map((u) => {
         const cover = u.photos?.[0];
-        const band = getScoreBand(u.quality_score);
         return (
           <li key={u.id}>
             <Link
@@ -74,11 +72,6 @@ export function BuildingUnits({ units }: { units: BuildingUnitRow[] }) {
                 >
                   {fmtPrice(u.price_amount, u.price_currency)}
                 </p>
-                {u.quality_score !== null && (
-                  <p className="text-[0.65rem] tabular-nums" style={{ color: band.hex }}>
-                    Score {Math.round(u.quality_score)}
-                  </p>
-                )}
               </div>
 
               <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />

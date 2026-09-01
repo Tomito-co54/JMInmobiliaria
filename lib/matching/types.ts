@@ -17,6 +17,7 @@ export type MatchSubScoreId =
   | "operation"
   | "rooms"
   | "surface"
+  | "age"
   | "must_haves";
 
 export interface MatchSubScore {
@@ -66,6 +67,13 @@ export interface SearchProfileForMatching {
   operation_type: "venta" | "alquiler" | null;
   rooms_min: number | null;
   surface_min: number | null;
+  /**
+   * Oldest building the buyer would take, in years. Null = age is not a
+   * criterion. Expressed as an age because that is how a buyer thinks
+   * ("nada de más de 30 años"), while the property stores a construction
+   * year — see `year_built`.
+   */
+  max_age_years: number | null;
   /** Free-form tags: "cochera", "patio", "balcon", etc. */
   must_haves: string[];
 }
@@ -82,6 +90,12 @@ export interface PropertyForMatching {
   surface_arba: number | null;
   garages: number | null;
   description: string | null;
+  /**
+   * Year of construction. Null for most scraped rows — the source only
+   * publishes antigüedad on the individual listing page. The sub-score reads
+   * null as "unknown" and drops out rather than guessing.
+   */
+  year_built: number | null;
 }
 
 export const MATCH_ALGORITHM_VERSION = "v1";
@@ -89,14 +103,25 @@ export const MATCH_ALGORITHM_VERSION = "v1";
 /**
  * Nominal weights. Sum to 100 by convention. Adjust here when the design
  * iterates — every downstream component reads from this constant.
+ *
+ * `age` was funded by the two criteria that were overpaid for this catalog:
+ *
+ *   - operation 10 → 4. The public catalog is sale-only, so this sub-score
+ *     can only ever agree. It was spending a tenth of the match confirming
+ *     something that is never in question.
+ *   - type 15 → 13. Still substantial, but a buyer who has already fixed
+ *     zone, price and rooms has usually implied the type.
+ *
+ * Zone and price are untouched: they are what a buyer actually rules on.
  */
 export const MATCH_SUBSCORE_WEIGHTS: Record<MatchSubScoreId, number> = {
   zone: 25,
   price: 25,
-  type: 15,
-  operation: 10,
+  type: 13,
+  operation: 4,
   rooms: 10,
   surface: 10,
+  age: 8,
   must_haves: 5,
 };
 

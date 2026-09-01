@@ -111,6 +111,11 @@ function rowToProfile(row: RawProfileRow): SearchProfileRow {
     operation_type: row.operation_type,
     rooms_min: row.rooms_min,
     surface_min: toNumber(row.surface_min),
+    // The `search_profiles` table has no age column. Rather than migrate a
+    // legacy table only the broker can write to, a stored profile simply
+    // never sets this criterion — it renormalizes out. Age is asked of
+    // anonymous visitors, where the answer lives in the browser.
+    max_age_years: null,
     must_haves: row.must_haves ?? [],
     current_stage: row.current_stage ?? null,
     is_primary: row.is_primary,

@@ -117,6 +117,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
     surface_arba: property.surface_arba,
     garages: property.garages,
     description: property.description,
+    year_built: property.year_built,
   };
   // Favorite state — `isFavorited` returns false for anonymous, so the
   // heart button just degrades to a "login required" toast on click.
@@ -214,6 +215,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
                 garages={property.garages}
                 surfaceTotal={property.surface_total}
                 surfaceArba={property.surface_arba}
+                yearBuilt={property.year_built}
                 propertyForMatching={propertyForMatching}
                 source={property.source}
                 sourceUrl={property.url}
@@ -291,6 +293,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               garages={property.garages}
               surfaceTotal={property.surface_total}
               surfaceArba={property.surface_arba}
+              yearBuilt={property.year_built}
               propertyForMatching={propertyForMatching}
               source={property.source}
               sourceUrl={property.url}

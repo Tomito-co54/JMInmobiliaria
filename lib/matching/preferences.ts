@@ -11,15 +11,13 @@ import type { SearchProfileForMatching } from "./types";
  * behind a condition nothing could satisfy.
  *
  * This is the same question asked without an account. It is deliberately
- * smaller than `SearchProfileForMatching` — four fields a visitor answers in
- * one screen, not eleven — and `toSearchProfile` widens it to the shape the
+ * smaller than `SearchProfileForMatching` — six fields a visitor answers in
+ * one screen, not twelve — and `toSearchProfile` widens it to the shape the
  * existing matcher already consumes. Nothing about the algorithm changes.
  *
- * Notably absent: surface. Asking a buyer for a minimum m² invites the
- * comparison this codebase keeps getting wrong (the ARBA parcel is the whole
- * building's lot, not the unit), and it is the field a buyer is least sure
- * about anyway. Left unanswered, its sub-score reports zero confidence and
- * the match renormalizes over what was actually asked.
+ * Every field is optional and left unanswered means "not asked": that
+ * sub-score reports zero confidence and the match renormalizes over what the
+ * visitor actually expressed, instead of averaging in silent defaults.
  */
 export interface MatchPreferences {
   /** Partidos the buyer would live in. Empty = no zone preference. */
@@ -30,6 +28,16 @@ export interface MatchPreferences {
   roomsMin: number | null;
   /** Property types. Empty = any. */
   propertyTypes: string[];
+  /** Minimum m² of the property itself. Null = unspecified. */
+  surfaceMin: number | null;
+  /**
+   * Oldest building the buyer would take, in years. Null = unspecified.
+   *
+   * Asked as an age because that is how buyers speak, and matched against
+   * `properties.year_built`, which is stored as a year because an age would
+   * silently become false every January.
+   */
+  maxAgeYears: number | null;
 }
 
 export const EMPTY_MATCH_PREFERENCES: MatchPreferences = {
@@ -37,6 +45,8 @@ export const EMPTY_MATCH_PREFERENCES: MatchPreferences = {
   priceMax: null,
   roomsMin: null,
   propertyTypes: [],
+  surfaceMin: null,
+  maxAgeYears: null,
 };
 
 /** The types a buyer picks between. Mirrors the `property_type` enum. */
@@ -54,13 +64,38 @@ export const PRICE_MAX_FLOOR = 40_000;
 export const PRICE_MAX_CEILING = 400_000;
 export const PRICE_MAX_STEP = 5_000;
 
+/**
+ * Surface floor offered by the slider, in m². The top notch means "no
+ * minimum" for the same reason the price one means "no ceiling": a control
+ * parked at its end is the absence of a constraint, not a constraint at the
+ * end of the scale.
+ *
+ * The range covers what this catalog actually holds — a monoambiente at the
+ * bottom, a family house at the top — rather than the whole span of real
+ * estate.
+ */
+export const SURFACE_MIN_FLOOR = 20;
+export const SURFACE_MIN_CEILING = 300;
+export const SURFACE_MIN_STEP = 5;
+
+/**
+ * Age ceilings offered as chips rather than a slider. Buyers think in a few
+ * coarse buckets here ("a estrenar", "algo nuevo", "no me importa"), not in
+ * single years, and 0 has to be reachable exactly — "a estrenar" is a real
+ * answer, and a slider makes the one value people most want the hardest to
+ * land on.
+ */
+export const AGE_MAX_OPTIONS = [0, 10, 30, 50] as const;
+
 /** Whether the visitor has told us anything at all. */
 export function hasAnyPreference(p: MatchPreferences): boolean {
   return (
     p.partidos.length > 0 ||
     p.priceMax !== null ||
     p.roomsMin !== null ||
-    p.propertyTypes.length > 0
+    p.propertyTypes.length > 0 ||
+    p.surfaceMin !== null ||
+    p.maxAgeYears !== null
   );
 }
 
@@ -92,7 +127,8 @@ export function toSearchProfile(p: MatchPreferences): SearchProfileForMatching {
     // instead of awarding a free 100.
     operation_type: null,
     rooms_min: p.roomsMin,
-    surface_min: null,
+    surface_min: p.surfaceMin,
+    max_age_years: p.maxAgeYears,
     must_haves: [],
   };
 }
@@ -134,5 +170,15 @@ export function parseMatchPreferences(raw: unknown): MatchPreferences {
     priceMax: asBoundedNumber(o.priceMax, PRICE_MAX_FLOOR, PRICE_MAX_CEILING),
     roomsMin: asBoundedNumber(o.roomsMin, 1, 10),
     propertyTypes: asStringArray(o.propertyTypes, MATCH_PROPERTY_TYPES),
+    surfaceMin: asBoundedNumber(
+      o.surfaceMin,
+      SURFACE_MIN_FLOOR,
+      SURFACE_MIN_CEILING,
+    ),
+    maxAgeYears:
+      typeof o.maxAgeYears === "number" &&
+      (AGE_MAX_OPTIONS as readonly number[]).includes(o.maxAgeYears)
+        ? o.maxAgeYears
+        : null,
   };
 }

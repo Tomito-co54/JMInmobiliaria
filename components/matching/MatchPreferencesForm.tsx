@@ -3,15 +3,19 @@
 import { cn } from "@/lib/utils";
 import { PARTIDOS_ZONA_SUR } from "@/lib/zona-sur/partidos";
 import {
+  AGE_MAX_OPTIONS,
   MATCH_PROPERTY_TYPES,
   PRICE_MAX_CEILING,
   PRICE_MAX_FLOOR,
   PRICE_MAX_STEP,
+  SURFACE_MIN_CEILING,
+  SURFACE_MIN_FLOOR,
+  SURFACE_MIN_STEP,
   type MatchPreferences,
 } from "@/lib/matching/preferences";
 
 /**
- * The four questions, asked once and shared by both surfaces that ask them.
+ * The six questions, asked once and shared by both surfaces that ask them.
  *
  * One component rather than two because the home and the listing page must
  * not drift into asking slightly different questions — the answers feed the
@@ -32,6 +36,13 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const ROOM_OPTIONS = [1, 2, 3, 4] as const;
+
+const AGE_LABELS: Record<number, string> = {
+  0: "A estrenar",
+  10: "Hasta 10 años",
+  30: "Hasta 30",
+  50: "Hasta 50",
+};
 
 function Chip({
   on,
@@ -108,6 +119,13 @@ export function MatchPreferencesForm({
       ? "Sin límite"
       : `Hasta USD ${value.priceMax.toLocaleString("es-AR")}`;
 
+  // Mirrors the price control, at the other end: parked at the floor means
+  // "no minimum", so the absence of a constraint is the slider's rest state
+  // rather than a 20 m² requirement nobody typed.
+  const surfaceValue = value.surfaceMin ?? SURFACE_MIN_FLOOR;
+  const surfaceLabel =
+    value.surfaceMin === null ? "Sin mínimo" : `Desde ${value.surfaceMin} m²`;
+
   return (
     <div className={cn("space-y-6", className)}>
       <Field label="Zona">
@@ -177,6 +195,46 @@ export function MatchPreferencesForm({
               }
             >
               {TYPE_LABELS[t] ?? t}
+            </Chip>
+          ))}
+        </div>
+      </Field>
+
+      <Field label="Superficie" hint={surfaceLabel}>
+        <input
+          type="range"
+          min={SURFACE_MIN_FLOOR}
+          max={SURFACE_MIN_CEILING}
+          step={SURFACE_MIN_STEP}
+          value={surfaceValue}
+          aria-label="Superficie mínima en metros cuadrados"
+          aria-valuetext={surfaceLabel}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            onChange({
+              ...value,
+              surfaceMin: n <= SURFACE_MIN_FLOOR ? null : n,
+            });
+          }}
+          className="w-full accent-[var(--brand-gold)] h-11 cursor-pointer"
+        />
+      </Field>
+
+      <Field label="Antigüedad" hint="de la construcción">
+        <div className="flex flex-wrap gap-2">
+          {AGE_MAX_OPTIONS.map((n) => (
+            <Chip
+              key={n}
+              on={value.maxAgeYears === n}
+              label={n === 0 ? "A estrenar" : `Hasta ${n} años de antigüedad`}
+              onClick={() =>
+                onChange({
+                  ...value,
+                  maxAgeYears: value.maxAgeYears === n ? null : n,
+                })
+              }
+            >
+              {AGE_LABELS[n] ?? `${n}`}
             </Chip>
           ))}
         </div>

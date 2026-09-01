@@ -55,6 +55,7 @@ export interface MatchedPropertyRow {
   address: string | null;
   photos: string[];
   description: string | null;
+  year_built: number | null;
   quality_score: number | null;
   quality_score_breakdown: QualityBreakdown | null;
   first_seen_at: string | null;
@@ -82,6 +83,7 @@ const PROPERTY_COLS = [
   "address",
   "photos",
   "description",
+  "year_built",
   "quality_score",
   "quality_score_breakdown",
   "first_seen_at",
@@ -101,6 +103,7 @@ function rowToPropertyForMatching(row: MatchedPropertyRow): PropertyForMatching 
     surface_arba: row.surface_arba,
     garages: row.garages,
     description: row.description,
+    year_built: row.year_built,
   };
 }
 

@@ -46,6 +46,7 @@ interface FavoriteRow {
     address: string | null;
     photos: string[];
     description: string | null;
+    year_built: number | null;
     quality_score_breakdown: QualityBreakdown | null;
     is_active: boolean;
   };
@@ -120,6 +121,7 @@ export default async function FavoritosPage() {
             surface_arba: p.surface_arba,
             garages: p.garages,
             description: p.description,
+            year_built: p.year_built ?? null,
           };
           const match = profile ? computeMatchScore(propertyForMatching, profile) : null;
           return (

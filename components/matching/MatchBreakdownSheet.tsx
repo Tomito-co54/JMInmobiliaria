@@ -37,6 +37,7 @@ const SUBSCORE_LABELS: Record<MatchSubScoreId, string> = {
   operation: "Operación",
   rooms: "Ambientes",
   surface: "Superficie",
+  age: "Antigüedad",
   must_haves: "No-negociables",
 };
 
@@ -47,6 +48,7 @@ const SUBSCORE_ORDER: MatchSubScoreId[] = [
   "operation",
   "rooms",
   "surface",
+  "age",
   "must_haves",
 ];
 

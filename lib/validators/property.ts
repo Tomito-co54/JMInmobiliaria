@@ -93,6 +93,19 @@ export const ownerPropertyDraftSchema = z.object({
   bedrooms: nullablePositiveInt(),
   bathrooms: nullablePositiveInt(),
   garages: nullablePositiveInt(),
+  // Year of construction, not an age: an age would be a stored number that
+  // silently becomes false every January. Bounded rather than merely
+  // positive, because the bound is what catches a surface typed into the
+  // year box. Mirrors the CHECK constraint in migration 00016.
+  year_built: z.preprocess(
+    toNullablePositiveInt,
+    z
+      .number()
+      .int()
+      .min(1800, "Año de construcción implausible")
+      .max(2100, "Año de construcción implausible")
+      .nullable(),
+  ),
 
   partido: z.preprocess(
     (v) => (v === "" || v === undefined ? null : v),
