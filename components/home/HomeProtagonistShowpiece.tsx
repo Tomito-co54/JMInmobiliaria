@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Client island for the protagonist showpiece — the photo that breaks out of
- * the quadrant (§2.6) plus the overlapping score medallion (§2.1).
+ * the quadrant (§2.6).
  *
  * Why a client island: the parent HomeProtagonist is a Server Component and
  * lives BELOW the fold. The old version used `animate-in` (fires on mount),
@@ -25,16 +25,10 @@ export function HomeProtagonistShowpiece({
   id,
   cover,
   headline,
-  score,
-  bandHex,
-  bandLabel,
 }: {
   id: string;
   cover: string | null;
   headline: string;
-  score: number | null;
-  bandHex: string;
-  bandLabel: string;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.35 });
 
@@ -97,40 +91,11 @@ export function HomeProtagonistShowpiece({
         </div>
       </Link>
 
-      {/* Score medallion — overlaps the photo's corner (§2.1). Lands last,
-          popping in with a touch of overshoot so the credibility datum has
-          weight. */}
-      {score !== null && (
-        <div
-          className={cn(
-            "absolute -bottom-4 -left-2 sm:-left-5 flex items-center gap-2.5 rounded-2xl border bg-background/95 backdrop-blur px-3.5 py-2.5 shadow-xl",
-            "motion-safe:transition-all motion-safe:duration-700",
-            inView
-              ? "opacity-100 translate-y-0 scale-100"
-              : "motion-safe:opacity-0 motion-safe:translate-y-3 motion-safe:scale-90",
-          )}
-          style={{
-            borderColor: `color-mix(in srgb, ${bandHex} 40%, transparent)`,
-            transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
-            transitionDelay: inView ? "620ms" : "0ms",
-          }}
-        >
-          <span
-            className="text-3xl font-extrabold tabular-nums leading-none"
-            style={{ color: bandHex }}
-          >
-            {score}
-          </span>
-          <span className="flex flex-col leading-tight">
-            <span className="text-[0.6rem] uppercase tracking-wider text-muted-foreground">
-              Quality
-            </span>
-            <span className="text-xs font-semibold" style={{ color: bandHex }}>
-              {bandLabel}
-            </span>
-          </span>
-        </div>
-      )}
+      {/* Aquí colgaba el medallón del Quality Score. Era el último resto y se
+          había defendido como gesto de diseño (§2.1, el dato serio pisando la
+          foto) — pero un gesto que muestra un número que no se explica en
+          ningún lado sigue siendo el número mostrado. La foto rompiendo el
+          cuadrante es el gesto; el medallón era solo lo que colgaba de él. */}
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPropertyForPublicView } from "@/lib/db/properties";
 import { generatePropertySheet } from "@/lib/services/pdf";
-import { getScoreBand } from "@/lib/scoring/bands";
 import { WHATSAPP_DISPLAY } from "@/lib/brand/contact";
 
 /**
@@ -33,7 +32,6 @@ export async function GET(
 
   const p = view.property;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://jm-inmobiliaria-d3pa.vercel.app";
-  const score = p.quality_score_breakdown?.score ?? p.quality_score ?? null;
 
   let pdf: Buffer;
   try {
@@ -41,7 +39,6 @@ export async function GET(
       generatedAt: new Date().toLocaleDateString("es-AR"),
       url: `${appUrl}/p/${p.id}`,
       whatsappDisplay: WHATSAPP_DISPLAY,
-      scoreBandLabel: score !== null ? getScoreBand(score).label : null,
       property: {
         address: p.address,
         partido: p.partido,
@@ -59,7 +56,6 @@ export async function GET(
         partida: p.partida,
         nomenclatura_catastral: p.nomenclatura_catastral,
         description: p.description,
-        quality_score: score,
         coverUrl: p.photos?.[0] ?? null,
       },
     });
@@ -72,8 +68,7 @@ export async function GET(
         generatedAt: new Date().toLocaleDateString("es-AR"),
         url: `${appUrl}/p/${p.id}`,
         whatsappDisplay: WHATSAPP_DISPLAY,
-        scoreBandLabel: score !== null ? getScoreBand(score).label : null,
-        property: {
+          property: {
           address: p.address,
           partido: p.partido,
           property_type: p.property_type,
@@ -90,8 +85,7 @@ export async function GET(
           partida: p.partida,
           nomenclatura_catastral: p.nomenclatura_catastral,
           description: p.description,
-          quality_score: score,
-          coverUrl: null,
+            coverUrl: null,
         },
       });
     } catch (err2) {

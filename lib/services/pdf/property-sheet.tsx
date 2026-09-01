@@ -128,11 +128,9 @@ export interface PropertySheetInput {
     partida: string | null;
     nomenclatura_catastral: string | null;
     description: string | null;
-    quality_score: number | null;
     /** Absolute URL. Omitted when the listing has no photo or it failed. */
     coverUrl: string | null;
   };
-  scoreBandLabel: string | null;
 }
 
 function money(amount: number | null, currency: string | null): string {
@@ -173,14 +171,6 @@ export function PropertySheetDocument({ data }: { data: PropertySheetInput }) {
 
         <View style={s.priceRow}>
           <Text style={s.price}>{money(p.price_amount, p.price_currency)}</Text>
-          {p.quality_score !== null && (
-            <View style={s.scoreBox}>
-              <Text style={s.scoreValue}>{Math.round(p.quality_score)}</Text>
-              <Text style={s.scoreLabel}>
-                {data.scoreBandLabel ? `Score · ${data.scoreBandLabel}` : "Quality Score"}
-              </Text>
-            </View>
-          )}
         </View>
 
         <View style={s.specs}>

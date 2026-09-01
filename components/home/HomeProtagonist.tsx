@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import type { FeaturedPropertyRow } from "@/lib/db/properties";
-import { getScoreBand } from "@/lib/scoring/bands";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Reveal } from "@/components/shared/Reveal";
@@ -19,13 +18,13 @@ import { HomeProtagonistShowpiece } from "@/components/home/HomeProtagonistShowp
  *        is the punctual, protagonist hit of the effect (the doc warns:
  *        si todo rompe el cuadrante, nada lo rompe — so ONLY here).
  *   §2.1 profundidad eje Z con intención: the layered planes (quadrant <
- *        photo < score medallion) and the slight rotation create depth
- *        without 3D; the score overlapping the photo *jerarquiza* the
+ *        photo) and the slight rotation create depth
+ *        without 3D; the photo breaking its frame *jerarquiza* the
  *        credibility anchor.
  *   §2.2 hover que revela: the framed photo lifts + un-rotates a touch on
  *        hover; en mobile el tap simplemente navega a la propiedad.
  *   §1   "tech con alma": Fraunces protagónico en el headline (la
- *        dirección), Inter para datos; el score y la verificación son el ancla
+ *        dirección), Inter para datos; la verificación es el ancla
  *        que le da permiso a la forma para ser audaz.
  *   §4   performance: solo transform/opacity (GPU) + un PNG vía next/image;
  *        motion-safe respeta prefers-reduced-motion. Gana mobile.
@@ -37,12 +36,12 @@ import { HomeProtagonistShowpiece } from "@/components/home/HomeProtagonistShowp
  * foto sin tocar el resto de la composición.
  *
  * Las 4 preguntas (regla de oro):
- *   1. Confianza ✓ — score + verificación + martillero implícito; la
+ *   1. Confianza ✓ — verificación + martillero implícito; la
  *      audacia de la forma se apoya en ese fondo serio.
  *   2. Intención ✓ — el movimiento revela/jerarquiza la propiedad estrella,
  *      no decora; el gesto es puntual, una sola vez en la página.
  *   3. Gama media ✓ — una imagen + capas CSS, sin canvas ni WebGL.
- *   4. Propio ✓ — la foto rompiendo el cuadrante con el medallón de score
+ *   4. Propio ✓ — la foto rompiendo el cuadrante
  *      solapado no es de plantilla.
  */
 
@@ -69,8 +68,6 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
     ? TYPE_LABELS[p.property_type] ?? p.property_type
     : null;
   const surface = p.surface_arba ?? p.surface_total ?? null;
-  const score = p.quality_score_breakdown?.score ?? null;
-  const band = getScoreBand(score);
   const headline = p.address ?? [typeLabel, p.partido].filter(Boolean).join(" en ");
 
   const specs = [
@@ -152,9 +149,6 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
             id={p.id}
             cover={cover}
             headline={headline}
-            score={score}
-            bandHex={band.hex}
-            bandLabel={band.label}
           />
         </div>
       </div>

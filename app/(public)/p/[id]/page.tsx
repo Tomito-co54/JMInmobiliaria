@@ -15,14 +15,12 @@ import { VerifiedDataList } from "@/components/property/VerifiedDataList";
 import { PropertyMapSection } from "@/components/property/PropertyMapSection";
 import { BuildingUnits } from "@/components/property/BuildingUnits";
 import { PropertyDescription } from "@/components/property/PropertyDescription";
-import { PropertyHistory } from "@/components/property/PropertyHistory";
 import { BuyingProcessAdvisor } from "@/components/property/BuyingProcessAdvisor";
-import { getScoreBand } from "@/lib/scoring/bands";
 
 /**
  * Public property view — the "wow moment" page (Block 4).
  *
- * No auth required. RLS allows public SELECT on properties + property_history.
+ * No auth required. RLS allows public SELECT on properties.
  * arba_lookups is admin-only at the RLS level, but `getPropertyForPublicView`
  * runs server-side via the service-role-equivalent path, so the data is
  * available to derive the breakdown.
@@ -32,7 +30,7 @@ import { getScoreBand } from "@/lib/scoring/bands";
  * as "use client" components.
  *
  * Layout order is the progressive disclosure spelled out in the Block 4
- * design: hook (foto + precio + score), evidence (datos oficiales, mapa),
+ * design: hook (foto + precio), evidence (datos oficiales, mapa),
  * narrative (descripción, historial), action (CTAs).
  */
 
@@ -82,7 +80,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
   const view = await getPropertyForPublicView(id, { allowDrafts });
   if (!view) notFound();
 
-  const { property, arbaLookup, history } = view;
+  const { property, arbaLookup } = view;
 
   // Sibling units on the same parcel. Its own await rather than part of
   // getPropertyForPublicView because it depends on the row we just read.
@@ -149,8 +147,6 @@ export default async function PublicPropertyPage({ params }: PageProps) {
     ? OP_LABELS[property.operation_type] ?? property.operation_type
     : null;
 
-  const score = property.quality_score_breakdown?.score ?? null;
-  const scoreBand = getScoreBand(score);
   // Verified = we matched the parcel against the cadastral service. The chip
   // it drives no longer names the agency; the check is the same one.
   const arbaVerified =
@@ -195,9 +191,6 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               partido={property.partido}
               typeLabel={typeLabel}
               opLabel={opLabel}
-              score={score}
-              scoreBandLabel={scoreBand.label}
-              scoreBandHex={scoreBand.hex}
               arbaVerified={arbaVerified}
             />
 
@@ -267,15 +260,15 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               <PropertyDescription description={property.description} />
             </EditorialSection>
 
-            <EditorialSection title="Historial">
-              <PropertyHistory
-                history={history}
-                firstSeenAt={property.first_seen_at}
-                lastSeenAt={property.last_seen_at}
-                isActive={property.is_active}
-                priceCurrency={property.price_currency}
-              />
-            </EditorialSection>
+            {/* El "Historial" salió de acá. Decía cosas como "lo seguimos hace
+                3 días" — lenguaje del portal agregador del upstream, donde
+                seguir el aviso de otro a lo largo del tiempo ERA el producto y
+                el visitante quería saber si el precio se había movido antes de
+                que él llegara. Esta es la página de la inmobiliaria: la
+                publicación es nuestra, la subimos nosotros, y contarle al
+                comprador hace cuántos días la miramos no dice nada sobre la
+                propiedad. `property_history` sigue registrando todo y sigue
+                siendo la materia prima de /admin/mercado. */}
           </div>
 
           {/* RIGHT — sticky data panel (desktop only). When the panel is

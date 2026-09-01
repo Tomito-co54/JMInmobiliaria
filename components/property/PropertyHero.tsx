@@ -12,9 +12,8 @@ import { PropertyGallery, PropertyThumbnails } from "./PropertyGallery";
  *
  * The photo stops being a centered generic rectangle and becomes the stage:
  * full-bleed on mobile (breaks the container padding), large and framed on
- * desktop. Address + type float over a bottom gradient, and the Quality
- * Score medallion overlaps a corner (§2.1 — el dato serio sobre la imagen,
- * mismo lenguaje que HomeProtagonist).
+ * desktop. Address + type float over a bottom gradient, and the verification
+ * chip overlaps a corner (§2.1 — el dato serio sobre la imagen).
  *
  * Animation: the image fades + scales in (1.04 → 1) on mount — §2.1
  * profundidad con intención (la propiedad "se acerca"). Respects
@@ -34,9 +33,6 @@ interface PropertyHeroProps {
   partido: string | null;
   typeLabel: string;
   opLabel: string | null;
-  score: number | null;
-  scoreBandLabel: string;
-  scoreBandHex: string;
   arbaVerified: boolean;
 }
 
@@ -47,9 +43,6 @@ export function PropertyHero({
   partido,
   typeLabel,
   opLabel,
-  score,
-  scoreBandLabel,
-  scoreBandHex,
   arbaVerified,
 }: PropertyHeroProps) {
   const reduced = usePrefersReducedMotion();
@@ -66,7 +59,7 @@ export function PropertyHero({
         initialIndex={openAt ?? 0}
         onClose={() => setOpenAt(null)}
       />
-      {/* Own positioning context: the score medallion and the verified chip hang
+      {/* Own positioning context: the verified chip hangs
           off the photo's bottom edge, and measured against the whole
           component they landed on the thumbnail strip instead. */}
       <div className="relative">
@@ -103,8 +96,8 @@ export function PropertyHero({
         />
 
         {/* Floating identity: eyebrow + address. Fraunces address. Extra
-            bottom padding leaves the lower strip clear for the overlapping
-            score medallion + verified chip below. */}
+            bottom padding leaves the lower strip clear for the verified chip
+            that overlaps below. */}
         <div className="absolute inset-x-0 bottom-0 p-4 pb-12 sm:p-6 sm:pb-14 lg:p-7 lg:pb-16">
           <p className="text-[0.7rem] uppercase tracking-[0.2em] font-medium text-white/85">
             {[typeLabel, opLabel].filter(Boolean).join(" · ")}
@@ -139,32 +132,12 @@ export function PropertyHero({
         )}
       </div>
 
-      {/* Score medallion — overlaps the photo's bottom-left corner (§2.1). */}
-      {score !== null && (
-        <div
-          className={cn(
-            "absolute -bottom-5 left-4 lg:left-6 flex items-center gap-2.5 rounded-2xl border bg-background/95 backdrop-blur px-3.5 py-2.5 shadow-xl",
-            !reduced &&
-              "motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-700 motion-safe:[animation-delay:400ms] motion-safe:fill-mode-backwards",
-          )}
-          style={{ borderColor: `color-mix(in srgb, ${scoreBandHex} 40%, transparent)` }}
-        >
-          <span
-            className="text-3xl font-extrabold tabular-nums leading-none"
-            style={{ color: scoreBandHex }}
-          >
-            {score}
-          </span>
-          <span className="flex flex-col leading-tight">
-            <span className="text-[0.6rem] uppercase tracking-wider text-muted-foreground">
-              Quality
-            </span>
-            <span className="text-xs font-semibold" style={{ color: scoreBandHex }}>
-              {scoreBandLabel}
-            </span>
-          </span>
-        </div>
-      )}
+      {/* The Quality Score medallion used to hang off this corner. It was the
+          last place a visitor could still see the number, and it was the worst
+          of them: on the listing itself, next to the price, reading as a grade
+          this property earned — when the score is an internal ranking that
+          decides what gets published, not a claim to make to a buyer about
+          what he is looking at. It still orders the catalog and runs /admin. */}
 
       {/* Verification chip — bottom-right, the second credibility anchor on
           the photo. It still fires off the cadastral lookup; it just no longer

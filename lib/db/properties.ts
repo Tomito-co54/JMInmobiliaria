@@ -84,7 +84,6 @@ export interface PublicArbaLookup {
 export interface PublicPropertyView {
   property: PublicPropertyRow;
   arbaLookup: PublicArbaLookup | null;
-  history: PropertyHistoryRow[];
 }
 
 const PUBLIC_PROPERTY_COLS = [
@@ -159,23 +158,19 @@ export async function getPropertyForPublicView(
 
   const property = rawProperty as unknown as PublicPropertyRow;
 
-  // Two independent reads — fire in parallel.
-  const arbaPromise = findArbaLookup(property);
-  const historyPromise = supabase
-    .from("property_history")
-    .select("*")
-    .eq("property_id", id)
-    .order("changed_at", { ascending: false })
-    .limit(50);
-
-  const [arbaResult, historyResult] = await Promise.all([arbaPromise, historyPromise]);
+  // The history read used to run alongside this one. It fed a "Historial"
+  // section on the listing that said things like "lo seguimos hace 3 días" —
+  // the aggregator portal's language, where following someone else's listing
+  // over time was the product. On the agency's own page it answers nothing
+  // about the property, so the section went, and with it fifty rows fetched
+  // on every single listing view. `property_history` still records everything
+  // and still feeds /admin/mercado.
+  const arbaResult = await findArbaLookup(property);
   if (arbaResult.error) throw arbaResult.error;
-  if (historyResult.error) throw historyResult.error;
 
   return {
     property,
     arbaLookup: (arbaResult.data ?? null) as unknown as PublicArbaLookup | null,
-    history: (historyResult.data ?? []) as unknown as PropertyHistoryRow[],
   };
 }
 
