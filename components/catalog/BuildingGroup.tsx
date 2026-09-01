@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Building2 } from "lucide-react";
 import { BuildingUnits } from "@/components/property/BuildingUnits";
 import type { BuildingUnitRow } from "@/lib/db/properties";
@@ -26,6 +27,14 @@ export interface BuildingGroupData {
   fromCurrency: "USD" | "ARS" | null;
   surfaceMin: number | null;
   surfaceMax: number | null;
+  /**
+   * The building's icon. Taken from its own units rather than uploaded
+   * separately: a building has no record of its own (lib/buildings is all
+   * derived), so there is nowhere to attach a photo to, and the first unit's
+   * cover is a photo of this building by definition. Falls back to the
+   * Building2 glyph when no unit has one.
+   */
+  coverPhoto: string | null;
 }
 
 function fmtPrice(amount: number, currency: string): string {
@@ -56,28 +65,52 @@ export function BuildingGroup({ building }: { building: BuildingGroupData }) {
 
   return (
     <section className="rounded-3xl border bg-card p-5 sm:p-7">
-      <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <div className="min-w-0">
-          <p
-            className="flex items-center gap-1.5 text-[0.7rem] uppercase tracking-[0.2em] font-medium"
-            style={{ color: "var(--brand-gold)" }}
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <div className="flex min-w-0 items-center gap-4">
+          <div
+            className="relative size-14 sm:size-16 shrink-0 overflow-hidden rounded-2xl bg-muted"
+            aria-hidden
           >
-            <Building2 className="size-3.5" aria-hidden />
-            Edificio
-          </p>
-          <h2
-            className="mt-2 font-heading font-medium text-2xl sm:text-3xl tracking-tight"
-            style={{ color: "var(--brand-heading)" }}
-          >
-            {building.label}
-          </h2>
+            {building.coverPhoto ? (
+              <Image
+                src={building.coverPhoto}
+                alt=""
+                fill
+                sizes="64px"
+                className="object-cover"
+              />
+            ) : (
+              <span className="flex size-full items-center justify-center">
+                <Building2
+                  className="size-6 text-muted-foreground"
+                  aria-hidden
+                />
+              </span>
+            )}
+          </div>
+
+          <div className="min-w-0">
+            <p
+              className="text-[0.7rem] uppercase tracking-[0.2em] font-medium"
+              style={{ color: "var(--brand-gold)" }}
+            >
+              Edificio
+            </p>
+            <h2
+              className="mt-1 font-heading font-medium text-2xl sm:text-3xl tracking-tight"
+              style={{ color: "var(--brand-heading)" }}
+            >
+              {building.label}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {facts.join(" · ")}
+            </p>
+          </div>
         </div>
         {building.partido && (
           <p className="text-sm text-muted-foreground">{building.partido}</p>
         )}
       </header>
-
-      <p className="mt-2 text-sm text-muted-foreground">{facts.join(" · ")}</p>
 
       <div className="mt-6">
         <BuildingUnits units={building.units} />

@@ -30,8 +30,16 @@ export interface MatchableProperty extends PropertyForMatching {
 
 export function HomeMatchBuilder({
   properties,
+  copy,
 }: {
   properties: MatchableProperty[];
+  /**
+   * The section's heading and pitch, rendered between the meter and the
+   * controls. It stays a server-rendered node passed in rather than markup
+   * in here: the copy is the page's, it has to be in the HTML for SEO, and
+   * this component is a client island.
+   */
+  copy?: React.ReactNode;
 }) {
   const { preferences, setPreferences, ready } = useMatchPreferences();
   const answered = hasAnyPreference(preferences);
@@ -53,7 +61,7 @@ export function HomeMatchBuilder({
   const showMeter = ready && answered;
 
   return (
-    <div className="mx-auto w-full max-w-sm space-y-6">
+    <div className="mx-auto w-full max-w-md space-y-6">
       {showMeter && best ? (
         <div>
           <MatchMeter score={best.score} />
@@ -82,6 +90,8 @@ export function HomeMatchBuilder({
           </p>
         </div>
       )}
+
+      {copy}
 
       <MatchPreferencesForm value={preferences} onChange={setPreferences} />
     </div>

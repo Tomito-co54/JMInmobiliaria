@@ -8,6 +8,7 @@ import {
   type BuildingGroupData,
 } from "@/components/catalog/BuildingGroup";
 import { buildingLabel, groupByBuilding } from "@/lib/buildings";
+import { buildingPhoto } from "@/lib/buildings/photos";
 import { getPropertiesByProximity, ZONA_SUR_CENTER } from "@/lib/db/properties";
 import type { BuildingUnitRow } from "@/lib/db/properties";
 
@@ -73,13 +74,26 @@ function toGroup(key: string, units: Row[]): BuildingGroupData {
     .map((u) => u.surface_total ?? u.surface_covered)
     .filter((s): s is number => typeof s === "number" && s > 0);
 
+  // Cheapest-first, which is also the order the units render in — so the
+  // building's icon is the cover of the unit listed at the top rather than
+  // whichever row the database happened to return first.
+  const ordered = [...units].sort(
+    (a, b) => (a.price_amount ?? Infinity) - (b.price_amount ?? Infinity),
+  );
+
   return {
     key,
     label: buildingLabel(units) ?? "Edificio sin dirección",
+    // A registered photo of the building first; the cover of its cheapest
+    // unit only as a fallback. That cover sells a unit, so it is usually an
+    // interior — at Belgrano 1287 it is a kitchen — and an interior is a poor
+    // way to recognise a building.
+    coverPhoto:
+      buildingPhoto(key) ??
+      ordered.find((u) => u.photos?.[0])?.photos?.[0] ??
+      null,
     partido: units.find((u) => u.partido)?.partido ?? null,
-    units: [...units].sort(
-      (a, b) => (a.price_amount ?? Infinity) - (b.price_amount ?? Infinity),
-    ),
+    units: ordered,
     fromPrice,
     fromCurrency,
     surfaceMin: surfaces.length ? Math.min(...surfaces) : null,

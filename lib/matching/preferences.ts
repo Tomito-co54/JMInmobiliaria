@@ -59,8 +59,13 @@ export const MATCH_PROPERTY_TYPES = ["casa", "departamento", "ph"] as const;
  * pushes the control to its end is saying price is not their constraint, and
  * scoring that as a hard 400k limit would punish exactly the listings they
  * are most relaxed about.
+ *
+ * The floor is 5k rather than a plausible entry price. It is not a claim that
+ * anything sells for that: it is where the control starts, and starting it
+ * above the cheapest thing a visitor might hope for makes the first drag feel
+ * like an argument.
  */
-export const PRICE_MAX_FLOOR = 40_000;
+export const PRICE_MAX_FLOOR = 5_000;
 export const PRICE_MAX_CEILING = 400_000;
 export const PRICE_MAX_STEP = 5_000;
 

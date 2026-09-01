@@ -16,7 +16,6 @@ import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
 import {
   Reveal,
   AreaOutlineViz,
-  ScoreRingViz,
   ServiceSteps,
 } from "@/components/home/HomeGuaranteesClient";
 import {
@@ -32,14 +31,13 @@ import {
  *   TONE 1 — ARBA / verificación: sober, editorial. Clean type, a quiet
  *     pedagogical diagram (parcel polygon drawing, partida appearing, m²
  *     counting). Transmits confianza, not spectacle. Ink palette.
- *   TONE 2 — Score / Match / Servicios: dynamic, "gamer" controlado. The
- *     score ring draws 0→N, the match reacts to taps, the report shows as
- *     a numbered sequence. Audaz pero prolijo. Gold accents, on a faint
- *     tinted panel so the tonal shift is felt without a hard cut (§2.4).
+ *   TONE 2 — Match: dynamic, "gamer" controlado. The meter reacts to every
+ *     tap. Audaz pero prolijo. Gold accents, on a faint tinted panel so the
+ *     tonal shift is felt without a hard cut (§2.4).
  *
- * Server Component: fetches the live ARBA coverage figure and a
- * representative score, renders all copy server-side (SEO), and delegates
- * only the scroll-triggered visuals to the client island.
+ * Server Component: fetches the live ARBA coverage figure and the published
+ * catalog the match runs against, renders all copy server-side (SEO), and
+ * delegates only the scroll-triggered visuals to the client islands.
  *
  * Stats decision (per the doc): the old 1/1/100% strip read weak with a
  * single published property and leaned on the generic look we avoid. The
@@ -48,13 +46,13 @@ import {
  * catalog header, so they're not repeated here.
  *
  * Las 4 preguntas (regla de oro):
- *   1. Confianza ✓ — el fondo serio (ARBA real, score auditable) ancla todo.
+ *   1. Confianza ✓ — el fondo serio (ARBA real, verificable) ancla todo.
  *   2. Intención ✓ — cada animación explica (§2.3) o revela al tocar (§2.2).
  *   3. Gama media ✓ — IntersectionObserver + transform/opacity, sin librería.
  *   4. Propio ✓ — composiciones editoriales, no cards de plantilla.
  */
 
-async function getGuaranteeStats(): Promise<{ arbaPct: number; score: number }> {
+async function getArbaVerifiedPct(): Promise<number> {
   try {
     const supabase = await createClient();
     const publicSources = PUBLIC_PROPERTY_SOURCES as unknown as string[];
@@ -77,28 +75,11 @@ async function getGuaranteeStats(): Promise<{ arbaPct: number; score: number }> 
       null,
     );
 
-    // Representative score — the best published listing's score, so the ring
-    // showcases a real, achievable number (falls back to a strong sample).
-    const { data: scoreRows } = await supabase
-      .from("properties")
-      .select("quality_score")
-      .eq("is_active", true)
-      .in("source", publicSources)
-      .eq("listing_status", PUBLIC_LISTING_STATUS)
-      .not("quality_score", "is", null)
-      .order("quality_score", { ascending: false })
-      .limit(1);
-
     const t = total ?? 0;
     const a = withArba ?? 0;
-    const pct = t > 0 ? Math.round((a / t) * 100) : 100;
-    const topScore = (scoreRows?.[0] as { quality_score: number | null } | undefined)
-      ?.quality_score;
-    const score =
-      topScore !== null && topScore !== undefined ? Math.round(topScore) : 84;
-    return { arbaPct: pct, score };
+    return t > 0 ? Math.round((a / t) * 100) : 100;
   } catch {
-    return { arbaPct: 100, score: 84 };
+    return 100;
   }
 }
 
@@ -186,7 +167,7 @@ function getCoverageView() {
 }
 
 export async function HomeGuarantees() {
-  const { arbaPct, score } = await getGuaranteeStats();
+  const arbaPct = await getArbaVerifiedPct();
   const matchable = await getMatchableProperties();
 
   const coverage = getCoverageView();
@@ -276,56 +257,47 @@ export async function HomeGuarantees() {
           />
 
           <div className="relative space-y-20 sm:space-y-28">
-            {/* Movement B — Quality Score (ring draws 0→N) */}
-            <div className="grid md:grid-cols-2 gap-10 md:gap-14 items-center">
-              <Reveal>
-                <p
-                  className="text-[0.7rem] uppercase tracking-[0.22em] font-medium"
-                  style={{ color: "var(--brand-gold)" }}
-                >
-                  Quality Score
-                </p>
-                <h3
-                  className="mt-3 font-heading font-medium text-2xl sm:text-3xl leading-tight tracking-tight"
-                  style={{ color: "var(--brand-heading)" }}
-                >
-                  Un número que sí podés auditar.
-                </h3>
-                <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed">
-                  De 0 a 100. Combina la calidad del aviso, la coherencia con
-                  ARBA, el tiempo en mercado y el precio contra comparables.
-                  Cada componente, abierto. Sin caja negra.
-                </p>
-              </Reveal>
-              <Reveal delayMs={120} className="flex justify-center">
-                <ScoreRingViz score={score} />
-              </Reveal>
-            </div>
+            {/* Movement B — Match. One column, and in this order on purpose:
+                the number first, then what the number is, then the controls
+                that move it. It used to be a two-column split with the copy
+                floating beside a form twice its height, which left the
+                explanation stranded next to whitespace and made the reader
+                cross the gutter to find out what they were looking at.
 
-            {/* Movement C — Match (reacts to taps). Viz on the left for rhythm. */}
-            <div className="grid md:grid-cols-2 gap-10 md:gap-14 items-center">
-              <Reveal className="order-2 md:order-1 flex justify-center" delayMs={120}>
-                <HomeMatchBuilder properties={matchable} />
-              </Reveal>
-              <Reveal className="order-1 md:order-2">
-                <p
-                  className="text-[0.7rem] uppercase tracking-[0.22em] font-medium"
-                  style={{ color: "var(--brand-gold)" }}
-                >
-                  Match personalizado
-                </p>
-                <h3
-                  className="mt-3 font-heading font-medium text-2xl sm:text-3xl leading-tight tracking-tight"
-                  style={{ color: "var(--brand-heading)" }}
-                >
-                  Decinos qué buscás. Responde al instante.
-                </h3>
-                <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed">
-                  Definís tus no-negociables —zona, presupuesto, ambientes,
-                  tipo— y calculamos cuánto encaja cada propiedad del catálogo.
-                  Sin cuenta y sin dejar tus datos: la cuenta se hace en tu
-                  navegador y te acompaña a cada ficha.
-                </p>
+                The Quality Score movement stood above this one and is gone:
+                the score is no longer shown to visitors anywhere they can act
+                on it — not on the cards, not on a listing — so a section of
+                the home explaining how to audit it was selling a number that
+                had left the building. It still ranks the catalog and drives
+                /admin. */}
+            <div className="mx-auto w-full max-w-xl">
+              <Reveal className="flex justify-center">
+                <HomeMatchBuilder
+                  properties={matchable}
+                  copy={
+                    <div className="mt-6">
+                      <p
+                        className="text-[0.7rem] uppercase tracking-[0.22em] font-medium"
+                        style={{ color: "var(--brand-gold)" }}
+                      >
+                        Match personalizado
+                      </p>
+                      <h3
+                        className="mt-3 font-heading font-medium text-2xl sm:text-3xl leading-tight tracking-tight"
+                        style={{ color: "var(--brand-heading)" }}
+                      >
+                        Decinos qué buscás. Responde al instante.
+                      </h3>
+                      <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed">
+                        Definís tus no-negociables —zona, presupuesto,
+                        ambientes, tipo— y calculamos cuánto encaja cada
+                        propiedad del catálogo. Sin cuenta y sin dejar tus
+                        datos: la cuenta se hace en tu navegador y te acompaña
+                        a cada ficha.
+                      </p>
+                    </div>
+                  }
+                />
               </Reveal>
             </div>
 
