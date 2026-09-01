@@ -58,9 +58,15 @@ export function HomeProtagonistShowpiece({
         <div
           aria-hidden
           className={cn(
-            "aspect-[4/3] overflow-hidden rounded-[2rem]",
+            // -rotate-6 y corrida a la izquierda: se abre en abanico contra
+            // la principal (que va a -2.5deg) y por eso asoma más por ese
+            // lado, que es el único donde tiene lugar — a la derecha la tapa
+            // la de adelante.
+            "-ml-4 aspect-[4/3] overflow-hidden rounded-[2rem]",
             "motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out",
-            inView ? "opacity-100 scale-100" : "motion-safe:opacity-0 motion-safe:scale-95",
+            inView
+              ? "opacity-100 -rotate-6 scale-100"
+              : "motion-safe:opacity-0 motion-safe:rotate-0 motion-safe:scale-95",
           )}
         >
           <div className="relative size-full">

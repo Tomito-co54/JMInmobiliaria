@@ -242,7 +242,12 @@ export async function HomeGuarantees() {
                 <HomeMatchBuilder
                   properties={matchable}
                   copy={
-                    <div className="mt-6">
+                    // `key` en un elemento que se pasa como prop, que parece de
+                    // más y no lo es: este JSX se crea en un Server Component
+                    // y cruza a uno de cliente, así que React lo serializa y
+                    // lo reconcilia en una posición de lista. Sin key avisa
+                    // por consola en cada render de la home.
+                    <div key="copy-match" className="mt-6">
                       <p
                         className="text-[0.7rem] uppercase tracking-[0.22em] font-medium"
                         style={{ color: "var(--brand-gold)" }}
