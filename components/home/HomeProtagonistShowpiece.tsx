@@ -44,43 +44,34 @@ export function HomeProtagonistShowpiece({
   const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.35 });
 
   return (
-    // pt-8/pr-4: el aire que necesita la foto de atrás para asomar sin que
-    // la recorte el borde del bloque.
-    <div
-      ref={ref}
-      className="relative mx-auto w-full max-w-sm pt-8 pr-4 md:max-w-none"
-    >
-      {/* La segunda foto, detrás y asomando por arriba a la derecha.
-          Dos imágenes de la misma propiedad, una pisando a la otra.
+    <div ref={ref} className="relative mx-auto w-full max-w-sm md:max-w-none">
+      {/* La segunda foto, en el lugar exacto donde estaba el recuadro
+          decorativo: en el flujo, ancho completo, y es la que le da altura al
+          bloque. La principal va encima, desplazada arriba a la derecha.
 
-          Más chica (72%) y con más inclinación que la de adelante, para que
-          se lea como una foto aparte y no como un duplicado corrido. Y con
-          `z-0` contra el `z-10` de la de adelante: las dos están posicionadas,
-          así que sin z explícito el orden lo decide el DOM, que es
-          exactamente la clase de cosa que se rompe sola cuando alguien mueve
-          un bloque de lugar.
+          Ese recuadro nunca fue un adorno — era el hueco de esta foto, y por
+          eso se leía como una imagen que no cargó. Lo era.
 
-          Entra antes y más despacio que la principal, así el ojo lee la
-          profundidad (§2.1) en vez de ver dos cosas aparecer juntas. */}
+          `aspect-[4/3]` y no cuadrado como el original: ahora contiene una
+          foto, y el cuadrado la recortaba. */}
       {behind && (
         <div
           aria-hidden
           className={cn(
-            "absolute -top-5 -right-2 z-0 w-[72%] aspect-[4/3] overflow-hidden rounded-2xl",
-            "ring-[5px] ring-background shadow-xl",
-            "motion-safe:transition-all motion-safe:duration-[900ms] motion-safe:ease-out",
-            inView
-              ? "opacity-100 translate-y-0 rotate-[5deg] scale-100"
-              : "motion-safe:opacity-0 motion-safe:translate-y-6 motion-safe:rotate-0 motion-safe:scale-95",
+            "aspect-[4/3] overflow-hidden rounded-[2rem]",
+            "motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out",
+            inView ? "opacity-100 scale-100" : "motion-safe:opacity-0 motion-safe:scale-95",
           )}
         >
-          <Image
-            src={behind}
-            alt=""
-            fill
-            sizes="(max-width: 768px) 64vw, 320px"
-            className="object-cover"
-          />
+          <div className="relative size-full">
+            <Image
+              src={behind}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 88vw, 440px"
+              className="object-cover"
+            />
+          </div>
         </div>
       )}
 
@@ -88,12 +79,20 @@ export function HomeProtagonistShowpiece({
           pose inclinada con sombra. El hover la levanta y la endereza un
           poco (§2.2).
 
-          Queda en el flujo (no absolute) y es la que le da altura al bloque;
-          la de atrás se posiciona contra ella. */}
+          Vuelve a su posición original: absolute, corrida arriba y a la
+          derecha, pisando la foto de atrás. `z-10` explícito para que el
+          orden no dependa del DOM. Si no hay segunda foto no hay nada detrás
+          y el absolute no tendría contra qué medir, así que ahí se queda en
+          el flujo. */}
       <Link
         href={`/p/${id}`}
         aria-label={`Ver ${headline}`}
-        className="group relative z-10 block focus-visible:outline-none"
+        className={cn(
+          "group z-10 block focus-visible:outline-none",
+          behind
+            ? "absolute -top-6 right-3 w-[88%] sm:-top-8 sm:-right-4"
+            : "relative",
+        )}
       >
         <div
           className={cn(
