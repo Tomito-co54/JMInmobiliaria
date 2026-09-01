@@ -132,12 +132,23 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
             </span>
           )}
 
+          {/* La acción principal de la portada: es lo que se hace con la
+              propiedad que la página eligió mostrar. Medía 35px; sube a 48
+              como el CTA del hero, con el mismo hundido al tocar. Sin el
+              brillo — ese guía la mirada hacia la única salida al catálogo
+              above the fold, y dos cosas destellando compiten en vez de
+              guiar. */}
           <Link
             href={`/p/${p.id}`}
-            className={cn(buttonVariants({ size: "lg" }), "mt-8 w-fit gap-1.5 group px-6")}
+            className={cn(
+              buttonVariants({ size: "lg" }),
+              "group mt-8 min-h-12 w-fit gap-1.5 px-7 text-base",
+              "transition-transform duration-200 ease-out",
+              "motion-safe:hover:scale-[1.03] motion-safe:active:scale-[0.97]",
+            )}
           >
             Ver propiedad
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
           </Link>
         </Reveal>
 

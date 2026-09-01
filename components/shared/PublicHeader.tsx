@@ -119,7 +119,11 @@ export async function PublicHeader({
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "sm" }),
                   // relative: NavPending anchors its bar to this link.
-                  "relative",
+                  // min-h-11: la regla de 44px de §1. Medían 28 — se tocaban
+                  // igual, con menos margen del que el proyecto se exige. Sube
+                  // el alto de la fila, no el ancho, así que la pelea de los
+                  // 375px queda donde estaba.
+                  "relative min-h-11",
                   // Tighter than the default at 375px. Measured: anonymous,
                   // the row fits either way with room to spare. Logged in it
                   // does not — the "Panel" button lands the nav within a few

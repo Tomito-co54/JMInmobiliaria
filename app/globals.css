@@ -349,3 +349,16 @@ html.theme-switching::view-transition-new(root) {
     animation: none;
   }
 }
+
+/* Brillo del CTA principal de la portada. Un solo elemento cruzando por
+   transform, que es lo único que el compositor anima gratis: nada de
+   background-position ni de gradientes recalculados por frame, que es como
+   se suele hacer este efecto y es justo lo que traba el scroll en un
+   teléfono de gama media (§4).
+
+   El recorrido va de -100% a 300% para que entre y salga completamente fuera
+   del botón: terminar en 100% deja el brillo estacionado en el borde. */
+@keyframes cta-sheen {
+  0% { transform: translateX(-100%); }
+  35%, 100% { transform: translateX(300%); }
+}

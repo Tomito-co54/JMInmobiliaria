@@ -115,15 +115,32 @@ export function HomeHero() {
           className="pt-2 flex justify-center home-rise"
           style={{ animationDelay: "600ms" }}
         >
+          {/* El CTA principal de la portada. Medía 35px de alto y ahora
+              llega a 48 — la regla de §1 es 44 y este es EL botón que la
+              página existe para que toques.
+
+              El brillo que lo cruza es la única animación puramente
+              atractiva del sitio, y entra por la tercera función que §2
+              admite: guiar la mirada. Con la portada reducida a hero +
+              protagonista + garantías, este botón es la única salida hacia el
+              catálogo above the fold. Va lento (2,6s), espaciado (cada 6s) y
+              detrás de motion-safe: un destello cada seis segundos se registra
+              por el rabillo del ojo, uno cada uno es una luz de alarma. */}
           <Link
             href="/propiedades"
             className={cn(
               buttonVariants({ size: "lg" }),
-              "gap-1.5 group px-6",
+              "group relative min-h-12 gap-1.5 overflow-hidden px-7 text-base",
+              "transition-transform duration-200 ease-out",
+              "motion-safe:hover:scale-[1.03] motion-safe:active:scale-[0.97]",
             )}
           >
-            Ver propiedades
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 -left-full w-1/2 -skew-x-12 bg-white/25 motion-safe:animate-[cta-sheen_6s_ease-in-out_1.2s_infinite]"
+            />
+            <span className="relative">Ver propiedades</span>
+            <ArrowRight className="relative size-4 transition-transform duration-200 group-hover:translate-x-1" />
           </Link>
         </div>
       </div>
