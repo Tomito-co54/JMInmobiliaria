@@ -42,8 +42,8 @@ describe("deriveVerifiedDataItems", () => {
     );
     const sup = items.find((i) => i.id === "superficie")!;
     expect(sup.status).toBe("verified");
-    expect(sup.detail).toContain("98m²");
-    expect(sup.detail).toContain("100m²");
+    expect(sup.detail).toContain("98 m²");
+    expect(sup.detail).toContain("100 m²");
     expect(sup.detail).toContain("parcela");
   });
 
@@ -59,8 +59,8 @@ describe("deriveVerifiedDataItems", () => {
       );
       const sup = items.find((i) => i.id === "superficie")!;
       expect(sup.status, `${total} vs ${arba}`).toBe("verified");
-      expect(sup.detail).toContain(`${arba}m²`);
-      expect(sup.detail).toContain(`${total}m²`);
+      expect(sup.detail).toContain(`${arba} m²`);
+      expect(sup.detail).toContain(`${total} m²`);
     }
   });
 
@@ -80,7 +80,7 @@ describe("deriveVerifiedDataItems", () => {
     );
     const sup = items.find((i) => i.id === "superficie")!;
     expect(sup.status).toBe("warning");
-    expect(sup.title).toContain("Solo la superficie de la parcela");
+    expect(sup.title).toContain("Superficie de la parcela");
   });
 
   it("warns when only declared surface is present", () => {
@@ -90,7 +90,7 @@ describe("deriveVerifiedDataItems", () => {
     );
     const sup = items.find((i) => i.id === "superficie")!;
     expect(sup.status).toBe("warning");
-    expect(sup.title).toContain("no verificable");
+    expect(sup.title).toContain("Superficie de la propiedad");
   });
 
   it("marks both surfaces missing as a hard miss", () => {

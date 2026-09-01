@@ -29,7 +29,7 @@ const TERMS: GlossaryTerm[] = [
     definition:
       "Identificador único de la propiedad en el registro catastral de la provincia de Buenos Aires.",
     context:
-      "Si una propiedad no tiene partida visible, casi siempre es porque el aviso no la declaró — pero existe en el registro. La cruzamos por coordenadas geográficas.",
+      "Es lo que nos permite traer del catastro la superficie, la nomenclatura y el polígono de la parcela. Si no aparece en una ficha es porque todavía no la cargamos.",
   },
   {
     id: "nomenclatura_catastral",
@@ -45,13 +45,13 @@ const TERMS: GlossaryTerm[] = [
     definition:
       "Metros cuadrados que el catastro tiene registrados oficialmente para esta parcela.",
     context:
-      "Cuando difiere mucho de la superficie declarada en el aviso, es porque miden cosas distintas: el aviso mide la unidad funcional (un departamento) y el catastro mide la parcela entera, o sea el terreno del edificio.",
+      "Cuando difiere mucho de los metros de la propiedad es porque miden cosas distintas: la propiedad es la unidad funcional (un departamento) y la parcela es el terreno del edificio entero.",
   },
   {
     id: "superficie_total",
-    label: "Superficie total declarada",
+    label: "Superficie de la propiedad",
     definition:
-      "Metros cuadrados que el aviso original declara. No está verificado hasta que lo cruzamos contra el registro oficial.",
+      "Metros cuadrados de la unidad, medidos sobre plano. Es lo que se habita, y no coincide con la parcela: esa es la del edificio entero.",
   },
   {
     id: "informe_dominio",

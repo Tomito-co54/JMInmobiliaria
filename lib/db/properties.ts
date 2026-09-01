@@ -7,7 +7,6 @@ import {
 } from "@/lib/supabase/server";
 import type { QualityBreakdown } from "@/lib/scoring";
 import type { MatchableProperty } from "@/lib/matching";
-import type { PropertyHistoryRow } from "@/lib/db/property-history";
 import {
   PUBLIC_CATALOG_TAG,
   PUBLIC_LISTING_STATUS,

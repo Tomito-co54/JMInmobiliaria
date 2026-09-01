@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { COVERAGE_AREA, COVERAGE_LABEL } from "@/lib/zona-sur/coverage";
 import {
   zoomForSpan,
@@ -8,10 +7,6 @@ import {
   PARCEL_VIEW_FACTOR,
   BASEMAP_SUPERSAMPLE,
 } from "@/lib/map/tiles";
-import {
-  PUBLIC_LISTING_STATUS,
-  PUBLIC_PROPERTY_SOURCES,
-} from "@/lib/db/property-sources";
 import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
 import { Reveal } from "@/components/shared/Reveal";
 import {
@@ -38,11 +33,17 @@ import { getMatchableCatalog } from "@/lib/db/properties";
  * (SEO), and delegates only the scroll-triggered visuals to the client
  * islands.
  *
- * Stats decision (per the doc): the old 1/1/100% strip read weak with a
- * single published property and leaned on the generic look we avoid. The
- * one figure with real weight — % con los datos verificados — is folded
- * into TONE 1 as an editorial number. Property/partido counts already live
- * in the catalog header, so they're not repeated here.
+ * Stats decision: TONE 1 carried a big "100% de nuestras propiedades con los
+ * datos verificados" and it is gone, because that number could only ever say
+ * one of two things and neither was worth the space. At 100% it repeats the
+ * heading — of course everything is verified, verifying is what we do before
+ * publishing. Below 100% it contradicts it. A figure whose only readings are
+ * "redundant" or "self-refuting" is not evidence, and removing it also spares
+ * the landing two counting queries per view.
+ *
+ * The credibility anchor that belongs in that slot is the martillero's
+ * matrícula, which is the one thing here that a stranger cannot claim. It is
+ * not in the code because nobody has typed the number yet.
  *
  * Copy note: the cadastral agency is no longer named anywhere a visitor
  * reads. The checks did not change — the parcel lookup still runs and still
@@ -58,37 +59,6 @@ import { getMatchableCatalog } from "@/lib/db/properties";
  *   3. Gama media ✓ — IntersectionObserver + transform/opacity, sin librería.
  *   4. Propio ✓ — composiciones editoriales, no cards de plantilla.
  */
-
-async function getVerifiedPct(): Promise<number> {
-  try {
-    const supabase = await createClient();
-    const publicSources = PUBLIC_PROPERTY_SOURCES as unknown as string[];
-    const base = () =>
-      supabase
-        .from("properties")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true)
-        .in("source", publicSources)
-        .eq("listing_status", PUBLIC_LISTING_STATUS);
-
-    const { count: total } = await base();
-    // Counts `nomenclatura_catastral`, not `partida`: the partida is typed in
-    // by hand, the nomenclatura only exists when the cadastre actually
-    // answered. Since publishing no longer requires the lookup, measuring the
-    // partida here would let the page claim verification it doesn't have.
-    const { count: withCadastre } = await base().not(
-      "nomenclatura_catastral",
-      "is",
-      null,
-    );
-
-    const t = total ?? 0;
-    const a = withCadastre ?? 0;
-    return t > 0 ? Math.round((a / t) * 100) : 100;
-  } catch {
-    return 100;
-  }
-}
 
 /**
  * The coverage area on real ground: the outline projected into the diagram's
@@ -146,7 +116,6 @@ function getCoverageView() {
 }
 
 export async function HomeGuarantees() {
-  const verifiedPct = await getVerifiedPct();
   const matchable = await getMatchableCatalog();
 
   const coverage = getCoverageView();
@@ -190,29 +159,18 @@ export async function HomeGuarantees() {
               className="mt-3 font-heading font-medium text-2xl sm:text-3xl leading-tight tracking-tight"
               style={{ color: "var(--brand-heading)" }}
             >
-              Cada propiedad la revisamos antes de mostrarla.
+              Publicamos los papeles, no solo las fotos.
             </h3>
             <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed">
-              No publicamos lo que dice el aviso y listo. Chequeamos los datos
-              contra{" "}
+              Las propiedades son nuestras y las cargamos a mano, una por una.
+              Antes de publicar cruzamos superficie, parcela y ubicación contra{" "}
               <span className="font-medium text-foreground">
                 los registros oficiales
-              </span>{" "}
-              —superficie, parcela, ubicación— y te mostramos lo que
-              encontramos, tal cual salió. Si algo no cierra, lo decimos en la
-              ficha en vez de esconderlo.
+              </span>
+              , y lo que sale de ahí va en la ficha: el número de partida, la
+              nomenclatura catastral y el polígono de la parcela sobre el mapa.
+              No hace falta que nos creas nada — está publicado.
             </p>
-            <div className="mt-7 flex items-baseline gap-3">
-              <span
-                className="text-5xl font-bold font-heading tabular-nums leading-none"
-                style={{ color: "var(--brand-heading)" }}
-              >
-                {verifiedPct}%
-              </span>
-              <span className="text-sm text-muted-foreground max-w-[16ch]">
-                de nuestras propiedades con los datos verificados
-              </span>
-            </div>
           </Reveal>
           <Reveal className="order-1 md:order-2" delayMs={120}>
             <AreaOutlineViz

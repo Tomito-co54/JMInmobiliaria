@@ -10,6 +10,14 @@ import type { PublicArbaLookup, PublicPropertyRow } from "@/lib/db/properties";
  * technical answer than the question deserves. The agency is named where it
  * is the actual answer: the buying guide, next to each document it issues.
  *
+ * It also stopped speaking as an auditor. "Lo que pudimos verificar", "m²
+ * declarados", "el aviso no declaró" — all of it came from the upstream
+ * portal, where the listing belonged to a stranger and the product was
+ * doubting it. Here the listing is ours: we typed the partida, we loaded the
+ * metres, and there is no third party whose claim needs checking. What is
+ * missing is missing because we have not loaded it yet, and the copy now says
+ * that instead of implying somebody withheld it.
+ *
  * The principle: each item answers a yes/no question that matters for the
  * buyer's confidence. We classify into three levels — verified / warning /
  * missing — and rely on lucide icons in the UI to convey the level.
@@ -61,7 +69,7 @@ export function deriveVerifiedDataItems(
       status: "missing",
       title: "Sin parcela identificada",
       detail:
-        "No pudimos cruzar la dirección con el registro catastral. Puede deberse a dirección ambigua o a una propiedad nueva.",
+        "Todavía no cargamos la partida de esta propiedad. Pedila por WhatsApp y te la pasamos.",
       termId: "partida",
     });
   }
@@ -83,32 +91,32 @@ export function deriveVerifiedDataItems(
     items.push({
       id: "superficie",
       status: "verified",
-      title: "Superficie de la parcela verificada",
-      detail: `${arba}m² de parcela · ${declared}m² declarados en la propiedad. En departamentos y PH la parcela es la del edificio entero.`,
+      title: "Superficie",
+      detail: `La parcela mide ${arba} m² y esta propiedad ${declared} m². En departamentos y PH la parcela es la del edificio entero, no la de la unidad.`,
       termId: "superficie_arba",
     });
   } else if (arba !== null && arba !== undefined) {
     items.push({
       id: "superficie",
       status: "warning",
-      title: "Solo la superficie de la parcela",
-      detail: `${arba}m² registrados en el catastro — el aviso no declaró superficie para cruzar.`,
+      title: "Superficie de la parcela",
+      detail: `${arba} m² en el catastro. Todavía no cargamos los metros de la propiedad.`,
       termId: "superficie_arba",
     });
   } else if (declared !== null && declared !== undefined) {
     items.push({
       id: "superficie",
       status: "warning",
-      title: "Superficie no verificable",
-      detail: `${declared}m² declarada por el aviso — sin registro oficial para cruzarla.`,
+      title: "Superficie de la propiedad",
+      detail: `${declared} m². El catastro todavía no nos devolvió la parcela.`,
       termId: "superficie_total",
     });
   } else {
     items.push({
       id: "superficie",
       status: "missing",
-      title: "Sin superficie disponible",
-      detail: "Ni el aviso ni el catastro registran metros cuadrados para esta propiedad.",
+      title: "Sin superficie cargada",
+      detail: "Todavía no cargamos los metros y el catastro no devolvió la parcela.",
     });
   }
 

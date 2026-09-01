@@ -33,7 +33,7 @@ export function PropertyDescription({ description }: PropertyDescriptionProps) {
     <div className="space-y-3">
       {text.length === 0 ? (
         <p className="text-sm text-muted-foreground italic">
-          El aviso no incluyó descripción.
+          Todavía no cargamos la descripción de esta propiedad.
         </p>
       ) : (
         <>

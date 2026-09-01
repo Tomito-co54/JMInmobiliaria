@@ -228,7 +228,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
 
             <EditorialSection
               title="Datos oficiales"
-              subtitle="Lo que pudimos verificar contra los registros oficiales, dato por dato."
+              subtitle="Los datos registrales de esta propiedad, como figuran en el catastro."
             >
               <VerifiedDataList property={property} arbaLookup={arbaLookup} />
             </EditorialSection>
