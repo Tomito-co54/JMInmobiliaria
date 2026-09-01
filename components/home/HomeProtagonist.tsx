@@ -64,6 +64,8 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
   if (!p) return null;
 
   const cover = p.photos?.[0] ?? null;
+  // La segunda foto va detrás de la primera. Null si sólo hay una.
+  const behind = p.photos?.[1] ?? null;
   const typeLabel = p.property_type
     ? TYPE_LABELS[p.property_type] ?? p.property_type
     : null;
@@ -166,6 +168,7 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
           <HomeProtagonistShowpiece
             id={p.id}
             cover={cover}
+            behind={behind}
             headline={headline}
           />
         </div>

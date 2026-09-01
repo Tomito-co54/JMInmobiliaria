@@ -371,10 +371,16 @@ html.theme-switching::view-transition-new(root) {
       clipeado. Repartir el recorrido en los 7s completos no es un destello:
       es una mancha cruzando despacio.
 
-   El elemento mide 1,25rem y va inclinado 28°, así que 1600% son ~32rem: el
-   múltiplo sube cuando el ancho baja, porque lo que tiene que recorrer es el
-   botón, no su propio ancho. */
+   El elemento mide 1,25rem, así que 1600% son ~32rem: el múltiplo sube cuando
+   el ancho baja, porque lo que tiene que recorrer es el botón, no su propio
+   ancho.
+
+   3. LA INCLINACIÓN VA ACÁ ADENTRO, no en una clase. `transform` es una sola
+      propiedad: un keyframe que dice `translateX(...)` PISA el `-skew-x-*`
+      del elemento, así que el brillo cruzaba derecho por más que la clase
+      dijera 28°. Se veía horizontal porque lo era — durante la animación, que
+      es el único momento en que se ve. */
 @keyframes cta-sheen {
-  0% { transform: translateX(-100%); }
-  13%, 100% { transform: translateX(1600%); }
+  0% { transform: translateX(-100%) skewX(-28deg); }
+  13%, 100% { transform: translateX(1600%) skewX(-28deg); }
 }
