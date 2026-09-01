@@ -62,10 +62,38 @@ describe("decideDeactivation", () => {
       expect(decideDeactivation("exhausted", 242, 275).allowed).toBe(true);
     });
 
-    it("waives the test when there is no baseline to compare against", () => {
+    it("waives the test when the baseline is genuinely empty", () => {
       // A first crawl of a new partido holds nothing active, so there is
-      // nothing a mistake here could destroy.
+      // nothing a mistake here could destroy. 0 is a reading, not a shrug.
       expect(decideDeactivation("exhausted", 3, 0).allowed).toBe(true);
+    });
+
+    it("refuses when the baseline could not be read at all", () => {
+      // The 1-sep-2026 incident, encoded. A run that saw 45 listings
+      // deactivated 375, because the baseline read failed, left 0 behind, and
+      // 0 waived the coverage test — so the most likely thing to go wrong in a
+      // flaky run was also what disarmed the guard against it.
+      //
+      // `null` is now "I don't know" and it refuses on its own, before the
+      // coverage arithmetic, because there is no arithmetic to do.
+      const unknown = decideDeactivation("exhausted", 45, null);
+      expect(unknown.allowed).toBe(false);
+      expect(unknown.reason).toContain("no baseline");
+    });
+
+    it("refuses on an unknown baseline even when everything else looks perfect", () => {
+      // Guards are only worth what their worst case is worth: an exhausted
+      // crawl with a big haul is exactly the run that feels safe to trust.
+      expect(decideDeactivation("exhausted", 5000, null).allowed).toBe(false);
+    });
+
+    it("would have blocked the run that actually happened", () => {
+      // The real numbers: 45 seen against 399 active. With the baseline read
+      // working, the coverage test alone stops it — this is the assertion that
+      // fails if MIN_COVERAGE_RATIO is ever loosened past 11%.
+      const real = decideDeactivation("exhausted", 45, 399);
+      expect(real.allowed).toBe(false);
+      expect(real.reason).toContain("soft block");
     });
 
     it("outranks the crawl's own belief that it finished", () => {

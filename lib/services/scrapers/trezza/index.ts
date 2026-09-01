@@ -60,10 +60,11 @@ export async function scrapeTrezza(
 
   const startedAt = Date.now();
 
-  // Same baseline as Zonaprop, read before anything is touched. Trezza has
-  // no anti-bot worth the name, but the guard costs one count and the
-  // failure it prevents is unrecoverable.
-  let activeBefore = 0;
+  // Same baseline as Zonaprop, read before anything is touched, and `null`
+  // until the read succeeds for the same reason: an unknown baseline must not
+  // read as an empty one. Trezza has no anti-bot worth the name, but the guard
+  // costs one count and the failure it prevents is unrecoverable.
+  let activeBefore: number | null = null;
   try {
     activeBefore = await countActiveListings("trezza", partido);
   } catch (err) {

@@ -66,24 +66,44 @@ export const MIN_COVERAGE_RATIO = 0.5;
 /**
  * Whether a run may deactivate the listings it did not see.
  *
- * Three conditions, each from a distinct failure that actually happened:
+ * Four conditions, each from a distinct failure that actually happened:
  *   1. The crawl reached the end (not a cap, not a page error) — the 50-listing
  *      "(testing)" cap that invented 317 deaths.
  *   2. It brought back something — zero results from a supposedly complete
  *      crawl is a broken parser or a bot block, not an empty catalog.
  *   3. It saw a real share of what we hold active — a soft block that yields
  *      one page still satisfies 1 and 2.
+ *   4. **We know what that share is of.** 1-sep-2026: 375 listings died in one
+ *      run that had seen 45 against 399 active — 11%, which condition 3 should
+ *      have blocked outright. It did not, because `activeCount` arrived as 0,
+ *      and 0 waived the test. The baseline read is wrapped in a try/catch in
+ *      both scrapers and leaves 0 behind when it fails, so the single thing
+ *      most likely to go wrong in a flaky run was also the thing that turned
+ *      the guard off.
  *
  * `activeCount` is how many listings this source+partido had active *before*
- * the run touched anything. Pass 0 when there is nothing to lose (a first
- * crawl), which skips the coverage test since there is no baseline to
- * compare against.
+ * the run touched anything:
+ *   - a number ≥ 0 — a real reading. 0 means a genuinely empty baseline (a
+ *     first crawl), and there is nothing to lose, so coverage does not apply.
+ *   - `null` — the read failed. NOT the same as 0, and this is the whole
+ *     point: a run that cannot say how much it is risking does not get to
+ *     risk it.
  */
 export function decideDeactivation(
   end: CrawlEnd,
   scrapedCount: number,
-  activeCount: number,
+  activeCount: number | null,
 ): DeactivationDecision {
+  if (activeCount === null) {
+    return {
+      allowed: false,
+      reason:
+        "skipped: could not read how many listings were active before the run, " +
+        "so there is no baseline to judge coverage against — refusing rather " +
+        "than assuming the baseline was empty",
+    };
+  }
+
   if (scrapedCount === 0) {
     return {
       allowed: false,

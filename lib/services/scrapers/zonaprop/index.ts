@@ -81,9 +81,14 @@ export async function scrapeZonaprop(
 
   // Read before the crawl: how much we hold active is the yardstick the run's
   // coverage is measured against, and the upsert loop below would move it.
-  // A failure here must not stop the scrape — 0 simply waives the coverage
-  // test, leaving the other two guards in place.
-  let activeBefore = 0;
+  //
+  // Starts as `null`, meaning "unknown", and only becomes a number if the read
+  // actually succeeds. It used to start at 0, and 0 waived the coverage test —
+  // so a failed baseline read silently disarmed the guard. That is what let a
+  // run that saw 45 listings deactivate 375 on 1-sep-2026. A failure here
+  // still must not stop the scrape: it stops the deactivation, which is the
+  // only part that cannot be undone.
+  let activeBefore: number | null = null;
   try {
     activeBefore = await countActiveListings("zonaprop", partido);
   } catch (err) {
