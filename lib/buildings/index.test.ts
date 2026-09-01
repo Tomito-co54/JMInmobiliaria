@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { buildingKey, groupByBuilding, summariseBuildings } from "./index";
+import {
+  buildingKey,
+  buildingLabel,
+  groupByBuilding,
+  summariseBuildings,
+} from "./index";
 
 const PARCEL_A = "063030B00000000000000000000000150000027000";
 const PARCEL_B = "063020A0000000000000000000000068000000400A";
@@ -86,5 +91,62 @@ describe("summariseBuildings", () => {
       unit(PARCEL_A, 80000, "USD"),
     ]).get(PARCEL_A)!;
     expect(s.fromPrice).toBe(80000);
+  });
+});
+
+describe("buildingLabel", () => {
+  const at = (...addresses: (string | null)[]) =>
+    addresses.map((address) => ({ address }));
+
+  it("names the owner catalog's building from what the units share", () => {
+    // The four RUMAH units, typed by hand and precise.
+    expect(
+      buildingLabel(
+        at(
+          "Belgrano 1287 1°A",
+          "Belgrano 1287 1°B",
+          "Belgrano 1287 2°A",
+          "Belgrano 1287 2°B",
+        ),
+      ),
+    ).toBe("Belgrano 1287");
+  });
+
+  it("falls back to the most common address when spellings diverge", () => {
+    // A real parcel in Lomas holds ten scraped listings written four ways.
+    // Their common prefix is one letter, so the prefix pass has to give up.
+    expect(
+      buildingLabel(
+        at(
+          "alsina 1639",
+          "Alsina 1639",
+          "Alsina 1639",
+          "ALSINA 1639",
+          "Avenida Alsina 1639",
+        ),
+      ),
+    ).toBe("Alsina 1639");
+  });
+
+  it("refuses a prefix that names a street rather than a building", () => {
+    // "Belgrano al 1200" and "Belgrano 1840" share only "Belgrano", which is
+    // a street. Without the digit test the page would head a group with it.
+    const label = buildingLabel(at("Belgrano al 1200", "Belgrano 1840"));
+    expect(label).not.toBe("Belgrano");
+  });
+
+  it("does not cut mid-word", () => {
+    const label = buildingLabel(at("Loria 1400 3°A", "Loria 1400 3°B"));
+    expect(label).toBe("Loria 1400");
+  });
+
+  it("handles a single unit and no address at all", () => {
+    expect(buildingLabel(at("Colombres 700"))).toBe("Colombres 700");
+    expect(buildingLabel(at(null, null))).toBeNull();
+    expect(buildingLabel([])).toBeNull();
+  });
+
+  it("ignores units with no address when others have one", () => {
+    expect(buildingLabel(at("Vergara 1500", null))).toBe("Vergara 1500");
   });
 });

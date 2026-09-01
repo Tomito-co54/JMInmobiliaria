@@ -21,6 +21,7 @@ import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 const NAV = [
   { href: "/propiedades", label: "Propiedades" },
+  { href: "/edificios", label: "Edificios" },
   { href: "/guia-de-compra", label: "Guía de compra" },
 ] as const;
 
@@ -28,7 +29,7 @@ export async function PublicHeader({
   /** Marks the current section so the visitor knows where they are. */
   active,
 }: {
-  active?: "propiedades" | "guia";
+  active?: "propiedades" | "edificios" | "guia";
 }) {
   const supabase = await createClient();
   const {
@@ -46,9 +47,11 @@ export async function PublicHeader({
   const activeHref =
     active === "propiedades"
       ? "/propiedades"
-      : active === "guia"
-        ? "/guia-de-compra"
-        : null;
+      : active === "edificios"
+        ? "/edificios"
+        : active === "guia"
+          ? "/guia-de-compra"
+          : null;
 
   return (
     <header className="px-4 py-3 border-b">
@@ -71,9 +74,18 @@ export async function PublicHeader({
                 aria-current={current ? "page" : undefined}
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "sm" }),
-                  // "Propiedades" is the one destination that must survive a
-                  // 375px viewport: it is where the catalog lives now, and the
-                  // landing no longer contains it.
+                  // Tighter than the default at 375px. Measured: anonymous,
+                  // the row fits either way with room to spare. Logged in it
+                  // does not — the "Panel" button lands the nav within a few
+                  // pixels of the edge — and the broker is the one person who
+                  // is always logged in.
+                  "px-2 sm:px-3",
+                  // Both catalog destinations stay visible at 375px. The
+                  // landing no longer contains the catalog, so these are the
+                  // only way to it, and hiding one on the viewport the project
+                  // designs for first would make it unreachable exactly where
+                  // most visitors are. They fit; the guide is the one that
+                  // waits for a wider screen.
                   item.href === "/guia-de-compra" && "hidden sm:inline-flex",
                   current && "text-foreground font-semibold",
                 )}

@@ -120,3 +120,112 @@ export function summariseBuildings(
 
   return out;
 }
+
+export interface AddressedUnit extends BuildingKeyed {
+  address?: string | null;
+}
+
+/**
+ * A display name for a building, derived from the addresses of its units.
+ *
+ * Naming is not grouping. The module doc above rejects address text for
+ * deciding WHICH units share a building, and that still holds — the parcel
+ * decides membership. This only has to label a group the parcel already
+ * formed, which is a much weaker job: get it wrong and a heading reads oddly;
+ * get grouping wrong and the catalog lies.
+ *
+ * Two passes, in this order, because the real data needs both:
+ *
+ *   1. **Longest common prefix**, cut at a word boundary. This is the owner
+ *      catalog's case, where addresses are typed by hand and precise:
+ *      "Belgrano 1287 1°A" … "Belgrano 1287 2°B" → "Belgrano 1287". Accepted
+ *      only if it still carries a street number, since "Belgrano" alone names
+ *      a street, not a building.
+ *   2. **The most common address**, when the prefix collapses. Scraped rows
+ *      are why: one parcel in Lomas holds ten listings written "Alsina 1639",
+ *      "alsina 1639", "ALSINA 1639" and "Avenida Alsina 1639", and their
+ *      common prefix is a single letter. The mode returns "Alsina 1639",
+ *      which is what the building is actually called.
+ */
+export function buildingLabel(units: readonly AddressedUnit[]): string | null {
+  const addresses = units
+    .map((u) => u.address?.trim())
+    .filter((a): a is string => !!a);
+  if (addresses.length === 0) return null;
+  if (addresses.length === 1) return addresses[0];
+
+  const prefix = commonPrefixAtWordBoundary(addresses);
+  if (prefix && prefix.length >= 4 && /\d/.test(prefix)) return prefix;
+
+  return mostCommon(addresses);
+}
+
+/**
+ * The longest prefix every address shares, trimmed back to the last complete
+ * word. Compared case-insensitively — "alsina" and "Alsina" are the same
+ * street — but returned from the first address so the label keeps real
+ * capitalisation.
+ */
+function commonPrefixAtWordBoundary(addresses: readonly string[]): string | null {
+  const lower = addresses.map((a) => a.toLowerCase());
+  let end = 0;
+  const limit = Math.min(...lower.map((a) => a.length));
+  while (end < limit && lower.every((a) => a[end] === lower[0][end])) end++;
+  if (end === 0) return null;
+
+  let cut = addresses[0].slice(0, end);
+  // Without this, "Belgrano 1287 1°A" and "Belgrano 1287 2°B" would yield
+  // "Belgrano 1287 " and, worse, near-identical addresses would cut mid-word.
+  if (end < limit || addresses.some((a) => a.length > end)) {
+    const lastSpace = cut.lastIndexOf(" ");
+    cut = lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+  }
+  const trimmed = cut.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function mostCommon(values: readonly string[]): string {
+  const counts = new Map<string, { count: number; variants: string[] }>();
+  for (const v of values) {
+    const key = v.toLowerCase();
+    const entry = counts.get(key);
+    if (entry) {
+      entry.count++;
+      entry.variants.push(v);
+    } else {
+      counts.set(key, { count: 1, variants: [v] });
+    }
+  }
+
+  let best: { count: number; variants: string[] } | null = null;
+  for (const entry of counts.values()) {
+    // Ties break towards the shorter string: between "Alsina 1639" and
+    // "Avenida Alsina 1639" the shorter one is the building, not a variant
+    // someone padded.
+    if (
+      !best ||
+      entry.count > best.count ||
+      (entry.count === best.count &&
+        entry.variants[0].length < best.variants[0].length)
+    ) {
+      best = entry;
+    }
+  }
+
+  return bestCased(best!.variants);
+}
+
+/**
+ * Of several spellings of the same address, the one fit to print.
+ *
+ * The winning group is chosen case-insensitively, so its members can include
+ * "alsina 1639" and "ALSINA 1639" alongside "Alsina 1639". Taking whichever
+ * happened to be seen first would head a page with a listing's typing habits.
+ * A string carrying both cases is the one a person wrote properly.
+ */
+function bestCased(variants: readonly string[]): string {
+  return (
+    variants.find((v) => /[a-záéíóúñ]/.test(v) && /[A-ZÁÉÍÓÚÑ]/.test(v)) ??
+    variants[0]
+  );
+}
