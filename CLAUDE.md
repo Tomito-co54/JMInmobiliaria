@@ -57,15 +57,17 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status (31-ago-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **360 tests passing** (+7 skipped a propósito),
+**Status (1-sep-2026):** Deployado y funcionando en producción, con
+auto-deploy desde `main`. **367 tests passing** (+7 skipped a propósito),
 `npm run build` verde, 42 rutas.
 
 La cara pública se reordenó entera. El catálogo dejó de ser la última sección
 de la landing y pasó a `/propiedades`; apareció `/edificios`, que muestra las
 unidades agrupadas por parcela; y en la ficha el **Quality Score le dejó el
 lugar al match**, que hasta ahora era invisible para todo el mundo porque
-exigía una cuenta que nadie puede crear. Lo que queda sigue siendo de
+exigía una cuenta que nadie puede crear. El 1-sep **ARBA salió del eje del
+discurso** y el match **se abre desde la barra de pestañas**, así que ya no
+hay que scrollear la landing para llegar a él. Lo que queda sigue siendo de
 contenido:
 
 1. **El catálogo tiene 4 propiedades publicadas** — las cuatro unidades de
@@ -77,6 +79,52 @@ contenido:
    arregla con un click en `/admin/properties`.
 3. **El scraping corre a mano** — pero ojo, ver abajo: **GitHub Actions
    también corre solo desde el 27-ago** y escribe en la misma base.
+
+### Mobile aguanta, y ahora está medido
+
+Tomy lo probó en el teléfono el 1-sep-2026 y **funciona bien**. Queda dicho
+el alcance de esa prueba, que es parte del dato: cinco minutos, a simple
+vista, sin recorrer todos los flujos.
+
+Sobre esa impresión hay una barrida medida a 375×667 en las cuatro surfaces
+públicas (landing, `/propiedades`, `/edificios`, `/p/[id]`), y confirma lo
+más importante:
+
+- **Cero overflow horizontal en las cuatro.** Es la falla mobile más común y
+  la más fea —la página que se corre de costado— y no aparece en ninguna. El
+  mobile-first del principio 1 no es una aspiración del documento: se sostiene
+  en la medición.
+- **Los controles que importan rozan o superan los 44px** — 43 a 56 medidos:
+  los chips del match y el CTA de WhatsApp dan 43, el disparador del match en
+  el header 44, la portada del edificio 56.
+- **El peso está muy por debajo del techo.** Las páginas de listado cargan
+  262 kB de First Load JS contra un presupuesto de 500 kB.
+- **Las animaciones no cuestan scroll**: `transform`/`opacity` e
+  IntersectionObserver, **sin librería de animación** — `package.json` no
+  tiene framer-motion ni equivalente, todo sale de `hooks/use-in-view.ts` y
+  de CSS. Y `prefers-reduced-motion` se respeta de verdad: el hook lo
+  consulta y los `motion-safe:` están puestos, así que un teléfono con
+  "reducir movimiento" prendido recibe la página quieta.
+
+**Lo que la barrida sí encontró, y conviene no perder de vista:** la regla de
+44px se cumple en los controles protagonistas y **no** en los secundarios.
+Medido:
+
+| Elemento | Alto | Dónde |
+|---|---|---|
+| Links del nav (`Propiedades`, `Edificios`) | **28px** | `PublicHeader` |
+| CTA `Ver propiedades` del hero | **35px** | `HomeHero` |
+| Link del logo | **24px** | `PublicHeader` |
+| Términos del glosario (`Parcela identificada`…) | **19px** | `/p/[id]` |
+| `Ver más`, `Volver`, `Ajustar` | 27-28px | `/p/[id]` |
+
+Ninguno rompe nada y por eso la prueba a mano no los delata — se tocan igual,
+solo que con menos margen de error del que el propio documento se exige.
+Subirlos es una decisión visual (el header se pondría más alto justo después
+de una pelea por su ancho), así que está en el Build map y no se tocó de
+prendido. Los de 19px son texto inline con tooltip, no botones, y valen menos
+que los otros.
+
 
 **Recordarle correr el pipeline** cada vez que retome trabajo.
 
@@ -111,10 +159,13 @@ contenido:
 | Fase 22 — Superficie y antigüedad | Migración 00016: `year_built`. No había de dónde sacar la antigüedad —las únicas fechas eran de publicación— y se guarda el **año**, no los años, porque una antigüedad se vuelve falsa sola cada enero. Pesos rebalanceados para hacerle lugar: `operation` 10 → 4 (el catálogo es solo venta, ese sub-score solo puede coincidir) y `type` 15 → 13. El Quality Score salió también de las cards. | `a262601` |
 | Fase 23 — La cara pública se parte en tres | `/propiedades` (el catálogo, todo lo publicado) y `/edificios` (agrupado por parcela, con `buildingLabel`). La landing se queda con hero + protagonista + garantías. `PublicHeader` extraído en vez de escribir una séptima cabecera a mano. | `3078e66` `50a9bdd` `818ad4c` |
 | Fase 24 — Acomodar la home | El bloque de Quality Score salió de la home (explicaba un número que el visitante ya no ve en ningún lado donde pueda actuar sobre él) y el copy del match bajó abajo del medidor. Presupuesto desde 5.000. RUMAH: enero 2026. `lib/buildings/photos.ts` para la foto del edificio. | `c6b490d` |
+| Fase 25 — ARBA sale del eje | La cara pública lideraba con el nombre de una agencia de recaudación: el bloque de la home se titulaba "Verificación catastral" y explicaba qué es ARBA antes de decir para qué sirve; los chips decían "Verificada con ARBA". **Cambió cómo se cuenta, no qué se chequea** — la consulta a la parcela sigue corriendo y sigue habilitando el chip y el porcentaje. "Match ARBA exacto" pasó a "Ubicación confirmada en la parcela": nombraba la estrategia interna del lookup (`intersects`/`dwithin`), no lo que el dato significa. **ARBA queda solo en el catálogo de documentos de la guía**, donde "quién lo emite" es la pregunta que esa sección existe para contestar. Además la portada de cada edificio se abre en grande, reusando el visor de `/p/[id]`. | `3e822ef` |
+| Fase 26 — El match en la barra | Los criterios vivían al pie de la landing y en ningún otro lado, así que quien entraba por `/propiedades` —la página que muestra las propiedades— no tenía forma de llegar a ellos. `MatchQuickFilter`: desplegable en el header con medidor, link al mejor match y las seis preguntas. No es segunda fuente de verdad — mismo `sessionStorage`, así que tocar un criterio arriba mueve el medidor de la home en el mismo frame. `bestMatch` salió a `lib/matching` (la cuenta vivía dentro del componente de la home) y la query del catálogo a `lib/db/properties` con `cache`. El header a 375px se resolvió **midiendo**: el isotipo es apaisado y a dos tercios de alto devuelve 17px, Panel queda como ícono debajo de `sm`. Salió el último resto público del Quality Score, en la guía. | `a4e9f2c` |
 
-**Tests:** 360 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
+**Tests:** 367 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
 fase 9 → 275 tras las fases 10-15 → 300 tras la 16 → 316 tras la 18 → 319
-tras la 20 → 360 tras las fases 21-24). Los 7 saltados son las bandas de
+tras la 20 → 360 tras las fases 21-24 → 367 tras la 26, que sumó los de
+`bestMatch`). Los 7 saltados son las bandas de
 coherencia ARBA: quedan como spec de vuelta, ver **El dato de ARBA es de la
 parcela** más abajo.
 
@@ -151,7 +202,7 @@ tipologías. Están cargadas las cuatro de 2 ambientes: 1°A y 1°B a USD
 planta baja** (55 m² + patio de 22, USD 150.000, unidad única), los dos
 esperando fotos. Los precios de ficha son **contado sin cochera**; la tabla
 completa —financiado, con cochera— está en el folleto y todavía no tiene
-lugar en el sitio (ver punto 5 del Build map).
+lugar en el sitio (ver punto 6 del Build map).
 
 El catálogo público muestra dos fichas. Cargar más es lo único que separa
 al sitio de estar listo.
@@ -287,10 +338,17 @@ registro público. Esa fila solo puede existir para Tomy.
   **El algoritmo no se tocó** — era puro, solo faltaba de dónde sacar el
   perfil. Lo que no se responde queda en null, o sea `confidence: 0`, y el
   match renormaliza sobre lo que sí se expresó.
-- **El Quality Score salió de la cara pública**: del panel de la ficha, de las
-  cards (`PropertyPremiumCard`), de `BuildingUnits` y de la home. Sigue
-  ordenando el catálogo y mandando en `/admin`. Quedó **solo el medallón de la
-  protagonista**, que es un gesto de diseño de la Fase 2.
+- **El Quality Score salió de casi toda la cara pública**: del panel de la
+  ficha, de las cards (`PropertyPremiumCard`), de `BuildingUnits` y de la
+  home. Sigue ordenando el catálogo y mandando en `/admin`.
+  **Corrección (1-sep):** este documento decía que quedaba "solo el medallón
+  de la protagonista" y es falso. Quedan **tres** lugares donde el visitante
+  todavía lo ve: ese medallón, **el del hero de `/p/[id]`** ("71 · QUALITY ·
+  Bueno", que nunca se tocó porque lo que salió en la Fase 21 fue el del
+  panel) y **la ficha PDF**. Los dos últimos están sin decidir — punto 4 del
+  Build map. Lo que sí se fue del todo es el **copy** que lo explicaba: la
+  sección de la home (Fase 24) y la línea de la guía de compra (Fase 26),
+  que le prometía al lector un número que ya no puede auditar.
 - **Antigüedad** (`year_built`, migración 00016): no había de dónde sacarla —
   las únicas fechas eran de publicación. Se guarda el **año**, no los años.
   Queda nula en casi todas las scrapeadas y el sub-score lo lee como "no se
@@ -328,11 +386,16 @@ Estado actual:
   40 m² declarados en la propiedad. En departamentos y PH la parcela es la
   del edificio entero."
 - **Efecto del rescoreo de las 380:** verdes 79 → 106, rojos 61 → 64.
-- **Queda uno sin tocar:** `lib/matching/match.ts:367` usa
-  `surface_arba ?? surface_total` para cruzar contra lo que busca un
-  comprador. Es del match legacy del portal, no urge.
+- **El que faltaba ya está arreglado.** Este documento decía que
+  `lib/matching/match.ts` seguía usando `surface_arba ?? surface_total` para
+  cruzar contra lo que busca un comprador, y que no urgía por ser del match
+  legacy. Las dos mitades quedaron viejas el 31-ago: el orden se invirtió
+  cuando el match pasó a ser lo que ve todo visitante, y el comentario de
+  `surfaceSubScore` explica por qué —decirle a alguien que pide 40 m² que una
+  unidad de 40 sobre una parcela de 239 "cumple" con 239 es absurdo impreso
+  en el breakdown.
 
-Reconstruirlo bien depende de separar cubierto de descubierto — punto 6 del
+Reconstruirlo bien depende de separar cubierto de descubierto — punto 7 del
 Build map.
 
 ### Los servicios pagos están escondidos
@@ -520,12 +583,15 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   PropertyMapSection, BuildingUnits, etc.
 │   ├── scoring/                  # QualityScoreRing + Card + Sheet
 │   ├── matching/                 # ← MatchPreferencesForm (las 6 preguntas, compartidas
-│   │                             #   por home y ficha), MatchMeter (medidor: barra, NO
-│   │                             #   anillo — el anillo es del Quality Score y son cosas
-│   │                             #   distintas), MatchBreakdownSheet
+│   │                             #   por home, header y ficha), MatchMeter (medidor:
+│   │                             #   barra, NO anillo — el anillo es del Quality Score
+│   │                             #   y son cosas distintas), MatchBreakdownSheet,
+│   │                             #   MatchQuickFilter (el desplegable del header)
 │   ├── home/                     # HomeHero, HomeProtagonist, HomeGuarantees(+Client),
 │   │                             #   HomeMatchBuilder, WhatsAppFloat
-│   ├── catalog/                  # ← PropertyCatalog + PropertyPremiumCard + BuildingGroup.
+│   ├── catalog/                  # ← PropertyCatalog + PropertyPremiumCard + BuildingGroup
+│   │                             #   + BuildingCover (la portada del edificio, que abre
+│   │                             #   el visor de /p/[id] con una sola foto).
 │   │                             #   Salieron de home/ cuando el catálogo dejó de vivir
 │   │                             #   en la landing: un componente "Home*" renderizando
 │   │                             #   /propiedades sería un nombre que miente
@@ -562,6 +628,9 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   ├── matching/                 # match.ts (legacy buyer-side)
 │   ├── validators/               # Zod schemas — auth, property, etc.
 │   ├── matching/                 # match.ts + preferences.ts (perfil anónimo, puro)
+│   │                             #   + best-match.ts: el mejor match del catálogo,
+│   │                             #   compartido por la home y el header para que los
+│   │                             #   dos lugares que dicen "tu match" no discrepen
 │   ├── auth/                     # ← copy de errores de auth (puro, testeable)
 │   │                             #   callback-errors.ts + password-reset-errors.ts
 │   ├── admin/                    # ← property-import.ts: parseo y validacion
@@ -709,6 +778,8 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 24. **Fase 22 — Superficie y antigüedad en el match** ✅ 31-ago (migración 00016)
 25. **Fase 23 — `/propiedades` y `/edificios`** ✅ 31-ago
 26. **Fase 24 — Acomodar la home** ✅ 31-ago
+27. **Fase 25 — ARBA sale del eje del discurso** ✅ 1-sep (+ portada del edificio ampliable)
+28. **Fase 26 — El match en la barra de pestañas** ✅ 1-sep
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -745,14 +816,34 @@ datos** para tener algo que mostrar:
   nada que detectar.
 - **Series temporales de USD/m²** — necesitan meses.
 
-**4. Mapa de búsqueda público**
+**4. Los 44px que faltan, y el Quality Score que sobra** ← medido 1-sep
+
+Dos restos chicos, los dos de la misma familia: cosas que quedaron de una
+versión anterior y que nadie vuelve a mirar porque no rompen nada.
+
+- **Tap targets bajo la regla de 44px.** Ver **Mobile aguanta** más arriba
+  para la tabla medida. Los que valen son los links del nav (28px) y el CTA
+  del hero (35px). Es decisión visual: subir el nav engorda el header, que ya
+  está justo de ancho a 375px con el match adentro.
+- **El Quality Score sigue visible en dos lugares** que este documento decía
+  que ya no: el **medallón del hero de `/p/[id]`** ("71 · QUALITY · Bueno") y
+  la **ficha PDF**. Salió del panel en la Fase 21 y del resto en la 24, pero
+  el hero nunca se tocó. Se dejó porque el medallón es un gesto de
+  composición (§2.1, pisa la esquina de la foto) y el de la protagonista se
+  conservó por ese mismo motivo — o sea que existe una versión coherente
+  donde el medallón se queda y lo que se va es la explicación. **Decisión de
+  Tomy.**
+- **`components/scoring/` es código muerto**: el anillo, la card y el sheet
+  ya no los importa nadie, ni el público ni `/admin`.
+
+**5. Mapa de búsqueda público**
 
 `components/map/AreaMap` ya es agnóstico y está probado con 324 puntos.
 El público es una capa fina encima: cambian de dónde salen los puntos y
 qué hace la selección. Esperando inventario — con 2 fichas no se puede
 evaluar si está bien resuelto.
 
-**5. Configurador de precio en la ficha** ← ideas de Tomy, 28-ago
+**6. Configurador de precio en la ficha** ← ideas de Tomy, 28-ago
 
 Una unidad no tiene un precio, tiene una tabla. Belgrano 1287 la muestra
 cruda: contado o financiado, con cochera o sin. El sitio tiene **un** campo
@@ -774,7 +865,7 @@ jsonb, no un campo más. Vale pensarlo antes de escribirlo, porque el
 y el dashboard de mercado: si el precio pasa a ser un objeto, el número
 que esos tres leen tiene que seguir siendo el de contado sin extras.
 
-**6. Ponderar cubierto y descubierto en el precio** ← idea de Tomy, 28-ago
+**7. Ponderar cubierto y descubierto en el precio** ← idea de Tomy, 28-ago
 
 Hoy el USD/m² divide por una sola superficie. Pero 40 m² cubiertos más 40
 de terraza no valen lo mismo que 80 cubiertos, y el mercado ya sabe cuánto
@@ -803,12 +894,12 @@ les da 77 contra 69 y 65, en buena parte porque el sub-score de precio lee
 esos USD 1.200/m² como una ganga contra los comparables. La terraza puntúa
 dos veces: una como superficie y otra como precio por metro.
 
-El dato de entrada es el problema, y es exactamente el del punto 7:
+El dato de entrada es el problema, y es exactamente el del punto 8:
 Zonaprop publica "superficie total" en el listado y el desglose
 cubierto/descubierto solo en la ficha individual. Sin ese desglose no hay
-de dónde separar los dos m². **Este punto depende del 7.**
+de dónde separar los dos m². **Este punto depende del 8.**
 
-**7. Superficie cubierta en el scraper**
+**8. Superficie cubierta en el scraper**
 
 El USD/m² de casas mide el lote, no lo construido, porque Zonaprop
 publica "superficie total". Los avisos **sí** muestran cubiertos y
@@ -816,11 +907,11 @@ descubiertos, pero en la **ficha individual**, no en el listado. Sacarlo
 son 251 pedidos extra por corrida contra un techo de ~9. Bloqueado por
 el mismo límite que el scraping, no por falta de código.
 
-**8. Dominio propio + verificación en Resend**
+**9. Dominio propio + verificación en Resend**
 
 Necesario recién cuando se encienda el informe ARBA pago. Hoy no bloquea.
 
-**9. Automatizar el pipeline**
+**10. Automatizar el pipeline**
 
 Tarea programada de Windows, diferida a propósito. Ojo con la premisa: desde
 el 27-ago **GitHub Actions ya corre solo todos los días**; lo que no puede es
@@ -922,6 +1013,15 @@ y referenciar la sección relevante en el commit/explicación.
   CHECK constraint en DB lo bloquea, pero el código no debería intentarlo
   tampoco.
 - ❌ **No reactivar el registro público** — el modelo es admin único.
+- ❌ **No nombrar a ARBA en copy que lea un visitante.** Decisión de Tomy
+  (1-sep): el discurso público habla de "los registros oficiales" o "el
+  catastro", no de la agencia. **La verificación no cambió** — la consulta
+  a la parcela sigue corriendo y sigue habilitando el chip "Propiedad
+  verificada" y el porcentaje de la home. La única excepción es el
+  catálogo de documentos de `/guia-de-compra`, donde "quién lo emite" es
+  la pregunta que la sección contesta. Los nombres internos
+  (`surface_arba`, `arbaLookup`, `arba_lookups`) se quedan: describen de
+  dónde sale el dato, que es exactamente lo que un nombre debe hacer.
 
 ---
 
@@ -1038,6 +1138,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.9 | Sep 1, 2026 | **ARBA sale del eje del discurso, el match sube a la barra, y mobile deja de ser una aspiración para ser una medición.** La cara pública lideraba con el nombre de una agencia de recaudación provincial: el bloque de la home se titulaba "Verificación catastral" y explicaba qué es ARBA *antes* de decir para qué sirve. Cambió **cómo se cuenta, no qué se chequea** — la consulta a la parcela sigue corriendo y sigue habilitando el chip y el porcentaje. ARBA queda nombrada en un solo lugar y a propósito: el catálogo de documentos de la guía, donde "quién lo emite" es la pregunta que esa sección existe para contestar. El match, que vivía al pie de la landing y en ningún otro lado —o sea inalcanzable para quien entra por `/propiedades`, que es la página que muestra las propiedades— ahora se abre desde el header. **Mobile:** Tomy lo probó cinco minutos en el teléfono y anda bien; sobre esa impresión hay ahora una barrida medida a 375px que confirma lo importante (cero overflow horizontal en las cuatro surfaces públicas, 262 kB contra un techo de 500) y encuentra lo que la prueba a mano no delata: la regla de 44px se cumple en los controles protagonistas y no en los secundarios —nav de 28px, CTA del hero de 35px—. Y el documento volvió a mentir en dos cosas que él mismo afirmaba: `match.ts` **ya** no usa `surface_arba` para cruzar contra un comprador (se arregló el 31-ago), y el Quality Score **no** salió entero de la cara pública — sigue en el medallón del hero de `/p/[id]` y en la ficha PDF. **360 → 367 tests**. |
 | 2.8 | Aug 31, 2026 | **La cara pública se reordenó, y el match dejó de ser invisible.** El `MatchScoreCard` estaba en la ficha desde siempre detrás de una condición que **ningún visitante podía cumplir**: el match exigía un `search_profile`, o sea cuenta con onboarding, en un sitio sin registro público. Ahora las preguntas se responden en la página y la cuenta se hace en el navegador — el algoritmo no se tocó, era puro, solo faltaba de dónde sacar el perfil. El Quality Score le dejó el lugar en la ficha, y salió también de las cards y de la home: seguía explicándose en la landing un número que el visitante ya no veía en ningún lado donde pudiera actuar sobre él. El catálogo salió de la landing a **`/propiedades`** y apareció **`/edificios`**. Se sumaron superficie y antigüedad al match (migración 00016 `year_built`, que no existía: las únicas fechas de la tabla eran de publicación). Y otra vez un número creíble era un bug, el más caro hasta ahora: **una corrida bloqueada de Zonaprop se declaró completa y dio de baja 359 avisos**, de los cuales 208 se probaron vivos esa misma noche — una página bloqueada está igual de vacía que la siguiente al último resultado, y solo se atajaba el 403 explícito. La guarda nueva es aritmética y no lee la página, porque la marca de "sin resultados" no se pudo verificar. Se repararon los datos (154 revividas, 564 filas de historial inventado borradas) preservando **3 republicaciones reales**, las primeras. De paso se corrigió el propio `CLAUDE.md`: **GitHub Actions no está muerto** — corre solo y escribe en producción desde el 27-ago. **319 → 360 tests**, 38 → 42 rutas. |
 | 2.7 | Aug 28, 2026 | **El catálogo dejó de ser una vitrina de una sola ficha, y cargar de verdad rompió cuatro cosas.** Entraron las cuatro unidades de 2 ambientes de Belgrano 1287 con el cargador CLI. Con una propiedad ninguna de estas se veía: el cargador scoreaba sin `warmUp()` del cache de comparables; la card mostraba los 239 m² de la parcela sobre una unidad de 40; y sobre todo **la coherencia ARBA marcaba en rojo al 79% de los departamentos por ser departamentos** —40 m² declarados contra una parcela de 239 puntuaban 20/100— justo en la página cuya promesa es la verificación catastral. Es la Fase 12 otra vez, en los dos lugares que no se revisaron. Parkeado, con las bandas guardadas como spec de vuelta; el rescoreo de las 380 movió los verdes de 79 a 106. Después, tres piezas nuevas: **edificios por parcela** (dos unidades con la misma nomenclatura están en el mismo edificio: es una definición, y ya agrupa 17 parcelas de la data scrapeada, una con diez unidades), **galería de fotos** (el hero mostraba 1 de 18) y **ficha PDF** descargable. Los servicios pagos quedaron escondidos detrás de un flag. Y la guía de compra pasó de decirle al lector que fuera a sacar sus propios informes a decir de qué se encarga JM, cambiando el modelo de datos y no solo el copy. **316 → 319 tests** (+7 skipped a propósito). |
 | 2.6 | Aug 28, 2026 | **Cargar propiedades sin abrir el navegador.** `npm run cargar-propiedad -- ficha.json` hace lo mismo que `/admin/properties/nueva` desde un JSON, reutilizando las piezas del cargador web en vez de reimplementarlas. La idea es que Claude arme la ficha a partir de una descripción y una carpeta de fotos. Entra siempre como borrador y publicar sigue pasando por `canPublishProperty`. Las dos guardas que tiene salieron de pensar cuál es el riesgo propio de cargar desde archivo y no desde un form: la falla no es que explote, es que **salga bien y quede mal** — un `precio` en vez de `price_amount`, o un `"ochenta mil"` que el schema de borrador nulifica en silencio. Las dos ahora son error. Aparte, se documentan dos cosas que costaron esta sesión: el pipeline muere con `Executable doesn't exist` cuando sube la versión de Playwright y hay que correr `npx playwright install`, y la password de `DATABASE_URL` se resetea porque Supabase no la vuelve a mostrar nunca. **304 → 316 tests.** |
