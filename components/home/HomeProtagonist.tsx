@@ -67,7 +67,14 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
   const typeLabel = p.property_type
     ? TYPE_LABELS[p.property_type] ?? p.property_type
     : null;
-  const surface = p.surface_arba ?? p.surface_total ?? null;
+  // La declarada, NUNCA la de la parcela. `surface_arba` es el lote: para un
+  // departamento, el del edificio entero. Esto mostraba 239,23 m² en la
+  // propiedad más visible del sitio — un 2 ambientes de 80 — que es el mismo
+  // bug de la Fase 12 sobreviviendo en el lugar que nadie volvió a mirar.
+  // Sin fallback a la parcela: si no hay superficie declarada, el dato no se
+  // muestra. Un número equivocado es peor que ninguno, y las propiedades
+  // propias siempre traen la suya porque se cargan a mano.
+  const surface = p.surface_total ?? null;
   const headline = p.address ?? [typeLabel, p.partido].filter(Boolean).join(" en ");
 
   const specs = [

@@ -366,11 +366,15 @@ html.theme-switching::view-transition-new(root) {
       Como el botón tiene overflow-hidden, pasarse no se ve; quedarse corto
       sí.
 
-   2. El barrido termina en el 15% del ciclo. La animación dura 6s pero el
-      movimiento pasa en 0,9s y el resto del tiempo el brillo está afuera,
-      clipeado. Repartir el recorrido en los 6s completos no es un destello:
-      es una mancha cruzando despacio. */
+   2. El barrido termina en el 13% del ciclo. La animación dura 7s pero el
+      movimiento pasa en ~0,9s y el resto del tiempo el brillo está afuera,
+      clipeado. Repartir el recorrido en los 7s completos no es un destello:
+      es una mancha cruzando despacio.
+
+   El elemento mide 1,25rem y va inclinado 28°, así que 1600% son ~32rem: el
+   múltiplo sube cuando el ancho baja, porque lo que tiene que recorrer es el
+   botón, no su propio ancho. */
 @keyframes cta-sheen {
   0% { transform: translateX(-100%); }
-  15%, 100% { transform: translateX(900%); }
+  13%, 100% { transform: translateX(1600%); }
 }

@@ -51,15 +51,23 @@ export function HomeProtagonistShowpiece({
       <div
         aria-hidden
         className={cn(
-          "aspect-[4/3] rounded-[2rem] border motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out",
+          "aspect-[4/3] rounded-[2rem] motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out",
           inView ? "opacity-100 scale-100" : "motion-safe:opacity-0 motion-safe:scale-95",
         )}
         style={{
-          backgroundColor: "var(--brand-icon-bg)",
-          borderColor: "color-mix(in srgb, var(--brand-navy) 12%, transparent)",
-          backgroundImage:
-            "linear-gradient(color-mix(in srgb, var(--brand-navy) 5%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--brand-navy) 5%, transparent) 1px, transparent 1px)",
-          backgroundSize: "2.25rem 2.25rem",
+          // Un bloque de color de marca, sin grilla y sin borde.
+          //
+          // Antes era gris claro con una cuadrícula tenue, y eso NO se lee
+          // como un escenario: se lee como una imagen que no cargó. Tomy lo
+          // reportó dos veces — "la segunda imagen no se ve", "la imagen
+          // trasera" — y tenía razón las dos, porque un recuadro claro con
+          // grilla es exactamente el dibujo universal de un placeholder.
+          //
+          // Achicarlo no alcanzaba (ya se había pasado de 40% a 19% de área
+          // visible y él lo seguía leyendo igual): el problema no era cuánto
+          // se veía sino qué parecía. Un bloque liso en azul de marca se lee
+          // como decisión de diseño, que es lo que es.
+          backgroundColor: "color-mix(in srgb, var(--brand-navy) 9%, transparent)",
         }}
       />
 

@@ -124,7 +124,7 @@ export function HomeHero() {
               admite: guiar la mirada. Con la portada reducida a hero +
               protagonista + garantías, este botón es la única salida hacia el
               catálogo above the fold. Va lento (2,6s), espaciado (cada 6s) y
-              detrás de motion-safe: un destello cada seis segundos se registra
+              detrás de motion-safe: un destello cada siete segundos se registra
               por el rabillo del ojo, uno cada uno es una luz de alarma. */}
           <Link
             href="/propiedades"
@@ -137,7 +137,7 @@ export function HomeHero() {
           >
             <span
               aria-hidden
-              className="pointer-events-none absolute inset-y-0 left-0 w-9 -skew-x-12 bg-white/20 motion-safe:animate-[cta-sheen_6s_ease-out_1.2s_infinite]"
+              className="pointer-events-none absolute inset-y-0 left-0 w-5 -skew-x-[28deg] bg-white/20 motion-safe:animate-[cta-sheen_7s_ease-out_1.2s_infinite]"
             />
             <span className="relative">Ver propiedades</span>
             <ArrowRight className="relative size-4 transition-transform duration-200 group-hover:translate-x-1" />
