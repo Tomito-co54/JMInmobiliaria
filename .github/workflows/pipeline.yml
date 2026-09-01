@@ -3,8 +3,24 @@ name: Data pipeline
 # Runs the full ingestion pipeline:
 #   scrape (Zonaprop + Trezza) → dedup → geocode (Nominatim) → ARBA cadastral
 #
-# Scheduled daily at 06:00 UTC (= 03:00 ART, off-hours for the target sites).
-# Can also be triggered manually with `workflow_dispatch` to backfill or test.
+# NO CORRE SOLO. Se dispara a mano (`workflow_dispatch`), acá o desde la PC
+# con `npm run pipeline`.
+#
+# Tenía un cron diario a las 06:00 UTC y se apagó el 1-sep-2026, a pedido de
+# Tomy y con razón: Zonaprop bloquea por IP, y las de los runners de GitHub son
+# de datacenter. Una corrida desde acá traía ~45 avisos de ~430; la misma
+# corrida desde la PC de Tomy trae ~250. El código no puede arreglar eso — le
+# cierran la puerta antes de entrar.
+#
+# Lo que decidió apagarlo no fue traer poco, sino el sesgo que eso deja:
+# Zonaprop sirve siempre la primera página, así que los mismos ~45 avisos se
+# refrescaban el `last_seen_at` todos los días mientras los otros ~385
+# envejecían. Eso corrompe el análisis de antigüedad y de días en mercado con
+# datos que cada uno por separado es correcto.
+#
+# (Antes hacía algo peor: esas corridas flacas daban de baja el catálogo
+# entero. Eso se arregló aparte, en crawl-completeness.ts, y sigue arreglado
+# corra quien corra el pipeline.)
 #
 # Why GitHub Actions instead of Vercel Cron:
 # Vercel's Hobby plan caps cron invocations at 10 seconds. Our scrapers use
@@ -13,8 +29,11 @@ name: Data pipeline
 # headroom for the entire pipeline.
 
 on:
-  schedule:
-    - cron: '0 6 * * *'
+  # Sin `schedule:` a propósito — ver el comentario de arriba. Para volver a
+  # activarlo alcanza con agregar:
+  #   schedule:
+  #     - cron: '0 6 * * *'
+  # pero antes conviene resolver de dónde sale la IP, o vuelve el sesgo.
   workflow_dispatch:
     inputs:
       partido:
@@ -23,8 +42,8 @@ on:
         default: 'Lomas de Zamora'
         type: string
 
-# Avoid two pipeline runs stepping on each other (e.g. manual trigger during
-# scheduled run). The newer one waits for the older one to finish.
+# Avoid two pipeline runs stepping on each other. Con el cron apagado esto
+# cubre el caso de dos disparos manuales seguidos.
 concurrency:
   group: data-pipeline
   cancel-in-progress: false

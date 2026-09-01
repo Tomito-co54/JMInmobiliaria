@@ -360,8 +360,9 @@ npm run pipeline    # los seis pasos encadenados, 2-8 minutos
 **Corregido el 31-ago: GitHub Actions NO está muerto.** El `CLAUDE.md` decía
 que falla desde el día uno del fork y eso quedó viejo el 27-ago, cuando se
 cargaron los secrets. De 99 corridas históricas, **92 fallaron y las últimas 6
-dieron success**: desde el 27-ago el pipeline **corre solo todos los días y
-escribe en la base de producción**, sin que nadie mire el resultado. Zonaprop
+dieron success**: entre el 27-ago y el 1-sep el pipeline **corrió solo todos
+los días y escribió en la base de producción**, sin que nadie mirara el
+resultado. El 1-sep se apagó el cron (ver abajo). Zonaprop
 le sirve poco desde IPs de datacenter, así que trae pocos avisos, pero escribe.
 
 La corrida a mano desde la PC de Tomy sigue siendo la que trae volumen (~250
@@ -369,22 +370,32 @@ avisos), por el mismo motivo de siempre: Zonaprop bloquea a los runners, y
 rechaza el segundo pedido de cada sesión de navegador, lo que se resuelve
 abriendo un navegador nuevo por página.
 
-**El horario del cron no es el horario real.** Medido contra la API de
-GitHub el 1-sep, los arranques de las últimas siete corridas programadas:
+**El cron se apagó el 1-sep, a pedido de Tomy.** El pipeline ya no corre
+solo: `.github/workflows/pipeline.yml` conserva `workflow_dispatch` y perdió
+el `schedule`.
 
-    01-sep 10:51 · 31-ago 12:16 · 30-ago 10:57 · 29-ago 12:01
-    28-ago 17:56 · 27-ago 17:09 · 26-ago 06:33
+El motivo no es que trajera poco, sino **el sesgo que ese poco dejaba**.
+Zonaprop bloquea por IP y las de los runners de GitHub son de datacenter: una
+corrida desde Actions traía ~45 avisos de ~430, y siempre los mismos, porque
+lo que sirve es la primera página. Resultado: esos ~45 se refrescaban el
+`last_seen_at` todos los días mientras los otros ~385 envejecían solos.
+Ninguna fila era falsa; el conjunto sí quedaba deformado, y justo en las dos
+métricas que dependen de esa columna — antigüedad y días en mercado.
 
-El cron dice `0 6 * * *`. Una sola salió cerca de esa hora. Es
-comportamiento documentado de GitHub —las corridas programadas en runners
-gratuitos se encolan y las horas en punto son las más peleadas— y explica por
-qué el lote de bajas del 1-sep quedó fechado a las 10:52 cuando el cron es a
-las 6: **fue la corrida programada, arrancada 4 horas y media tarde**, no un
-disparo manual.
+**Ningún cambio de código lo arreglaba**: al scraper le cierran la puerta
+antes de entrar. Las dos salidas reales eran pagar un proxy residencial o que
+la PC de Tomy lo corriera sola, y mientras ninguna esté, correrlo a mano una
+vez por día es estrictamente mejor que correrlo mal todos los días.
 
-Conviene tenerlo presente para dos cosas: no buscar una corrida a la hora que
-el cron declara, y no confiar en el `schedule` para nada que necesite
-puntualidad.
+*(Antes hacía algo peor: esas mismas corridas flacas daban de baja el catálogo
+entero. Eso se arregló aparte y sigue arreglado corra quien corra el pipeline
+— ver la sección de la guarda más abajo.)*
+
+**De paso, un dato medido que conviene no perder:** el cron pedía las 06:00
+UTC y GitHub lo arrancaba entre 4 y 12 horas tarde (01-sep 10:51 · 31-ago
+12:16 · 30-ago 10:57 · 29-ago 12:01 · 28-ago 17:56 · 27-ago 17:09 · 26-ago
+06:33). Es comportamiento documentado de GitHub con runners gratuitos. Si
+algún día se reactiva, no buscar la corrida a la hora que el cron declara.
 
 Techo conocido: la página 10 devuelve 403. El crawl queda marcado como
 truncado y la desactivación se saltea, que es lo correcto.
@@ -661,10 +672,9 @@ Same as upstream — no se cambia stack sin confirmación explícita.
 ### Background Jobs
 - **GitHub Actions** (`.github/workflows/pipeline.yml`): scrape diario
   de Zonaprop + Trezza → dedup → geocode → ARBA → quality score →
-  alertas. Heredado del upstream. **Corre solo desde el 27-ago**, una vez
-  por día y sólo sobre **Lomas de Zamora**. El cron pide `0 6 * * *` (06:00
-  UTC = 03:00 ART) pero **GitHub lo arranca entre 4 y 12 horas tarde** —
-  ver **Estado del pipeline de scraping** en Current progress.
+  alertas. Heredado del upstream. **Ya NO corre solo** — el cron se apagó el
+  1-sep (ver abajo). Queda como disparo manual desde Actions; la corrida que
+  vale es `npm run pipeline` desde la PC de Tomy.
 
 ---
 
@@ -1017,7 +1027,7 @@ Dos caminos:
 - **Desde un JSON:** `npm run cargar-propiedad -- ficha.json [--dry-run]`
   (`docs/ejemplo-propiedad.json` es la plantilla, ya incluye `year_built`).
 
-**3. Correr `npm run pipeline` seguido**
+**3. Correr `npm run pipeline` seguido** ← ahora es la única forma en que corre
 
 Cada corrida acumula historial que no se puede reconstruir después.
 Además, dos features del centro de datos están construidas y **esperando
@@ -1137,8 +1147,10 @@ Necesario recién cuando se encienda el informe ARBA pago. Hoy no bloquea.
 **11. Automatizar el pipeline**
 
 Tarea programada de Windows, diferida a propósito. Ojo con la premisa: desde
-el 27-ago **GitHub Actions ya corre solo todos los días**; lo que no puede es
-traer volumen, porque Zonaprop bloquea sus IPs.
+el 27-ago **GitHub Actions corrió solo todos los días**, hasta que el 1-sep se
+apagó el cron justamente porque no puede traer volumen: Zonaprop bloquea sus
+IPs. Automatizar significa hoy **automatizarlo en la PC de Tomy**, que es la
+que tiene IP de casa.
 
 ### Nice-to-haves post-lanzamiento
 
