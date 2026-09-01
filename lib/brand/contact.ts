@@ -38,3 +38,40 @@ export function propertyLeadMessage(address: string | null): string {
 
 /** Generic lead message for surfaces without a specific property (home, footer). */
 export const GENERIC_LEAD_MESSAGE = "Hola Jotaeme, quiero hacer una consulta.";
+
+/**
+ * The broker's licence — the credibility anchor `DIRECCION_DE_ARTE` names
+ * alongside verified data, and the only one of the three left on the public
+ * face now that the Quality Score is gone.
+ *
+ * **Empty on purpose.** Nobody has typed the number yet, and a licence number
+ * is not something that can be inferred, rounded or filled in with a
+ * placeholder: printed on a public page it is a claim about a person's
+ * standing before a professional body. Wrong or invented, it is worse than
+ * absent.
+ *
+ * So absent is what it renders as. Everything that displays it checks
+ * `hasMatricula()` first and simply does not draw, which is why the home
+ * currently shows no gap where it will go. Fill the string in and the block
+ * appears — that is the whole deploy.
+ */
+export const MARTILLERO = {
+  /** Número de matrícula. Vacío = no se muestra en ningún lado. */
+  matricula: "",
+  /**
+   * Colegio que la emite, si se quiere nombrar ("Colegio de Martilleros de
+   * Lomas de Zamora"). Opcional: vacío se omite y el resto se muestra igual.
+   */
+  colegio: "",
+} as const;
+
+/**
+ * Whether there is a licence to show.
+ *
+ * A function and not a boolean constant so the check reads the same at every
+ * call site, and so trimming is done once here — a string of spaces is not a
+ * licence, and it is exactly the kind of value that survives a hurried edit.
+ */
+export function hasMatricula(): boolean {
+  return MARTILLERO.matricula.trim().length > 0;
+}

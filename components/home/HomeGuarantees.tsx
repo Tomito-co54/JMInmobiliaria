@@ -8,6 +8,7 @@ import {
   BASEMAP_SUPERSAMPLE,
 } from "@/lib/map/tiles";
 import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
+import { MARTILLERO, hasMatricula } from "@/lib/brand/contact";
 import { Reveal } from "@/components/shared/Reveal";
 import {
   AreaOutlineViz,
@@ -171,6 +172,32 @@ export async function HomeGuarantees() {
               nomenclatura catastral y el polígono de la parcela sobre el mapa.
               No hace falta que nos creas nada — está publicado.
             </p>
+
+            {/* La matrícula ocupa el lugar donde estaba el "100%". Es la única
+                cosa en esta página que un desconocido no puede afirmar, y el
+                ancla de credibilidad que quedó sola desde que el Quality Score
+                se fue de la cara pública.
+
+                No se dibuja hasta que el número exista (ver MARTILLERO en
+                lib/brand/contact): una credencial a medias —"Matrícula ___",
+                o el rótulo sin número— es peor que ninguna, porque anuncia
+                que el sitio está sin terminar justo en el párrafo que pide
+                que le crean. Mientras tanto la columna cierra en el texto y
+                no queda ningún hueco. */}
+            {hasMatricula() && (
+              <div className="mt-7 flex items-baseline gap-3">
+                <span
+                  className="text-5xl font-bold font-heading tabular-nums leading-none"
+                  style={{ color: "var(--brand-heading)" }}
+                >
+                  {MARTILLERO.matricula}
+                </span>
+                <span className="text-sm text-muted-foreground max-w-[18ch]">
+                  Matrícula de martillero y corredor público
+                  {MARTILLERO.colegio ? `, ${MARTILLERO.colegio}` : ""}
+                </span>
+              </div>
+            )}
           </Reveal>
           <Reveal className="order-1 md:order-2" delayMs={120}>
             <AreaOutlineViz

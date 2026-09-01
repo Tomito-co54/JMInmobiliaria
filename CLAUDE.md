@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (1-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **367 tests passing** (+7 skipped a propósito),
+auto-deploy desde `main`. **372 tests passing** (+7 skipped a propósito),
 `npm run build` verde, 42 rutas.
 
 La cara pública se reordenó entera. El catálogo dejó de ser la última sección
@@ -943,20 +943,24 @@ datos** para tener algo que mostrar:
   nada que detectar.
 - **Series temporales de USD/m²** — necesitan meses.
 
-**4. La matrícula del martillero** ← hace falta que la pases vos
+**4. La matrícula del martillero** ← una línea, esperando el número
 
-`DIRECCION_DE_ARTE` dice que el ancla de credibilidad son tres cosas: datos
-verificados, score y martillero matriculado. El score se fue de la cara
-pública, así que quedan dos — y la matrícula **no está publicada en ningún
-lado**. Es lo único en esa página que un desconocido no puede afirmar, y hoy
-falta.
+**Ya está construido y apagado.** El bloque vive en el lugar que dejó el
+"100%" de la home y se dibuja solo cuando hay número: `MARTILLERO.matricula`
+en `lib/brand/contact.ts` está en `""`, y todo lo que la muestra pasa antes
+por `hasMatricula()`. Hoy la home cierra en el párrafo, sin ningún hueco.
 
-El hueco existe además físicamente: el bloque "Antes de publicar" tenía un
-número grande que se sacó (el "100%", que sólo podía repetir el título o
-contradecirlo). Ese es el lugar.
+Para encenderlo: escribir el número en esa constante. Nada más. Opcionalmente
+`colegio` para que diga de quién es la matrícula.
 
-No está hecho porque **no se puede inventar un número de matrícula**. Hace
-falta que Tomy lo pase, y decidir si va también en el pie y en la ficha.
+**Por qué se dejó vacío y no con un placeholder:** un número de matrícula
+impreso en una página pública es una afirmación sobre la situación de una
+persona ante un cuerpo profesional. No se puede inventar, ni redondear, ni
+poner "Matrícula ___" — mal o inventado es peor que ausente, y un rótulo sin
+número anuncia que el sitio está sin terminar justo en el párrafo que pide que
+le crean.
+
+Falta decidir además si va también en el pie y en la ficha.
 
 **5. Los 44px que faltan** ← medido 1-sep
 
