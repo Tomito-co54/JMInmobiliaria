@@ -3,11 +3,9 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FavoriteButton } from "./FavoriteButton";
-import { PropertyScorePanel } from "./PropertyScorePanel";
+import { PropertyMatchPanel } from "./PropertyMatchPanel";
 import { WhatsAppButton } from "./WhatsAppButton";
-import { MatchScoreCard } from "@/components/matching/MatchScoreCard";
-import type { QualityBreakdown } from "@/lib/scoring";
-import type { MatchBreakdown } from "@/lib/matching";
+import type { PropertyForMatching } from "@/lib/matching";
 import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
 
 /**
@@ -16,8 +14,14 @@ import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
  * cohesive credential surface instead of separate stacked cards (§2.5,
  * directly addressing the "cards apiladas" problem from the plan).
  *
- * Server Component — only the score ring (PropertyScorePanel), the match
- * sheet (MatchScoreCard) and the favorite button are client islands.
+ * Server Component — only the match block (PropertyMatchPanel) and the
+ * favorite button are client islands.
+ *
+ * The Quality Score used to sit where the match sits now. It still ranks the
+ * catalog and drives /admin; what it stopped doing is opening the pitch on a
+ * property the visitor already chose to look at. "84 de 100" answers how this
+ * listing compares to every other; "tu match" answers whether it is for them,
+ * which is the question they arrived with.
  */
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -44,9 +48,8 @@ interface PropertyDataPanelProps {
   garages: number | null;
   surfaceTotal: number | null;
   surfaceArba: number | null;
-  qualityBreakdown: QualityBreakdown | null;
-  matchBreakdown: MatchBreakdown | null;
-  matchProfileName: string | null;
+  /** Fields the client-side matcher scores against. */
+  propertyForMatching: PropertyForMatching;
   source: string;
   sourceUrl: string | null;
   isFavorited: boolean;
@@ -64,15 +67,23 @@ export function PropertyDataPanel({
   garages,
   surfaceTotal,
   surfaceArba,
-  qualityBreakdown,
-  matchBreakdown,
-  matchProfileName,
+  propertyForMatching,
   source,
   sourceUrl,
   isFavorited,
   signedOut,
 }: PropertyDataPanelProps) {
-  const surface = surfaceArba ?? surfaceTotal;
+  // Declared first. `surface_arba` is the CADASTRAL PARCEL — the land — which
+  // for an apartment is the whole building's lot: the 40 m² units at Belgrano
+  // 1287 were each reading "239,23 m²" here, on the page whose promise is that
+  // the numbers were checked. The parcel figure is not lost, it is reported in
+  // the ARBA section where it is labelled as the parcel and explained.
+  //
+  // Same call `effectiveSurface` makes for the market stats and the catalog
+  // card. This panel was the last place still preferring the parcel — and it
+  // contradicted itself two lines down, where the USD/m² already divided by
+  // the declared surface.
+  const surface = surfaceTotal ?? surfaceArba;
   const sourceLabel = SOURCE_LABELS[source] ?? source;
 
   const specs = [
@@ -117,16 +128,9 @@ export function PropertyDataPanel({
 
       <div className="h-px bg-border" />
 
-      {/* Score — integrated, not a card */}
-      <PropertyScorePanel breakdown={qualityBreakdown} />
-
-      {/* Match — only when there's a profile */}
-      {matchBreakdown && matchProfileName && (
-        <>
-          <div className="h-px bg-border" />
-          <MatchScoreCard breakdown={matchBreakdown} profileName={matchProfileName} />
-        </>
-      )}
+      {/* Match — integrated, not a card. Works for anonymous visitors: the
+          answers live in the browser, and the matcher is a pure function. */}
+      <PropertyMatchPanel property={propertyForMatching} />
 
       <div className="h-px bg-border" />
 

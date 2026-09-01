@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPropertyForPublicView, getBuildingUnits } from "@/lib/db/properties";
 import { getPrimarySearchProfile } from "@/lib/db/search-profiles";
-import { computeMatchScore, type PropertyForMatching } from "@/lib/matching";
+import type { PropertyForMatching } from "@/lib/matching";
 import { getCurrentUserId } from "@/lib/db/users";
 import { isFavorited } from "@/lib/db/favorites";
 import { PreviewBanner } from "./preview-banner";
@@ -92,12 +92,19 @@ export default async function PublicPropertyPage({ params }: PageProps) {
   );
   const altText = property.address ?? "Propiedad";
 
-  // Compute match against the buyer's primary search profile, if any.
-  // getPrimarySearchProfile runs through the user-bound client; RLS ensures
-  // we only see this user's own profile. Returns null when logged out or
-  // when the buyer hasn't created a profile yet — in which case we skip
-  // rendering the match card altogether.
+  // Still read for the buying-process advisor below, which is rendered only
+  // for a signed-in user and takes `current_stage` from here. It no longer
+  // feeds the match.
   const profile = await getPrimarySearchProfile();
+
+  // The match is computed in the browser now, against preferences the visitor
+  // sets on the page itself (see PropertyMatchPanel). It used to be computed
+  // here against `search_profiles`, which needs a logged-in user who finished
+  // onboarding — and with no public registration on this site, that is the
+  // broker and nobody else. The card was in the panel behind a condition no
+  // visitor could satisfy.
+  //
+  // So the server's job is now just handing down the fields to score against.
   const propertyForMatching: PropertyForMatching = {
     partido: property.partido,
     property_type: property.property_type,
@@ -111,10 +118,6 @@ export default async function PublicPropertyPage({ params }: PageProps) {
     garages: property.garages,
     description: property.description,
   };
-  const matchBreakdown = profile
-    ? computeMatchScore(propertyForMatching, profile)
-    : null;
-
   // Favorite state — `isFavorited` returns false for anonymous, so the
   // heart button just degrades to a "login required" toast on click.
   const userId = await getCurrentUserId();
@@ -211,9 +214,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
                 garages={property.garages}
                 surfaceTotal={property.surface_total}
                 surfaceArba={property.surface_arba}
-                qualityBreakdown={property.quality_score_breakdown}
-                matchBreakdown={matchBreakdown}
-                matchProfileName={profile?.name ?? null}
+                propertyForMatching={propertyForMatching}
                 source={property.source}
                 sourceUrl={property.url}
                 isFavorited={favorited}
@@ -290,9 +291,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               garages={property.garages}
               surfaceTotal={property.surface_total}
               surfaceArba={property.surface_arba}
-              qualityBreakdown={property.quality_score_breakdown}
-              matchBreakdown={matchBreakdown}
-              matchProfileName={profile?.name ?? null}
+              propertyForMatching={propertyForMatching}
               source={property.source}
               sourceUrl={property.url}
               isFavorited={favorited}

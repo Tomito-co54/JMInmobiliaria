@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import { ShieldCheck, ScanSearch, FileCheck2 } from "lucide-react";
 import {
   useInView,
   useCountUp,
-  useAnimatedNumber,
   usePrefersReducedMotion,
 } from "@/hooks/use-in-view";
 import { getScoreBand, interpolateRingColor } from "@/lib/scoring/bands";
@@ -27,10 +25,14 @@ import {
  *     real map tiles and names what it is. Pedagogical and quiet
  *     (DIRECCION_DE_ARTE §2.3 — el movimiento explica el proceso de
  *     verificación, no decora). Ink palette, slow draw.
- *   TONE 2 (dynamic/"gamer" controlado) — ScoreRingViz, MatchDemo,
- *     ServiceSteps. The ring draws 0→N (§2.2 revela el dato al instante),
- *     the match reacts to taps (§2.2 — en mobile el tap es el hover), and
- *     the report shows as a numbered sequence (§2.3). Gold accents, faster.
+ *   TONE 2 (dynamic/"gamer" controlado) — ScoreRingViz, ServiceSteps. The
+ *     ring draws 0→N (§2.2 revela el dato al instante) and the report shows
+ *     as a numbered sequence (§2.3). Gold accents, faster.
+ *
+ *     The match demo that used to live here is gone: its meter was driven by
+ *     three toggles carrying invented weights. It now runs the real matcher
+ *     over the real catalog and needs to persist what the visitor answers, so
+ *     it moved to HomeMatchBuilder alongside the shared match components.
  */
 
 // ---------------------------------------------------------------------------
@@ -386,100 +388,6 @@ export function ScoreRingViz({ score }: { score: number }) {
         <span className="mt-1 text-sm font-semibold" style={{ color }}>
           {band.label}
         </span>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// TONE 2 — Match demo (reacts to taps; §2.2)
-// ---------------------------------------------------------------------------
-const MATCH_CRITERIA = [
-  { key: "zona", label: "Zona", weight: 38 },
-  { key: "precio", label: "Precio", weight: 34 },
-  { key: "ambientes", label: "Ambientes", weight: 28 },
-] as const;
-
-export function MatchDemo() {
-  // Start with two of three "on" so the meter lands on a believable value.
-  const [active, setActive] = useState<Record<string, boolean>>({
-    zona: true,
-    precio: true,
-    ambientes: false,
-  });
-  const target = MATCH_CRITERIA.reduce(
-    (sum, c) => sum + (active[c.key] ? c.weight : 0),
-    0,
-  );
-  const display = useAnimatedNumber(target, { durationMs: 500 });
-  const rounded = Math.round(display);
-  // A perfect match paints in the brand's own blue, not the ramp's gold.
-  // Gold at 95+ is the Quality Score's trophy tier and it is shared with
-  // /p/[id] and /admin — repeating it here would make two different
-  // measurements read as the same badge. And 100 on this meter is not "more
-  // green": it is every criterion met, the one state worth marking with the
-  // brand colour. Theme-aware token because navy on slate is unreadable.
-  //
-  // Keyed off `target`, not the animating `display`: the count-up to 100
-  // passes through 95-99, and reading the colour off it would flash the gold
-  // tier for a frame on the way to navy. The colour eases to its destination
-  // in CSS instead, alongside the bar (§2.4 — nada corta en seco).
-  const meterColor =
-    target >= 100 ? "var(--match-perfect)" : getScoreBand(target).hex;
-
-  return (
-    <div className="mx-auto w-full max-w-sm">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <p className="text-[0.65rem] uppercase tracking-wider text-muted-foreground">
-            Match
-          </p>
-          <p
-            className="text-4xl font-extrabold tabular-nums leading-none motion-safe:transition-colors motion-safe:duration-[450ms]"
-            style={{ color: meterColor }}
-          >
-            {rounded}
-          </p>
-        </div>
-        <p className="text-xs text-muted-foreground pb-1">
-          Tocá los criterios →
-        </p>
-      </div>
-
-      {/* Meter — scaleX transform (GPU), reacts to the toggles with a slight
-          overshoot so the response feels snappy (§2.2). */}
-      <div className="mt-3 h-2.5 w-full rounded-full bg-muted overflow-hidden">
-        <div
-          className="h-full rounded-full origin-left motion-safe:transition-[transform,background-color] motion-safe:duration-[450ms]"
-          style={{
-            backgroundColor: meterColor,
-            transform: `scaleX(${Math.max(0, Math.min(100, display)) / 100})`,
-            transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
-          }}
-        />
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {MATCH_CRITERIA.map((c) => {
-          const on = active[c.key];
-          return (
-            <button
-              key={c.key}
-              type="button"
-              aria-pressed={on}
-              onClick={() => setActive((s) => ({ ...s, [c.key]: !s[c.key] }))}
-              className={cn(
-                "min-h-11 rounded-full border px-4 text-sm font-medium transition-all duration-200",
-                "active:scale-90 motion-safe:hover:scale-[1.04]",
-                on
-                  ? "border-transparent bg-primary text-primary-foreground shadow-sm"
-                  : "bg-card text-muted-foreground hover:border-primary/40",
-              )}
-            >
-              {c.label}
-            </button>
-          );
-        })}
       </div>
     </div>
   );

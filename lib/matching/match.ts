@@ -55,7 +55,7 @@ function zoneSubScore(p: PropertyForMatching, profile: SearchProfileForMatching)
       value: 50,
       weight: W.zone,
       confidence: 0.3,
-      reason: "Tu perfil no especifica zonas — todo cuenta como neutral",
+      reason: "No elegiste zona, así que ninguna suma ni resta",
       verdict: "partial",
     };
   }
@@ -125,7 +125,7 @@ function priceSubScore(p: PropertyForMatching, profile: SearchProfileForMatching
       value: 50,
       weight: W.price,
       confidence: 0,
-      reason: "Tu perfil no especifica rango de precio",
+      reason: "No pusiste presupuesto, así que el precio no puntúa",
       verdict: "partial",
     };
   }
@@ -219,7 +219,7 @@ function typeSubScore(p: PropertyForMatching, profile: SearchProfileForMatching)
       value: 70,
       weight: W.type,
       confidence: 0.3,
-      reason: "Tu perfil no especifica tipo — vale cualquiera",
+      reason: "No elegiste tipo de propiedad, así que vale cualquiera",
       verdict: "partial",
     };
   }
@@ -264,7 +264,7 @@ function operationSubScore(p: PropertyForMatching, profile: SearchProfileForMatc
       value: 80,
       weight: W.operation,
       confidence: 0.3,
-      reason: "Tu perfil acepta venta o alquiler",
+      reason: "No elegiste operación: venta o alquiler te sirven igual",
       verdict: "partial",
     };
   }
@@ -309,7 +309,7 @@ function roomsSubScore(p: PropertyForMatching, profile: SearchProfileForMatching
       value: 70,
       weight: W.rooms,
       confidence: 0,
-      reason: "Tu perfil no especifica ambientes mínimos",
+      reason: "No pediste un mínimo de ambientes",
       verdict: "partial",
     };
   }
@@ -360,11 +360,20 @@ function surfaceSubScore(p: PropertyForMatching, profile: SearchProfileForMatchi
       value: 70,
       weight: W.surface,
       confidence: 0,
-      reason: "Tu perfil no especifica superficie mínima",
+      reason: "No pediste una superficie mínima",
       verdict: "partial",
     };
   }
-  const surface = p.surface_arba ?? p.surface_total ?? null;
+  // Declared first. `surface_arba` is the CADASTRAL PARCEL — the land — which
+  // for an apartment or a PH is the whole building's lot. Preferring it told a
+  // buyer asking for 40 m² that a 40 m² unit on a 239 m² parcel "cumple" with
+  // 239, which is both wrong and, printed in the breakdown, obviously absurd.
+  //
+  // CLAUDE.md filed this as the last untouched instance of the Fase 12 bug and
+  // judged it not urgent because the match was legacy buyer-side machinery. It
+  // stopped being legacy the moment the match became what the listing panel
+  // shows every visitor.
+  const surface = p.surface_total ?? p.surface_arba ?? null;
   if (surface === null) {
     return {
       id: "surface",
@@ -415,7 +424,7 @@ function mustHavesSubScore(p: PropertyForMatching, profile: SearchProfileForMatc
       value: 70,
       weight: W.must_haves,
       confidence: 0,
-      reason: "Tu perfil no tiene no-negociables",
+      reason: "No cargaste no-negociables",
       verdict: "partial",
     };
   }

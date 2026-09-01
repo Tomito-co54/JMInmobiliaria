@@ -1,0 +1,89 @@
+"use client";
+
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { MatchMeter } from "@/components/matching/MatchMeter";
+import { MatchPreferencesForm } from "@/components/matching/MatchPreferencesForm";
+import { useMatchPreferences } from "@/hooks/use-match-preferences";
+import { hasAnyPreference, toSearchProfile } from "@/lib/matching/preferences";
+import { computeMatchScore, type PropertyForMatching } from "@/lib/matching";
+
+/**
+ * Where the visitor says what they are looking for — the home half of the
+ * match, and the thing that makes the match on a listing page possible at all.
+ *
+ * It replaced a demo whose number was fabricated: three toggles carrying
+ * hand-picked weights that summed to a believable meter. That is the same
+ * class of thing as the invented parcel this page used to draw next to a
+ * paragraph promising the real one (Fase 16). Here the meter runs the actual
+ * matcher over the actual published catalog, so the number is the visitor's
+ * best real match and the name under it is a property they can open.
+ *
+ * The answers persist for the visit (sessionStorage, see use-match-preferences)
+ * so a listing page can pick them up without asking again. No account, no
+ * server, nothing that outlives the tab.
+ */
+export interface MatchableProperty extends PropertyForMatching {
+  id: string;
+  address: string | null;
+}
+
+export function HomeMatchBuilder({
+  properties,
+}: {
+  properties: MatchableProperty[];
+}) {
+  const { preferences, setPreferences, ready } = useMatchPreferences();
+  const answered = hasAnyPreference(preferences);
+
+  const best = (() => {
+    if (!answered || properties.length === 0) return null;
+    const profile = toSearchProfile(preferences);
+    let winner: { property: MatchableProperty; score: number } | null = null;
+    for (const property of properties) {
+      const { score } = computeMatchScore(property, profile);
+      if (score === null) continue;
+      if (!winner || score > winner.score) winner = { property, score };
+    }
+    return winner;
+  })();
+
+  // Until the first client read lands, show the neutral prompt rather than a
+  // score computed from empty preferences.
+  const showMeter = ready && answered;
+
+  return (
+    <div className="mx-auto w-full max-w-sm space-y-6">
+      {showMeter && best ? (
+        <div>
+          <MatchMeter score={best.score} />
+          <Link
+            href={`/p/${best.property.id}`}
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            {best.property.address ?? "Ver la propiedad"}
+            <ArrowRight className="size-4" />
+          </Link>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Tu mejor match entre {properties.length}{" "}
+            {properties.length === 1 ? "propiedad publicada" : "propiedades publicadas"}
+          </p>
+        </div>
+      ) : (
+        <div>
+          <p className="text-[0.65rem] uppercase tracking-wider text-muted-foreground">
+            Tu match
+          </p>
+          <p className="mt-1 text-4xl font-extrabold tabular-nums leading-none text-muted-foreground/40">
+            —
+          </p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Elegí algo y el match se calcula solo.
+          </p>
+        </div>
+      )}
+
+      <MatchPreferencesForm value={preferences} onChange={setPreferences} />
+    </div>
+  );
+}
