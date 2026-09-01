@@ -267,7 +267,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
     what:
       "Acá está la mayor parte de nuestro trabajo, y es invisible: descartar. Por cada propiedad que te mostramos hay varias que miramos y no pasaron el filtro, porque la superficie no coincide con el catastro, porque el precio no se sostiene contra los comparables o porque el título tiene algo raro.",
     weHandle: [
-      "Cruzamos cada propiedad contra ARBA antes de mostrártela: superficie real, partida, nomenclatura, polígono de la parcela.",
+      "Verificamos cada propiedad antes de mostrártela: la superficie real, la parcela y la ubicación, contra los registros oficiales.",
       "Calculamos el Quality Score y te lo mostramos abierto, componente por componente. Sin caja negra.",
       "Coordinamos las visitas y vamos con vos, con la ficha catastral en la mano.",
       "Te decimos lo que el aviso no dice: antigüedad real, gastos mensuales, expensas extraordinarias del último año.",
@@ -310,7 +310,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
       "Es la etapa donde aparecen los problemas legales, fiscales o estructurales que justifican bajar el precio o salir de la operación. Es la parte más técnica del proceso y la hacemos nosotros: pedimos los informes, los leemos y te traducimos qué significa cada uno.",
     weHandle: [
       "Pedimos el Informe de Dominio y el de Inhibiciones, y los leemos. Si aparece un embargo, una hipoteca o un usufructo, te explicamos qué implica para tu operación.",
-      "El Certificado Catastral lo sacamos nosotros contra ARBA, al instante.",
+      "El Certificado Catastral lo sacamos nosotros, al instante.",
       "Pedimos los libres deuda: municipal, provincial y expensas si es propiedad horizontal.",
       "Si la antigüedad lo amerita, gestionamos el Estado Parcelario actualizado con agrimensor.",
       "Si algo no cierra, frenamos la operación antes del boleto. Para eso existe esta etapa.",

@@ -25,7 +25,7 @@ import { HomeProtagonistShowpiece } from "@/components/home/HomeProtagonistShowp
  *   §2.2 hover que revela: the framed photo lifts + un-rotates a touch on
  *        hover; en mobile el tap simplemente navega a la propiedad.
  *   §1   "tech con alma": Fraunces protagónico en el headline (la
- *        dirección), Inter para datos; el score y ARBA son el ancla seria
+ *        dirección), Inter para datos; el score y la verificación son el ancla
  *        que le da permiso a la forma para ser audaz.
  *   §4   performance: solo transform/opacity (GPU) + un PNG vía next/image;
  *        motion-safe respeta prefers-reduced-motion. Gana mobile.
@@ -37,7 +37,7 @@ import { HomeProtagonistShowpiece } from "@/components/home/HomeProtagonistShowp
  * foto sin tocar el resto de la composición.
  *
  * Las 4 preguntas (regla de oro):
- *   1. Confianza ✓ — score + verificación ARBA + martillero implícito; la
+ *   1. Confianza ✓ — score + verificación + martillero implícito; la
  *      audacia de la forma se apoya en ese fondo serio.
  *   2. Intención ✓ — el movimiento revela/jerarquiza la propiedad estrella,
  *      no decora; el gesto es puntual, una sola vez en la página.
@@ -120,7 +120,7 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
             <p className="mt-3 text-sm text-muted-foreground">{specs.join(" · ")}</p>
           )}
 
-          {/* ARBA verification chip — the credibility anchor in copy form. */}
+          {/* Verification chip — the credibility anchor in copy form. */}
           {p.partida && (
             <span
               className="mt-5 inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium"
@@ -131,7 +131,7 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
               }}
             >
               <ShieldCheck className="size-3.5" />
-              Verificada con ARBA
+              Propiedad verificada
             </span>
           )}
 

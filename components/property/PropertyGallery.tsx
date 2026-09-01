@@ -115,9 +115,14 @@ export function PropertyGallery({
         <X className="size-5" />
       </button>
 
-      <div className="pointer-events-none absolute top-4 left-4 rounded-md bg-black/50 px-2.5 py-1 text-sm font-medium tabular-nums text-white backdrop-blur-sm">
-        {index + 1}/{photos.length}
-      </div>
+      {/* A counter over a single photo says "1/1", which is a label where a
+          count was expected. The viewer is opened with one photo whenever a
+          building shows its cover. */}
+      {photos.length > 1 && (
+        <div className="pointer-events-none absolute top-4 left-4 rounded-md bg-black/50 px-2.5 py-1 text-sm font-medium tabular-nums text-white backdrop-blur-sm">
+          {index + 1}/{photos.length}
+        </div>
+      )}
 
       {/* Arrows are desktop-only: on a phone the swipe is the interaction and
           a 44px target over the photo would just be in the way (§2.2). */}

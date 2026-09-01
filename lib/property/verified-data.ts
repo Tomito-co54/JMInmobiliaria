@@ -2,7 +2,13 @@ import type { PublicArbaLookup, PublicPropertyRow } from "@/lib/db/properties";
 
 /**
  * Derives the "Datos oficiales" list shown to buyers from raw property +
- * ARBA lookup data.
+ * cadastral lookup data.
+ *
+ * The copy names no agency. The lookup behind it is unchanged — it is still
+ * ARBA's WFS answering — but a buyer reading a listing is asking "did anyone
+ * check this?", and the name of a provincial tax bureau is a heavier, more
+ * technical answer than the question deserves. The agency is named where it
+ * is the actual answer: the buying guide, next to each document it issues.
  *
  * The principle: each item answers a yes/no question that matters for the
  * buyer's confidence. We classify into three levels — verified / warning /
@@ -38,14 +44,14 @@ export function deriveVerifiedDataItems(
   const items: VerifiedDataItem[] = [];
 
   // -------------------------------------------------------------------------
-  // 1. Parcela identificada en ARBA — top of the list because it's the
+  // 1. Parcela identificada — top of the list because it's the
   // single fact that anchors everything else.
   // -------------------------------------------------------------------------
   if (property.partida) {
     items.push({
       id: "parcela_arba",
       status: "verified",
-      title: "Parcela identificada en ARBA",
+      title: "Parcela identificada",
       detail: `Partida ${property.partida}`,
       termId: "partida",
     });
@@ -53,7 +59,7 @@ export function deriveVerifiedDataItems(
     items.push({
       id: "parcela_arba",
       status: "missing",
-      title: "Sin parcela identificada en ARBA",
+      title: "Sin parcela identificada",
       detail:
         "No pudimos cruzar la dirección con el registro catastral. Puede deberse a dirección ambigua o a una propiedad nueva.",
       termId: "partida",
@@ -77,7 +83,7 @@ export function deriveVerifiedDataItems(
     items.push({
       id: "superficie",
       status: "verified",
-      title: "Superficie de la parcela verificada en ARBA",
+      title: "Superficie de la parcela verificada",
       detail: `${arba}m² de parcela · ${declared}m² declarados en la propiedad. En departamentos y PH la parcela es la del edificio entero.`,
       termId: "superficie_arba",
     });
@@ -85,8 +91,8 @@ export function deriveVerifiedDataItems(
     items.push({
       id: "superficie",
       status: "warning",
-      title: "Solo superficie ARBA disponible",
-      detail: `${arba}m² registrados en ARBA — el aviso no declaró superficie para cruzar.`,
+      title: "Solo la superficie de la parcela",
+      detail: `${arba}m² registrados en el catastro — el aviso no declaró superficie para cruzar.`,
       termId: "superficie_arba",
     });
   } else if (declared !== null && declared !== undefined) {
@@ -94,7 +100,7 @@ export function deriveVerifiedDataItems(
       id: "superficie",
       status: "warning",
       title: "Superficie no verificable",
-      detail: `${declared}m² declarada por el aviso — sin contraparte ARBA para confirmar.`,
+      detail: `${declared}m² declarada por el aviso — sin registro oficial para cruzarla.`,
       termId: "superficie_total",
     });
   } else {
@@ -102,7 +108,7 @@ export function deriveVerifiedDataItems(
       id: "superficie",
       status: "missing",
       title: "Sin superficie disponible",
-      detail: "Ni el aviso ni ARBA registran metros cuadrados para esta propiedad.",
+      detail: "Ni el aviso ni el catastro registran metros cuadrados para esta propiedad.",
     });
   }
 
@@ -127,7 +133,7 @@ export function deriveVerifiedDataItems(
       items.push({
         id: "match",
         status: "verified",
-        title: "Match ARBA exacto",
+        title: "Ubicación confirmada en la parcela",
         detail: "Las coordenadas caen dentro del polígono oficial de la parcela.",
         termId: "match_intersects",
       });
@@ -136,7 +142,7 @@ export function deriveVerifiedDataItems(
       items.push({
         id: "match",
         status: "warning",
-        title: "Match ARBA por proximidad",
+        title: "Ubicación aproximada",
         detail:
           d !== null && d !== undefined
             ? `Parcela cercana a ${Math.round(d)}m — la dirección puede ser imprecisa.`

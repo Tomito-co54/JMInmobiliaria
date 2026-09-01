@@ -73,14 +73,14 @@ describe("deriveVerifiedDataItems", () => {
     expect(sup.status).toBe("verified");
   });
 
-  it("warns when only ARBA surface is present", () => {
+  it("warns when only the parcel surface is present", () => {
     const items = deriveVerifiedDataItems(
       makeProperty({ surface_total: null, surface_covered: null, surface_arba: 100 }),
       null,
     );
     const sup = items.find((i) => i.id === "superficie")!;
     expect(sup.status).toBe("warning");
-    expect(sup.title).toContain("Solo superficie ARBA");
+    expect(sup.title).toContain("Solo la superficie de la parcela");
   });
 
   it("warns when only declared surface is present", () => {

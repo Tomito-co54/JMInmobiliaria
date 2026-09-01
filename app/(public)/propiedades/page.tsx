@@ -24,7 +24,7 @@ import type { PremiumCardProperty } from "@/components/catalog/PropertyPremiumCa
 export const metadata: Metadata = {
   title: "Propiedades — Jotaeme",
   description:
-    "Propiedades en venta en Zona Sur del Gran Buenos Aires, con la partida verificada contra ARBA.",
+    "Propiedades en venta en Zona Sur del Gran Buenos Aires, con los datos verificados antes de publicarse.",
 };
 
 export default async function PropiedadesPage() {

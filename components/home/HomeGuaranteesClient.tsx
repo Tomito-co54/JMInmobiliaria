@@ -80,7 +80,7 @@ export function Reveal({
 }
 
 // ---------------------------------------------------------------------------
-// TONE 1 — ARBA parcel verification (sober, pedagogical)
+// TONE 1 — parcel verification (sober, pedagogical)
 // ---------------------------------------------------------------------------
 
 /**
@@ -397,8 +397,8 @@ export function ScoreRingViz({ score }: { score: number }) {
 // TONE 2 — Service steps (numbered sequence; §2.3)
 // ---------------------------------------------------------------------------
 const SERVICE_STEPS = [
-  { icon: ScanSearch, label: "Verificamos la partida", sub: "Contra el padrón de ARBA" },
-  { icon: ShieldCheck, label: "Consultamos ARBA en vivo", sub: "Superficie, nomenclatura, polígono" },
+  { icon: ScanSearch, label: "Verificamos la partida", sub: "Contra el padrón oficial" },
+  { icon: ShieldCheck, label: "Consultamos el catastro en vivo", sub: "Superficie, parcela, polígono" },
   { icon: FileCheck2, label: "Generás el informe en PDF", sub: "Al instante, desde la plataforma" },
 ] as const;
 

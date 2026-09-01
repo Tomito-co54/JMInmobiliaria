@@ -44,7 +44,7 @@ export function PropertyMapSection({
       </div>
       {arbaGeoJson != null && (
         <p className="text-[0.7rem] text-muted-foreground text-center">
-          Polígono navy: parcela registrada en ARBA · Pin: ubicación geocodificada
+          Polígono navy: la parcela registrada · Pin: ubicación de la propiedad
         </p>
       )}
     </div>

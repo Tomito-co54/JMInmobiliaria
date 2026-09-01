@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
  * looked static. This runs the gesture on SCROLL into view instead, so the
  * photo visibly "arrives": it rises + scales up + rotates into its final
  * -2.5° tilt while the shadow deepens (§2.4 settle, not a flat fade). The
- * medallion and ARBA-less corner land after, with weight (§2.1 — the serious
+ * medallion and the bare corner land after, with weight (§2.1 — the serious
  * datum sits on top of the audacious composition).
  *
  * transform/opacity only, motion-safe via useInView's reduced-motion-aware

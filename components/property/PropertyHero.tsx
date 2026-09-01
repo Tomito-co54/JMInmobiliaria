@@ -66,7 +66,7 @@ export function PropertyHero({
         initialIndex={openAt ?? 0}
         onClose={() => setOpenAt(null)}
       />
-      {/* Own positioning context: the score medallion and the ARBA chip hang
+      {/* Own positioning context: the score medallion and the verified chip hang
           off the photo's bottom edge, and measured against the whole
           component they landed on the thumbnail strip instead. */}
       <div className="relative">
@@ -104,7 +104,7 @@ export function PropertyHero({
 
         {/* Floating identity: eyebrow + address. Fraunces address. Extra
             bottom padding leaves the lower strip clear for the overlapping
-            score medallion + ARBA chip below. */}
+            score medallion + verified chip below. */}
         <div className="absolute inset-x-0 bottom-0 p-4 pb-12 sm:p-6 sm:pb-14 lg:p-7 lg:pb-16">
           <p className="text-[0.7rem] uppercase tracking-[0.2em] font-medium text-white/85">
             {[typeLabel, opLabel].filter(Boolean).join(" · ")}
@@ -166,7 +166,10 @@ export function PropertyHero({
         </div>
       )}
 
-      {/* ARBA chip — bottom-right, the second credibility anchor on the photo. */}
+      {/* Verification chip — bottom-right, the second credibility anchor on
+          the photo. It still fires off the cadastral lookup; it just no longer
+          names the bureau, because what earns trust here is that somebody
+          checked, not which office answered. */}
       {arbaVerified && (
         <div
           className={cn(
@@ -180,7 +183,7 @@ export function PropertyHero({
           }}
         >
           <ShieldCheck className="size-3.5" />
-          Verificada con ARBA
+          Propiedad verificada
         </div>
       )}
       </div>

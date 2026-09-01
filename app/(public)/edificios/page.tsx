@@ -21,16 +21,17 @@ import type { BuildingUnitRow } from "@/lib/db/properties";
  * ground floor — and the flat catalog cannot express it without repeating the
  * address four times.
  *
- * Grouping comes from the cadastral parcel (lib/buildings), so it is ARBA
- * saying these units share a building, not string matching on the address.
+ * Grouping comes from the cadastral parcel (lib/buildings), so it is the
+ * cadastre saying these units share a building, not string matching on the
+ * address.
  *
  * A parcel with a single published unit is a building too, and it is listed
  * as one. It carries less news than a building with four, so it sorts below
  * them — but leaving it out would mean this page shows a different catalog
  * than /propiedades, which is worse than a short entry.
  *
- * What genuinely cannot appear is a property whose parcel ARBA never
- * resolved: without a parcel there is nothing to group it by. Those are
+ * What genuinely cannot appear is a property whose parcel never resolved:
+ * without a parcel there is nothing to group it by. Those are
  * counted at the foot of the page with a link to the full catalog, so the
  * page never passes for the whole of the inventory.
  */
@@ -38,7 +39,7 @@ import type { BuildingUnitRow } from "@/lib/db/properties";
 export const metadata: Metadata = {
   title: "Edificios — Jotaeme",
   description:
-    "Las unidades publicadas agrupadas por edificio, según la parcela catastral de ARBA.",
+    "Las unidades publicadas agrupadas por edificio, según la parcela catastral.",
 };
 
 type Row = BuildingUnitRow & {
@@ -119,7 +120,7 @@ export default async function EdificiosPage() {
     );
 
   // Everything with a parcel is now in a group, so what is left over is
-  // exactly the properties ARBA could not place.
+  // exactly the properties the cadastre could not place.
   const groupedIds = new Set(buildings.flatMap((b) => b.units.map((u) => u.id)));
   const withoutParcel = rows.filter((r) => !groupedIds.has(r.id));
 
@@ -145,8 +146,8 @@ export default async function EdificiosPage() {
             <p className="mt-3 text-sm sm:text-base text-muted-foreground">
               Las unidades agrupadas por el edificio en el que están. No las
               juntamos por el texto de la dirección: dos unidades están en el
-              mismo edificio cuando comparten la parcela catastral, y eso lo
-              dice ARBA.
+              mismo edificio cuando comparten la parcela, y la parcela es un
+              dato del registro oficial.
             </p>
           </div>
 
@@ -166,8 +167,8 @@ export default async function EdificiosPage() {
             <div className="mt-12 rounded-2xl border border-dashed p-5 sm:p-6">
               <p className="text-sm text-muted-foreground">
                 {withoutParcel.length === 1
-                  ? "Hay 1 propiedad publicada que todavía no tiene la parcela verificada contra ARBA, así que no podemos ubicarla en un edificio."
-                  : `Hay ${withoutParcel.length} propiedades publicadas que todavía no tienen la parcela verificada contra ARBA, así que no podemos ubicarlas en un edificio.`}{" "}
+                  ? "Hay 1 propiedad publicada que todavía no tiene la parcela verificada, así que no podemos ubicarla en un edificio."
+                  : `Hay ${withoutParcel.length} propiedades publicadas que todavía no tienen la parcela verificada, así que no podemos ubicarlas en un edificio.`}{" "}
                 Están en el catálogo completo.
               </p>
               <Link

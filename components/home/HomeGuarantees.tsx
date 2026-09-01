@@ -28,31 +28,40 @@ import {
  * icon-card grid (which was exactly the §6 blacklist: grid de fichas todas
  * iguales). It is one section carrying TWO tones, per the approved design:
  *
- *   TONE 1 — ARBA / verificación: sober, editorial. Clean type, a quiet
- *     pedagogical diagram (parcel polygon drawing, partida appearing, m²
- *     counting). Transmits confianza, not spectacle. Ink palette.
+ *   TONE 1 — verificación: sober, editorial. Clean type, a quiet
+ *     pedagogical diagram (the coverage area drawn on real ground).
+ *     Transmits confianza, not spectacle. Ink palette.
  *   TONE 2 — Match: dynamic, "gamer" controlado. The meter reacts to every
  *     tap. Audaz pero prolijo. Gold accents, on a faint tinted panel so the
  *     tonal shift is felt without a hard cut (§2.4).
  *
- * Server Component: fetches the live ARBA coverage figure and the published
- * catalog the match runs against, renders all copy server-side (SEO), and
- * delegates only the scroll-triggered visuals to the client islands.
+ * Server Component: fetches the live verified-coverage figure and the
+ * published catalog the match runs against, renders all copy server-side
+ * (SEO), and delegates only the scroll-triggered visuals to the client
+ * islands.
  *
  * Stats decision (per the doc): the old 1/1/100% strip read weak with a
  * single published property and leaned on the generic look we avoid. The
- * one figure with real weight — % con datos ARBA — is folded into TONE 1
- * as an editorial number. Property/partido counts already live in the
- * catalog header, so they're not repeated here.
+ * one figure with real weight — % con los datos verificados — is folded
+ * into TONE 1 as an editorial number. Property/partido counts already live
+ * in the catalog header, so they're not repeated here.
+ *
+ * Copy note: the cadastral agency is no longer named anywhere a visitor
+ * reads. The checks did not change — the parcel lookup still runs and still
+ * gates this figure — but leading with the name of a tax bureau made the
+ * pitch heavier and narrower than what the agency actually promises, which
+ * is that someone verified the listing before publishing it. The agency is
+ * still named where it is the answer to a question: the buying guide, where
+ * each document is listed with who issues it.
  *
  * Las 4 preguntas (regla de oro):
- *   1. Confianza ✓ — el fondo serio (ARBA real, verificable) ancla todo.
+ *   1. Confianza ✓ — el fondo serio (la verificación real) ancla todo.
  *   2. Intención ✓ — cada animación explica (§2.3) o revela al tocar (§2.2).
  *   3. Gama media ✓ — IntersectionObserver + transform/opacity, sin librería.
  *   4. Propio ✓ — composiciones editoriales, no cards de plantilla.
  */
 
-async function getArbaVerifiedPct(): Promise<number> {
+async function getVerifiedPct(): Promise<number> {
   try {
     const supabase = await createClient();
     const publicSources = PUBLIC_PROPERTY_SOURCES as unknown as string[];
@@ -66,17 +75,17 @@ async function getArbaVerifiedPct(): Promise<number> {
 
     const { count: total } = await base();
     // Counts `nomenclatura_catastral`, not `partida`: the partida is typed in
-    // by hand, the nomenclatura only exists when ARBA actually answered. Since
-    // publishing no longer requires the lookup, measuring the partida here
-    // would let the page claim verification it doesn't have.
-    const { count: withArba } = await base().not(
+    // by hand, the nomenclatura only exists when the cadastre actually
+    // answered. Since publishing no longer requires the lookup, measuring the
+    // partida here would let the page claim verification it doesn't have.
+    const { count: withCadastre } = await base().not(
       "nomenclatura_catastral",
       "is",
       null,
     );
 
     const t = total ?? 0;
-    const a = withArba ?? 0;
+    const a = withCadastre ?? 0;
     return t > 0 ? Math.round((a / t) * 100) : 100;
   } catch {
     return 100;
@@ -167,7 +176,7 @@ function getCoverageView() {
 }
 
 export async function HomeGuarantees() {
-  const arbaPct = await getArbaVerifiedPct();
+  const verifiedPct = await getVerifiedPct();
   const matchable = await getMatchableProperties();
 
   const coverage = getCoverageView();
@@ -197,7 +206,7 @@ export async function HomeGuarantees() {
           </p>
         </Reveal>
 
-        {/* ============ TONE 1 — ARBA / verificación (sobrio) ============ */}
+        {/* ============ TONE 1 — verificación (sobrio) ============ */}
         <div className="mt-20 sm:mt-28 grid md:grid-cols-2 gap-10 md:gap-14 items-center">
           <Reveal className="order-2 md:order-1">
             {/* Sober ink eyebrow — NOT gold. Encodes the quiet tone. */}
@@ -205,30 +214,33 @@ export async function HomeGuarantees() {
               className="text-[0.7rem] uppercase tracking-[0.22em] font-medium"
               style={{ color: "color-mix(in srgb, var(--brand-heading) 55%, transparent)" }}
             >
-              Verificación catastral
+              Antes de publicar
             </p>
             <h3
               className="mt-3 font-heading font-medium text-2xl sm:text-3xl leading-tight tracking-tight"
               style={{ color: "var(--brand-heading)" }}
             >
-              Cada propiedad, cruzada contra el catastro oficial.
+              Cada propiedad la revisamos antes de mostrarla.
             </h3>
             <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed">
-              No publicamos lo que dice el aviso. Cruzamos cada ficha contra{" "}
-              <span className="font-medium text-foreground">ARBA</span> —el
-              organismo de recaudación de la Provincia— y mostramos la
-              superficie real, la partida, la nomenclatura y el polígono exacto
-              de la parcela.
+              No publicamos lo que dice el aviso y listo. Chequeamos los datos
+              contra{" "}
+              <span className="font-medium text-foreground">
+                los registros oficiales
+              </span>{" "}
+              —superficie, parcela, ubicación— y te mostramos lo que
+              encontramos, tal cual salió. Si algo no cierra, lo decimos en la
+              ficha en vez de esconderlo.
             </p>
             <div className="mt-7 flex items-baseline gap-3">
               <span
                 className="text-5xl font-bold font-heading tabular-nums leading-none"
                 style={{ color: "var(--brand-heading)" }}
               >
-                {arbaPct}%
+                {verifiedPct}%
               </span>
               <span className="text-sm text-muted-foreground max-w-[16ch]">
-                de nuestras propiedades con datos ARBA verificados
+                de nuestras propiedades con los datos verificados
               </span>
             </div>
           </Reveal>

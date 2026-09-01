@@ -67,7 +67,7 @@ export function PropertyCatalog({
                     totalProperties === 1
                       ? "propiedad publicada"
                       : "propiedades publicadas"
-                  } en Zona Sur GBA, cada una con la partida verificada contra ARBA.`
+                  } en Zona Sur GBA, cada una revisada antes de publicarse.`
                 : "Estamos cargando las primeras propiedades.")}
           </p>
         </Reveal>

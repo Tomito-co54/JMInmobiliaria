@@ -151,7 +151,8 @@ export default async function PublicPropertyPage({ params }: PageProps) {
 
   const score = property.quality_score_breakdown?.score ?? null;
   const scoreBand = getScoreBand(score);
-  // ARBA-verified = we matched the parcel against the cadastral service.
+  // Verified = we matched the parcel against the cadastral service. The chip
+  // it drives no longer names the agency; the check is the same one.
   const arbaVerified =
     !!property.partida || arbaLookup?.match_strategy === "intersects" ||
     arbaLookup?.match_strategy === "dwithin";
@@ -234,7 +235,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
 
             <EditorialSection
               title="Datos oficiales"
-              subtitle="Lo que pudimos verificar contra ARBA, el organismo catastral de la provincia de Buenos Aires."
+              subtitle="Lo que pudimos verificar contra los registros oficiales, dato por dato."
             >
               <VerifiedDataList property={property} arbaLookup={arbaLookup} />
             </EditorialSection>

@@ -124,7 +124,7 @@ function pickMainAction(
         serviceId: arba.serviceId,
         title: `Te sacamos el ${arba.title}`,
         description:
-          "Lo generamos contra ARBA y te lo damos al instante en PDF. Es el primer paso de la verificación catastral.",
+          "Lo generamos al instante y te lo damos en PDF. Es el primer paso de la verificación catastral.",
       };
     }
     return {

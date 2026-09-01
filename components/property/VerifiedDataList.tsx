@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
  * "Datos oficiales" — the section that turns raw catastral data into a
  * scannable status list for the buyer.
  *
- *   ✅ verified — dato cruzado contra ARBA, todo OK
+ *   ✅ verified — dato cruzado contra el registro oficial, todo OK
  *   ⚠️ warning  — dato presente pero con alerta (parcial, leve discrepancia)
  *   🚨 missing  — dato faltante o discrepancia grave
  *

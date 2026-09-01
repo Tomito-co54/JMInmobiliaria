@@ -18,7 +18,7 @@ export interface GlossaryTerm {
   definition: string;
   /** Optional second paragraph with context for the curious. */
   context?: string;
-  /** Optional external reference (e.g. ARBA's site). */
+  /** Optional external reference (e.g. the cadastral agency's site). */
   link?: { url: string; label: string };
 }
 
@@ -27,9 +27,9 @@ const TERMS: GlossaryTerm[] = [
     id: "partida",
     label: "Partida",
     definition:
-      "Identificador único de la propiedad en el sistema fiscal de ARBA (la agencia tributaria de la provincia de Buenos Aires).",
+      "Identificador único de la propiedad en el registro catastral de la provincia de Buenos Aires.",
     context:
-      "Si una propiedad no tiene partida visible, casi siempre es porque el aviso no la declaró — pero existe en ARBA. La cruzamos por coordenadas geográficas.",
+      "Si una propiedad no tiene partida visible, casi siempre es porque el aviso no la declaró — pero existe en el registro. La cruzamos por coordenadas geográficas.",
   },
   {
     id: "nomenclatura_catastral",
@@ -41,17 +41,17 @@ const TERMS: GlossaryTerm[] = [
   },
   {
     id: "superficie_arba",
-    label: "Superficie ARBA",
+    label: "Superficie de la parcela",
     definition:
-      "Metros cuadrados que ARBA tiene registrados oficialmente para esta parcela.",
+      "Metros cuadrados que el catastro tiene registrados oficialmente para esta parcela.",
     context:
-      "Cuando difiere mucho de la superficie declarada en el aviso, puede ser que el publicante esté midiendo solo la unidad funcional (un departamento) y ARBA esté midiendo todo el terreno o el edificio.",
+      "Cuando difiere mucho de la superficie declarada en el aviso, es porque miden cosas distintas: el aviso mide la unidad funcional (un departamento) y el catastro mide la parcela entera, o sea el terreno del edificio.",
   },
   {
     id: "superficie_total",
     label: "Superficie total declarada",
     definition:
-      "Metros cuadrados que el aviso original declara. No está verificado contra fuentes oficiales hasta que lo cruzamos con ARBA.",
+      "Metros cuadrados que el aviso original declara. No está verificado hasta que lo cruzamos contra el registro oficial.",
   },
   {
     id: "informe_dominio",
@@ -83,7 +83,7 @@ const TERMS: GlossaryTerm[] = [
     definition:
       "Nota objetiva del 0 al 100 que mide qué tan sólida es la propiedad en términos de datos verificables, no de gusto.",
     context:
-      "Se compone de 5 sub-scores: documentación oficial, precio vs zona, calidad del aviso, tiempo en mercado, y coherencia entre lo declarado y ARBA.",
+      "Se compone de 5 sub-scores: documentación oficial, precio vs zona, calidad del aviso, tiempo en mercado, y coherencia entre lo declarado y el catastro.",
   },
   {
     id: "tiempo_en_mercado",
@@ -95,9 +95,9 @@ const TERMS: GlossaryTerm[] = [
   },
   {
     id: "match_intersects",
-    label: "Match exacto con ARBA",
+    label: "Ubicación confirmada en la parcela",
     definition:
-      "Las coordenadas de la propiedad caen dentro del polígono de la parcela en ARBA — máxima confianza de que la parcela identificada es la correcta.",
+      "Las coordenadas de la propiedad caen dentro del polígono oficial de la parcela — máxima confianza de que la parcela identificada es la correcta.",
     context:
       "Cuando el match es por proximidad (DWITHIN) en vez de intersección, la parcela está cerca pero no es 100% seguro que sea ésa.",
   },

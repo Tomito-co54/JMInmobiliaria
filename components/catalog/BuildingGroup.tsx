@@ -1,5 +1,4 @@
-import Image from "next/image";
-import { Building2 } from "lucide-react";
+import { BuildingCover } from "@/components/catalog/BuildingCover";
 import { BuildingUnits } from "@/components/property/BuildingUnits";
 import type { BuildingUnitRow } from "@/lib/db/properties";
 
@@ -8,7 +7,7 @@ import type { BuildingUnitRow } from "@/lib/db/properties";
  *
  * A heading with its units underneath, not a card in a grid (§6 blacklist).
  * The grouping is the parcel's — see lib/buildings — so this is a rendering
- * of a fact from ARBA rather than a curation: four listings at Belgrano 1287
+ * of a cadastral fact rather than a curation: four listings at Belgrano 1287
  * are in one building because the cadastre says one parcel, not because
  * someone typed the same street twice.
  *
@@ -33,6 +32,9 @@ export interface BuildingGroupData {
    * derived), so there is nowhere to attach a photo to, and the first unit's
    * cover is a photo of this building by definition. Falls back to the
    * Building2 glyph when no unit has one.
+   *
+   * Rendered by BuildingCover, which opens it full-size: at thumbnail size
+   * this photo can only confirm a building you already recognise.
    */
   coverPhoto: string | null;
 }
@@ -67,27 +69,7 @@ export function BuildingGroup({ building }: { building: BuildingGroupData }) {
     <section className="rounded-3xl border bg-card p-5 sm:p-7">
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 items-center gap-4">
-          <div
-            className="relative size-14 sm:size-16 shrink-0 overflow-hidden rounded-2xl bg-muted"
-            aria-hidden
-          >
-            {building.coverPhoto ? (
-              <Image
-                src={building.coverPhoto}
-                alt=""
-                fill
-                sizes="64px"
-                className="object-cover"
-              />
-            ) : (
-              <span className="flex size-full items-center justify-center">
-                <Building2
-                  className="size-6 text-muted-foreground"
-                  aria-hidden
-                />
-              </span>
-            )}
-          </div>
+          <BuildingCover photo={building.coverPhoto} label={building.label} />
 
           <div className="min-w-0">
             <p

@@ -21,7 +21,7 @@ import type { BuildingSummary } from "@/lib/buildings";
  *   §2.2 — hover reveals: the photo zooms slightly; en mobile el tap
  *          navega a la propiedad (toda la card es un Link).
  *   §1   — Fraunces para la dirección (alma editorial), datos en Inter;
- *          la verificación ARBA es el ancla seria.
+ *          la verificación es el ancla seria.
  */
 
 const TYPE_LABELS: Record<string, string> = {
@@ -172,7 +172,7 @@ export function PropertyPremiumCard({
             </p>
           )}
 
-          {/* Credibility chip — ARBA verification.
+          {/* Credibility chip — verification.
               The Quality Score chip used to sit alongside it and was removed
               with the one on /p/[id]: it grades a listing against every other
               listing, which is a question the catalog answers by what it
@@ -189,7 +189,7 @@ export function PropertyPremiumCard({
                 }}
               >
                 <ShieldCheck className="size-3.5" />
-                ARBA
+                Verificada
               </span>
             )}
           </div>

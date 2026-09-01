@@ -202,8 +202,7 @@ export default function GuiaDeCompraPage() {
           </h2>
           <p className="text-sm text-muted-foreground">
             Decinos qué buscás y te decimos cuánto encaja cada propiedad, con
-            la partida verificada contra ARBA. Sin cuenta y sin dejar tus
-            datos.
+            los datos ya verificados. Sin cuenta y sin dejar tus datos.
           </p>
           <div className="flex justify-center pt-2">
             <Link href="/propiedades" className={buttonVariants({ size: "lg" })}>
