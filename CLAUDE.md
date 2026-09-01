@@ -369,6 +369,23 @@ avisos), por el mismo motivo de siempre: Zonaprop bloquea a los runners, y
 rechaza el segundo pedido de cada sesión de navegador, lo que se resuelve
 abriendo un navegador nuevo por página.
 
+**El horario del cron no es el horario real.** Medido contra la API de
+GitHub el 1-sep, los arranques de las últimas siete corridas programadas:
+
+    01-sep 10:51 · 31-ago 12:16 · 30-ago 10:57 · 29-ago 12:01
+    28-ago 17:56 · 27-ago 17:09 · 26-ago 06:33
+
+El cron dice `0 6 * * *`. Una sola salió cerca de esa hora. Es
+comportamiento documentado de GitHub —las corridas programadas en runners
+gratuitos se encolan y las horas en punto son las más peleadas— y explica por
+qué el lote de bajas del 1-sep quedó fechado a las 10:52 cuando el cron es a
+las 6: **fue la corrida programada, arrancada 4 horas y media tarde**, no un
+disparo manual.
+
+Conviene tenerlo presente para dos cosas: no buscar una corrida a la hora que
+el cron declara, y no confiar en el `schedule` para nada que necesite
+puntualidad.
+
 Techo conocido: la página 10 devuelve 403. El crawl queda marcado como
 truncado y la desactivación se saltea, que es lo correcto.
 
@@ -644,9 +661,10 @@ Same as upstream — no se cambia stack sin confirmación explícita.
 ### Background Jobs
 - **GitHub Actions** (`.github/workflows/pipeline.yml`): scrape diario
   de Zonaprop + Trezza → dedup → geocode → ARBA → quality score →
-  alertas. Heredado del upstream. **Dispara todos los días a las 6 AM UTC
-  pero falla desde el día uno del fork** — le faltan los secrets de
-  Actions. Ver **Estado del pipeline de scraping** en Current progress.
+  alertas. Heredado del upstream. **Corre solo desde el 27-ago**, una vez
+  por día y sólo sobre **Lomas de Zamora**. El cron pide `0 6 * * *` (06:00
+  UTC = 03:00 ART) pero **GitHub lo arranca entre 4 y 12 horas tarde** —
+  ver **Estado del pipeline de scraping** en Current progress.
 
 ---
 
