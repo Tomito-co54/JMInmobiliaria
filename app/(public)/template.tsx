@@ -13,10 +13,18 @@
  * every click.
  *
  * Deliberately smaller than the reveals inside the pages. A page entrance is
- * the frame around the content, not the content: 320ms and 8px, against the
+ * the frame around the content, not the content: 380ms and 12px, against the
  * 850ms and 36px of a Reveal. Anything bigger and the transition becomes the
  * thing you notice, which is §2's governing rule failing — movement that
  * decorates instead of doing a job. Its job here is continuity.
+ *
+ * It is half of a pair. The other half is the outgoing page settling back
+ * while the next one is fetched (`body[data-navigating]` in globals.css,
+ * driven by NavPending): content recedes, content arrives, and the wait
+ * between them reads as one movement instead of a stall. The custom keyframe
+ * exists so the arrival can overshoot a hair and settle, which is what makes
+ * it read as a thing coming to rest rather than a fade finishing (§1 — con
+ * carácter, no un fade genérico).
  *
  * Not applied to the landing (`app/page.tsx`, outside this group) because the
  * hero already stages its own cascade on mount; a page-level fade under it
@@ -32,8 +40,6 @@ export default function PublicTemplate({
   children: React.ReactNode;
 }) {
   return (
-    <div className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-300 motion-safe:ease-out">
-      {children}
-    </div>
+    <div className="page-enter">{children}</div>
   );
 }

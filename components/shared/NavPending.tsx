@@ -1,7 +1,23 @@
 "use client";
 
+import { useEffect } from "react";
 import { useLinkStatus } from "next/link";
 import { cn } from "@/lib/utils";
+
+/**
+ * How many links are mid-navigation right now.
+ *
+ * A counter and not a boolean: several of these are mounted at once (one per
+ * nav item, one per card), and the last one to settle would otherwise clear
+ * the flag while another is still pending.
+ */
+let inFlight = 0;
+
+function markNavigating(active: boolean) {
+  inFlight = Math.max(0, inFlight + (active ? 1 : -1));
+  if (inFlight > 0) document.body.dataset.navigating = "";
+  else delete document.body.dataset.navigating;
+}
 
 /**
  * The acknowledgement a tapped link owes you while the next page is fetched.
@@ -27,6 +43,17 @@ import { cn } from "@/lib/utils";
  */
 export function NavPending({ className }: { className?: string }) {
   const { pending } = useLinkStatus();
+
+  // Tells the page it is leaving, so it can settle back while the next one is
+  // fetched (see `body[data-navigating]` in globals.css). The cleanup runs on
+  // unmount too, which matters: the link that started the navigation is often
+  // on the page being replaced, so it disappears mid-flight and never gets to
+  // report that it finished.
+  useEffect(() => {
+    if (!pending) return;
+    markNavigating(true);
+    return () => markNavigating(false);
+  }, [pending]);
 
   return (
     <span

@@ -257,3 +257,95 @@ select option {
   background-color: var(--background);
   color: var(--foreground);
 }
+
+/* ---------------------------------------------------------------------------
+   Theme change (DIRECCION_DE_ARTE §2.4 — nada corta en seco; §2.2 — la
+   interacción responde donde la tocaste).
+
+   The switch used to be a single frame: every colour on the page swapped at
+   once, which is the hardest cut the site had left. `disableTransitionOnChange`
+   stays on the provider on purpose — transitioning every element's colours
+   individually is what makes a theme switch crawl on a mid-range phone, and
+   half the page (images, shadows, the map tiles) can't tween anyway.
+
+   Instead the whole page is swapped in ONE composited step, and the new theme
+   is wiped in as a circle growing from the button that was pressed. It is a
+   single clip-path animation on a snapshot: the compositor's cheapest trick,
+   and it ties the change to the control that caused it instead of having the
+   world change by itself.
+
+   Scoped to `.theme-switching` so it only ever applies to this transition and
+   not to any other view transition the app may grow later. */
+@keyframes theme-sweep {
+  from {
+    clip-path: circle(0 at var(--theme-origin-x, 50%) var(--theme-origin-y, 0%));
+  }
+  to {
+    clip-path: circle(
+      var(--theme-radius, 150vmax) at var(--theme-origin-x, 50%)
+        var(--theme-origin-y, 0%)
+    );
+  }
+}
+
+html.theme-switching::view-transition-old(root),
+html.theme-switching::view-transition-new(root) {
+  /* Kill the default cross-fade: two stacked translucent snapshots make the
+     midpoint of the wipe look washed out. */
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html.theme-switching::view-transition-old(root) {
+  z-index: 0;
+}
+
+html.theme-switching::view-transition-new(root) {
+  z-index: 1;
+  animation: theme-sweep 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   Leaving a page (§2.1 — profundidad con intención).
+
+   Between the tap and the next page there is a real wait (~300ms local, more
+   on 4G). `NavPending` answers the tap at the link; this answers it with the
+   page, which settles back a step as if making room for what is coming. It
+   pairs with the entrance in (public)/template.tsx: content recedes, content
+   arrives, and the gap in between reads as one movement instead of a stall.
+
+   Deliberately faint. This runs on every navigation, and anything more than a
+   suggestion becomes the thing you notice. */
+@media (prefers-reduced-motion: no-preference) {
+  body[data-navigating] main {
+    opacity: 0.72;
+    transform: scale(0.994);
+  }
+  body main {
+    transition:
+      opacity 260ms ease-out,
+      transform 260ms ease-out;
+    transform-origin: top center;
+  }
+}
+
+/* Page entrance, paired with the recede above. Same easing family as
+   `home-rise` so arriving at a page and scrolling through it feel like the
+   same hand — a small overshoot, then settle, rather than a fade running out.
+   Follows the `.home-rise` pattern: plain class, neutralised below for anyone
+   who asked for less motion. */
+@keyframes page-enter {
+  0% { opacity: 0; transform: translateY(12px) scale(0.995); }
+  70% { opacity: 1; transform: translateY(-2px) scale(1.001); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.page-enter {
+  animation: page-enter 0.38s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
+}
