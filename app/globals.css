@@ -356,9 +356,21 @@ html.theme-switching::view-transition-new(root) {
    se suele hacer este efecto y es justo lo que traba el scroll en un
    teléfono de gama media (§4).
 
-   El recorrido va de -100% a 300% para que entre y salga completamente fuera
-   del botón: terminar en 100% deja el brillo estacionado en el borde. */
+   Dos números que importan, y la primera versión erró los dos:
+
+   1. Los % de translateX son del ANCHO DEL PROPIO ELEMENTO, no del botón.
+      El brillo mide 2,25rem, así que 900% son ~20rem — de sobra para cruzar
+      cualquier ancho que tenga este botón y salir del otro lado. La versión
+      anterior terminaba en 300% partiendo de `-left-full`, que da justo el
+      borde derecho: el brillo quedaba estacionado tapando la mitad derecha.
+      Como el botón tiene overflow-hidden, pasarse no se ve; quedarse corto
+      sí.
+
+   2. El barrido termina en el 15% del ciclo. La animación dura 6s pero el
+      movimiento pasa en 0,9s y el resto del tiempo el brillo está afuera,
+      clipeado. Repartir el recorrido en los 6s completos no es un destello:
+      es una mancha cruzando despacio. */
 @keyframes cta-sheen {
   0% { transform: translateX(-100%); }
-  35%, 100% { transform: translateX(300%); }
+  15%, 100% { transform: translateX(900%); }
 }

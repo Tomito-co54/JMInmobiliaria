@@ -35,11 +35,23 @@ export function HomeProtagonistShowpiece({
   return (
     <div ref={ref} className="relative mx-auto w-full max-w-sm md:max-w-none">
       {/* Rigid quadrant — fades/scales in first, the stage the photo breaks
-          out of. */}
+          out of.
+
+          `aspect-[4/3]` y no cuadrado. Cuadrado dejaba 187px de grilla vacía
+          debajo de la foto — el 40% del cuadro — y eso no se lee como un
+          escenario: se lee como una imagen que no cargó. Tomy lo reportó
+          exactamente así ("la segunda imagen no se ve"), y si el dueño lo lee
+          como roto, un visitante también.
+
+          El vacío estaba desde siempre, pero lo tapaba el medallón del Quality
+          Score, que colgaba abajo a la izquierda y anclaba esa mitad. Al
+          sacarlo (Fase 29) quedó desnudo. El gesto de §2.6 no se pierde: la
+          foto sigue sobresaliendo por arriba y por la derecha, que es donde
+          rompe el cuadrante. */}
       <div
         aria-hidden
         className={cn(
-          "aspect-square rounded-[2rem] border motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out",
+          "aspect-[4/3] rounded-[2rem] border motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out",
           inView ? "opacity-100 scale-100" : "motion-safe:opacity-0 motion-safe:scale-95",
         )}
         style={{

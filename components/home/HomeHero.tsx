@@ -137,7 +137,7 @@ export function HomeHero() {
           >
             <span
               aria-hidden
-              className="pointer-events-none absolute inset-y-0 -left-full w-1/2 -skew-x-12 bg-white/25 motion-safe:animate-[cta-sheen_6s_ease-in-out_1.2s_infinite]"
+              className="pointer-events-none absolute inset-y-0 left-0 w-9 -skew-x-12 bg-white/20 motion-safe:animate-[cta-sheen_6s_ease-out_1.2s_infinite]"
             />
             <span className="relative">Ver propiedades</span>
             <ArrowRight className="relative size-4 transition-transform duration-200 group-hover:translate-x-1" />
