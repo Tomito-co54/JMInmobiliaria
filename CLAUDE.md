@@ -68,11 +68,8 @@ lugar al match**, que hasta ahora era invisible para todo el mundo porque
 exigía una cuenta que nadie puede crear. El 1-sep **ARBA salió del eje del
 discurso**, el match **se abre desde la barra de pestañas** y el sitio recibió
 una **pasada de movimiento** — entre páginas, en el cambio de tema y en el
-panel. Lo que queda sigue siendo de contenido, con una excepción:
-
-0. **El cambio de pestaña se siente lento** y es anterior a todo esto — Tomy
-   lo reporta como algo de hace rato. Sin diagnosticar; punto 4 del Build map,
-   que junta lo que ya se sabe para no arrancar de cero.
+panel. El 1-sep también se auditó la performance y **se resolvió la lentitud** que
+Tomy venía notando: no era código, era geografía. Lo que queda es de contenido:
 
 
 1. **El catálogo tiene 4 propiedades publicadas** — las cuatro unidades de
@@ -129,6 +126,65 @@ Subirlos es una decisión visual (el header se pondría más alto justo después
 de una pelea por su ancho), así que está en el Build map y no se tocó de
 prendido. Los de 19px son texto inline con tooltip, no botones, y valen menos
 que los otros.
+
+### La lentitud era geografía (auditoría del 1-sep)
+
+Tomy reportaba que cambiar de pestaña y abrir una propiedad tardaban. **No era
+código, era distancia**, y la auditoría lo dejó medido.
+
+**La base está en `sa-east-1` (San Pablo)** — lo dice el host del pooler,
+`aws-1-sa-east-1.pooler.supabase.com`. **La función corría en `iad1`
+(Washington)**, que es el default de Vercel y nadie eligió: el `X-Vercel-Id`
+decía `gru1::iad1`, o sea el pedido entraba por San Pablo y se ejecutaba en
+Washington. Cada consulta cruzaba el continente.
+
+La medición que lo aisló usa una ruta dinámica sin consultas como testigo:
+
+| Ruta | Qué hace | TTFB antes |
+|---|---|---|
+| `/guia-de-compra` | estática, desde CDN | 0,35s |
+| `/pago/exito` | **dinámica, cero consultas** | 0,39s |
+| `/propiedades` | dinámica, 2 consultas | 1,13s |
+
+La ubicación de la función no costaba casi nada; **cada consulta costaba
+~375ms**. Y no eran bytes: el payload de una navegación es de 5 a 8 kB.
+
+**Lo que se hizo, en dos commits separados para poder atribuir cada mejora:**
+
+1. `b98a5f3` — código: el catálogo del header se cachea entre requests
+   (`unstable_cache` + tag), el header deja de esperar en fila (`Promise.all`),
+   y los íconos de Leaflet dejan de venir de `unpkg`.
+2. `c0b9d1f` — `vercel.json` con `"regions": ["gru1"]`. San Pablo, la misma
+   ciudad que la base. Una línea, y se revierte borrando el archivo.
+
+**Resultado, medido en producción:**
+
+| Qué | Antes | Después |
+|---|---|---|
+| TTFB `/propiedades` | mediana 1,19s | **mediana 0,52s** |
+| TTFB `/edificios` | 1,23–2,54s | **mediana 0,34s** |
+| Navegación pestaña ↔ pestaña (RSC) | 543–1093ms | **164–282ms** |
+| Abrir una propiedad (RSC) | 990–1283ms | **247–508ms** |
+
+`/edificios` quedó en 0,34s contra una línea base estática de 0,35s: las
+consultas dejaron de costar.
+
+**Recursos: sanos, no hay nada que arreglar.** Heap 10–13 MB contra un límite
+de 4.096; 428 nodos DOM que vuelven **exactamente** a 428 tras seis
+navegaciones (no hay fugas); 787 kB transferidos en una sesión entera.
+
+**Lo que queda sin hacer y por qué:** `getUser()` se llama dos veces por
+request (el middleware y después `PublicHeader`). Se puede pasar el resultado
+del middleware por un header interno, pero eso abre una superficie de spoofing
+que hay que cerrar a mano, y con la región arreglada el viaje ya es barato.
+Anotado, no hecho. Igual `getPropertiesByProximity` sigue con `select("*")` y
+trayendo todas las filas para ordenarlas en JS: con cuatro propiedades no es
+un problema y el módulo ya documenta que pasa a RPC cuando crezca.
+
+**Trampa de medición, la misma de siempre:** en una pestaña oculta `setTimeout`
+se estrangula a ~1s, así que cualquier cronómetro propio devuelve ~1000ms para
+todo. Las mediciones que valen son las del **navegador** (`PerformanceResourceTiming`)
+y las de **curl**. Ver también la nota al pie de *Cómo se mueve el sitio*.
 
 ### Cómo se mueve el sitio
 
@@ -205,6 +261,7 @@ igual. Medir movimiento ahí adentro no prueba nada — hay que confirmar
 | Fase 25 — ARBA sale del eje | La cara pública lideraba con el nombre de una agencia de recaudación: el bloque de la home se titulaba "Verificación catastral" y explicaba qué es ARBA antes de decir para qué sirve; los chips decían "Verificada con ARBA". **Cambió cómo se cuenta, no qué se chequea** — la consulta a la parcela sigue corriendo y sigue habilitando el chip y el porcentaje. "Match ARBA exacto" pasó a "Ubicación confirmada en la parcela": nombraba la estrategia interna del lookup (`intersects`/`dwithin`), no lo que el dato significa. **ARBA queda solo en el catálogo de documentos de la guía**, donde "quién lo emite" es la pregunta que esa sección existe para contestar. Además la portada de cada edificio se abre en grande, reusando el visor de `/p/[id]`. | `3e822ef` |
 | Fase 26 — El match en la barra | Los criterios vivían al pie de la landing y en ningún otro lado, así que quien entraba por `/propiedades` —la página que muestra las propiedades— no tenía forma de llegar a ellos. `MatchQuickFilter`: desplegable en el header con medidor, link al mejor match y las seis preguntas. No es segunda fuente de verdad — mismo `sessionStorage`, así que tocar un criterio arriba mueve el medidor de la home en el mismo frame. `bestMatch` salió a `lib/matching` (la cuenta vivía dentro del componente de la home) y la query del catálogo a `lib/db/properties` con `cache`. El header a 375px se resolvió **midiendo**: el isotipo es apaisado y a dos tercios de alto devuelve 17px, Panel queda como ícono debajo de `sm`. Salió el último resto público del Quality Score, en la guía. | `a4e9f2c` |
 | Fase 27 — Transiciones y vida | Pasada de movimiento con la regla rectora de §2 como filtro. **Entre páginas ya no se corta en seco**: `(public)/template.tsx` — template y no layout, porque un layout persiste y un template se vuelve a montar, que es lo que le da entrada a la página nueva. **El click contesta**: `NavPending` (`useLinkStatus`) llena una barra bajo el link tocado, y la página que se va se recuesta (`body[data-navigating]`). No es un skeleton a propósito — Next mantiene la página actual hasta que la siguiente está lista, y para 300ms eso es mejor que vaciar. **El tema se barre desde el botón** (View Transitions API + `clip-path`, un solo paso compuesto; `disableTransitionOnChange` se queda). Movimiento nuevo en `/edificios` y en la guía, que es el proceso numerado de §2.3. El panel tiene su propio template, más quieto: 200ms, sin escala, sin reveals. | `52df257` `626c2da` |
+| Fase 28 — Auditoría de performance | La lentitud al cambiar de pestaña resultó ser **geografía**: base en San Pablo, función en Washington, ~375ms por consulta cruzando el continente. Aislado con una ruta dinámica sin consultas como testigo. Dos commits: código (catálogo del header cacheado entre requests con tag, header en `Promise.all`, íconos de Leaflet traídos a `/public`) y región (`vercel.json` → `gru1`). TTFB de `/edificios` 1,23–2,54s → **0,34s**, contra una base estática de 0,35s. Abrir una propiedad 990–1283ms → **247–508ms**. De paso apareció un bug latente: publicar revalidaba solo `/`, de cuando la landing era el catálogo. Recursos: sin fugas, 428 nodos que vuelven a 428, heap de 11 MB. | `b98a5f3` `c0b9d1f` |
 
 **Tests:** 367 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
 fase 9 → 275 tras las fases 10-15 → 300 tras la 16 → 316 tras la 18 → 319
@@ -246,7 +303,7 @@ tipologías. Están cargadas las cuatro de 2 ambientes: 1°A y 1°B a USD
 planta baja** (55 m² + patio de 22, USD 150.000, unidad única), los dos
 esperando fotos. Los precios de ficha son **contado sin cochera**; la tabla
 completa —financiado, con cochera— está en el folleto y todavía no tiene
-lugar en el sitio (ver punto 7 del Build map).
+lugar en el sitio (ver punto 6 del Build map).
 
 El catálogo público muestra dos fichas. Cargar más es lo único que separa
 al sitio de estar listo.
@@ -389,7 +446,7 @@ registro público. Esa fila solo puede existir para Tomy.
   de la protagonista" y es falso. Quedan **tres** lugares donde el visitante
   todavía lo ve: ese medallón, **el del hero de `/p/[id]`** ("71 · QUALITY ·
   Bueno", que nunca se tocó porque lo que salió en la Fase 21 fue el del
-  panel) y **la ficha PDF**. Los dos últimos están sin decidir — punto 5 del
+  panel) y **la ficha PDF**. Los dos últimos están sin decidir — punto 4 del
   Build map. Lo que sí se fue del todo es el **copy** que lo explicaba: la
   sección de la home (Fase 24) y la línea de la guía de compra (Fase 26),
   que le prometía al lector un número que ya no puede auditar.
@@ -439,7 +496,7 @@ Estado actual:
   unidad de 40 sobre una parcela de 239 "cumple" con 239 es absurdo impreso
   en el breakdown.
 
-Reconstruirlo bien depende de separar cubierto de descubierto — punto 8 del
+Reconstruirlo bien depende de separar cubierto de descubierto — punto 7 del
 Build map.
 
 ### Los servicios pagos están escondidos
@@ -661,7 +718,10 @@ Management API (config de auth, settings de proyecto). Reglas:
 ├── lib/
 │   ├── db/                       # queries tipadas — properties, admin, favorites, etc.
 │   │   └── property-sources.ts   # ← gate público (sources + listing_status)
-│   ├── supabase/                 # clients (server, browser, middleware, admin)
+│   ├── supabase/                 # clients (server, browser, middleware, admin,
+│   │                             #   public: anon y SIN cookies, el de menor privilegio.
+│   │                             #   Necesario para cachear: unstable_cache no tiene
+│   │                             #   request del cual leer cookies)
 │   ├── services/
 │   │   ├── arba/                 # WFS client + getParcelByPartida + bridge
 │   │   │                         #   + geometry.ts (centro de parcela)
@@ -711,6 +771,12 @@ Management API (config de auth, settings de proyecto). Reglas:
 │
 ├── types/                        # tipos compartidos
 ├── public/brand/                 # logos navy/white, isotipo + full
+├── public/leaflet/               # ← los 3 iconos del marcador. Venian de unpkg:
+│                                 #   4,5 kB que costaban DNS+TCP+TLS contra un host
+│                                 #   ajeno, en la pagina que mas rapido tiene que cargar
+├── vercel.json                   # ← regions: [gru1]. San Pablo, la misma ciudad que
+│                                 #   la base. Sin esto la funcion corre en Washington
+│                                 #   y cada consulta cruza el continente (~375ms)
 ├── supabase/
 │   ├── migrations/               # 00001..00016 (00011+ son del fork)
 │   ├── seed.sql
@@ -834,6 +900,7 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 27. **Fase 25 — ARBA sale del eje del discurso** ✅ 1-sep (+ portada del edificio ampliable)
 28. **Fase 26 — El match en la barra de pestañas** ✅ 1-sep
 29. **Fase 27 — Transiciones y vida** ✅ 1-sep (páginas, tema, panel)
+30. **Fase 28 — Auditoría de performance** ✅ 1-sep (la lentitud era la región)
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -870,33 +937,7 @@ datos** para tener algo que mostrar:
   nada que detectar.
 - **Series temporales de USD/m²** — necesitan meses.
 
-**4. El cambio de pestaña se siente lento** ← reportado por Tomy, 1-sep
-
-**Sin diagnosticar todavía.** Tomy lo reporta como algo de hace rato, no como
-una regresión de la pasada de movimiento — o sea que es anterior a las
-transiciones y ellas, en el mejor caso, lo disimulan y en el peor lo subrayan.
-
-Lo que ya se sabe y sirve de punto de partida, para no arrancar de cero:
-
-- Las páginas públicas son **todas dinámicas** (`ƒ` en el build): cada
-  navegación espera queries de servidor. `/propiedades` y `/edificios` corren
-  `getPropertiesByProximity` **sin límite**, y el header corre su propia
-  consulta de sesión + rol en cada página.
-- Medido el 1-sep en local: **~300ms** entre el click y la página nueva. En 4G
-  es más. `NavPending` lo acusa, pero acusar no es acortar.
-- El First Load JS de las páginas de listado es **259-263 kB**. Debajo del
-  techo de 500, pero no es poco.
-- **No hay ningún `loading.tsx`** en la app, y se decidió a propósito que un
-  skeleton empeora una espera de 300ms. Esa decisión se apoya en que la espera
-  sea de 300ms; si resulta ser bastante más, hay que revisarla.
-
-Sospechas ordenadas por lo que costaría verificarlas, no por probabilidad:
-el `await supabase.auth.getUser()` + query de rol del `PublicHeader` en cada
-navegación; el catálogo sin límite; y si algo de esto es en realidad el modo
-dev y no producción — **medir primero contra el deploy, no contra `npm run
-dev`**, que compila por ruta y es varias veces más lento.
-
-**5. Los 44px que faltan, y el Quality Score que sobra** ← medido 1-sep
+**4. Los 44px que faltan, y el Quality Score que sobra** ← medido 1-sep
 
 Dos restos chicos, los dos de la misma familia: cosas que quedaron de una
 versión anterior y que nadie vuelve a mirar porque no rompen nada.
@@ -916,14 +957,14 @@ versión anterior y que nadie vuelve a mirar porque no rompen nada.
 - **`components/scoring/` es código muerto**: el anillo, la card y el sheet
   ya no los importa nadie, ni el público ni `/admin`.
 
-**6. Mapa de búsqueda público**
+**5. Mapa de búsqueda público**
 
 `components/map/AreaMap` ya es agnóstico y está probado con 324 puntos.
 El público es una capa fina encima: cambian de dónde salen los puntos y
 qué hace la selección. Esperando inventario — con 2 fichas no se puede
 evaluar si está bien resuelto.
 
-**7. Configurador de precio en la ficha** ← ideas de Tomy, 28-ago
+**6. Configurador de precio en la ficha** ← ideas de Tomy, 28-ago
 
 Una unidad no tiene un precio, tiene una tabla. Belgrano 1287 la muestra
 cruda: contado o financiado, con cochera o sin. El sitio tiene **un** campo
@@ -945,7 +986,7 @@ jsonb, no un campo más. Vale pensarlo antes de escribirlo, porque el
 y el dashboard de mercado: si el precio pasa a ser un objeto, el número
 que esos tres leen tiene que seguir siendo el de contado sin extras.
 
-**8. Ponderar cubierto y descubierto en el precio** ← idea de Tomy, 28-ago
+**7. Ponderar cubierto y descubierto en el precio** ← idea de Tomy, 28-ago
 
 Hoy el USD/m² divide por una sola superficie. Pero 40 m² cubiertos más 40
 de terraza no valen lo mismo que 80 cubiertos, y el mercado ya sabe cuánto
@@ -974,12 +1015,12 @@ les da 77 contra 69 y 65, en buena parte porque el sub-score de precio lee
 esos USD 1.200/m² como una ganga contra los comparables. La terraza puntúa
 dos veces: una como superficie y otra como precio por metro.
 
-El dato de entrada es el problema, y es exactamente el del punto 9:
+El dato de entrada es el problema, y es exactamente el del punto 8:
 Zonaprop publica "superficie total" en el listado y el desglose
 cubierto/descubierto solo en la ficha individual. Sin ese desglose no hay
-de dónde separar los dos m². **Este punto depende del 9.**
+de dónde separar los dos m². **Este punto depende del 8.**
 
-**9. Superficie cubierta en el scraper**
+**8. Superficie cubierta en el scraper**
 
 El USD/m² de casas mide el lote, no lo construido, porque Zonaprop
 publica "superficie total". Los avisos **sí** muestran cubiertos y
@@ -987,11 +1028,11 @@ descubiertos, pero en la **ficha individual**, no en el listado. Sacarlo
 son 251 pedidos extra por corrida contra un techo de ~9. Bloqueado por
 el mismo límite que el scraping, no por falta de código.
 
-**10. Dominio propio + verificación en Resend**
+**9. Dominio propio + verificación en Resend**
 
 Necesario recién cuando se encienda el informe ARBA pago. Hoy no bloquea.
 
-**11. Automatizar el pipeline**
+**10. Automatizar el pipeline**
 
 Tarea programada de Windows, diferida a propósito. Ojo con la premisa: desde
 el 27-ago **GitHub Actions ya corre solo todos los días**; lo que no puede es
@@ -1218,6 +1259,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.11 | Sep 1, 2026 | **La lentitud era geografía, y ahora está medida de las dos puntas.** Tomy reportó que cambiar de pestaña y abrir una propiedad tardaban, y que venía de hace rato. No era código: **la base está en San Pablo y la función corría en Washington**, el default de Vercel que nadie eligió, así que cada consulta cruzaba el continente. Aislado con una ruta dinámica sin consultas como testigo — estática 0,35s, dinámica-sin-consultas 0,39s, dinámica-con-dos-consultas 1,13s — o sea **~375ms por consulta**, y nada de eso eran bytes: el payload de una navegación es de 5 a 8 kB. Se arregló en dos commits separados para poder atribuir cada mejora: código (el catálogo del header, que corría en cada página pública sin haber cambiado desde la última publicación, pasa a cachearse entre requests con tag; el header deja de esperar en fila; los íconos de Leaflet dejan de venir de unpkg) y región (`vercel.json` → `gru1`). **`/edificios` pasó de 1,23–2,54s a 0,34s**, contra una línea base estática de 0,35s: las consultas dejaron de costar. Abrir una propiedad, de 990–1283ms a 247–508ms. **Recursos: sanos** — heap de 11 MB contra un límite de 4.096, 428 nodos DOM que vuelven exactamente a 428 tras seis navegaciones, sin fugas. De paso apareció un bug latente: publicar una propiedad revalidaba solo `/`, de cuando la landing era el catálogo, así que `/propiedades` y `/edificios` seguían sirviendo el set anterior. Y otra vez la trampa del panel oculto: ahí `setTimeout` se estrangula a ~1s y cualquier cronómetro propio devuelve 1000ms para todo — las mediciones que valen son las del navegador y las de curl. |
 | 2.10 | Sep 1, 2026 | **Pasada de movimiento: el sitio deja de cortar en seco.** Entre páginas no había transición y desde que la Fase 23 partió la cara pública en tres, moverse entre páginas es lo principal que hace un visitante — cada click cambiaba la pantalla entera en un frame. Ahora hay entrada de página, la página que se va se recuesta, y el click se acusa con una barra bajo el link (`useLinkStatus`). **No hay skeletons a propósito**: Next mantiene la página actual hasta que la siguiente está lista, y para una espera de 300ms eso es mejor que vaciar a un esqueleto — lo que faltaba nunca fue el destino, era la respuesta al toque. El **cambio de tema** pasó de un frame duro a un círculo que crece desde el botón (View Transitions, un solo paso compuesto; `disableTransitionOnChange` se queda porque transicionar cada color por separado es justo lo que arrastra en un teléfono). Movimiento nuevo en `/edificios` y en la guía. El panel tiene el suyo, más quieto. **Dos bugs propios, cazados antes de subir:** `Reveal` pedía `threshold: 0.3`, que es **aritméticamente imposible** para algo más alto que ~3 viewports — la etapa 4 de la guía habría quedado invisible para siempre; y `transition.finished` rechaza al abortar, así que `.finally()` dejaba rechazos sin manejar en cada abort. Y una nota de método: **el panel del navegador oculto no corre rAF, ni transiciones, ni IntersectionObserver**, así que varias mediciones de animación de esta sesión no probaban nada hasta confirmar `visibilityState`. Nuevo en el Build map: **el cambio de pestaña se siente lento** (reportado por Tomy, sin diagnosticar). 367 tests, peso sin cambios. |
 | 2.9 | Sep 1, 2026 | **ARBA sale del eje del discurso, el match sube a la barra, y mobile deja de ser una aspiración para ser una medición.** La cara pública lideraba con el nombre de una agencia de recaudación provincial: el bloque de la home se titulaba "Verificación catastral" y explicaba qué es ARBA *antes* de decir para qué sirve. Cambió **cómo se cuenta, no qué se chequea** — la consulta a la parcela sigue corriendo y sigue habilitando el chip y el porcentaje. ARBA queda nombrada en un solo lugar y a propósito: el catálogo de documentos de la guía, donde "quién lo emite" es la pregunta que esa sección existe para contestar. El match, que vivía al pie de la landing y en ningún otro lado —o sea inalcanzable para quien entra por `/propiedades`, que es la página que muestra las propiedades— ahora se abre desde el header. **Mobile:** Tomy lo probó cinco minutos en el teléfono y anda bien; sobre esa impresión hay ahora una barrida medida a 375px que confirma lo importante (cero overflow horizontal en las cuatro surfaces públicas, 262 kB contra un techo de 500) y encuentra lo que la prueba a mano no delata: la regla de 44px se cumple en los controles protagonistas y no en los secundarios —nav de 28px, CTA del hero de 35px—. Y el documento volvió a mentir en dos cosas que él mismo afirmaba: `match.ts` **ya** no usa `surface_arba` para cruzar contra un comprador (se arregló el 31-ago), y el Quality Score **no** salió entero de la cara pública — sigue en el medallón del hero de `/p/[id]` y en la ficha PDF. **360 → 367 tests**. |
 | 2.8 | Aug 31, 2026 | **La cara pública se reordenó, y el match dejó de ser invisible.** El `MatchScoreCard` estaba en la ficha desde siempre detrás de una condición que **ningún visitante podía cumplir**: el match exigía un `search_profile`, o sea cuenta con onboarding, en un sitio sin registro público. Ahora las preguntas se responden en la página y la cuenta se hace en el navegador — el algoritmo no se tocó, era puro, solo faltaba de dónde sacar el perfil. El Quality Score le dejó el lugar en la ficha, y salió también de las cards y de la home: seguía explicándose en la landing un número que el visitante ya no veía en ningún lado donde pudiera actuar sobre él. El catálogo salió de la landing a **`/propiedades`** y apareció **`/edificios`**. Se sumaron superficie y antigüedad al match (migración 00016 `year_built`, que no existía: las únicas fechas de la tabla eran de publicación). Y otra vez un número creíble era un bug, el más caro hasta ahora: **una corrida bloqueada de Zonaprop se declaró completa y dio de baja 359 avisos**, de los cuales 208 se probaron vivos esa misma noche — una página bloqueada está igual de vacía que la siguiente al último resultado, y solo se atajaba el 403 explícito. La guarda nueva es aritmética y no lee la página, porque la marca de "sin resultados" no se pudo verificar. Se repararon los datos (154 revividas, 564 filas de historial inventado borradas) preservando **3 republicaciones reales**, las primeras. De paso se corrigió el propio `CLAUDE.md`: **GitHub Actions no está muerto** — corre solo y escribe en producción desde el 27-ago. **319 → 360 tests**, 38 → 42 rutas. |
