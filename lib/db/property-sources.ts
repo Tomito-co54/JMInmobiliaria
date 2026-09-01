@@ -27,3 +27,14 @@ export const PUBLIC_PROPERTY_SOURCES = ["owner_direct", "agency"] as const;
 export type PublicPropertySource = (typeof PUBLIC_PROPERTY_SOURCES)[number];
 
 export const PUBLIC_LISTING_STATUS = "publicada" as const;
+
+/**
+ * Cache tag for everything that depends on "which properties are public".
+ *
+ * One tag and not one per surface: the set is the same set everywhere — the
+ * two-gate filter above — so a property becoming published changes every
+ * consumer at the same instant. Splitting the tag would mean remembering to
+ * invalidate each one, and the failure mode of forgetting is a page that
+ * quietly serves yesterday's catalog.
+ */
+export const PUBLIC_CATALOG_TAG = "catalogo-publico";

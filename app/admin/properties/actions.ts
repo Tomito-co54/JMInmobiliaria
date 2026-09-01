@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { PUBLIC_CATALOG_TAG } from "@/lib/db/property-sources";
 import { createClient } from "@/lib/supabase/server";
 import {
   canPublishProperty,
@@ -418,7 +419,14 @@ export async function changeListingStatusAction(
 
   revalidatePath(`/admin/properties/${propertyId}/editar`);
   revalidatePath("/admin/properties");
-  revalidatePath("/"); // home stats / catalog
+  // Everything the public sees of "which properties exist" changes here.
+  // `/` was the only one listed, from when the landing WAS the catalog; since
+  // Fase 23 the catalog lives at /propiedades and /edificios, and publishing
+  // left both of them serving the previous set.
+  revalidatePath("/");
+  revalidatePath("/propiedades");
+  revalidatePath("/edificios");
+  revalidateTag(PUBLIC_CATALOG_TAG);
   return { ok: true };
 }
 
@@ -458,6 +466,9 @@ export async function toggleFeaturedAction(
   revalidatePath("/admin/properties");
   revalidatePath(`/admin/properties/${propertyId}/editar`);
   revalidatePath("/"); // home rotation depends on this set
+  revalidatePath("/propiedades");
+  revalidatePath("/edificios");
+  revalidateTag(PUBLIC_CATALOG_TAG);
   return { ok: true, data: { is_featured: next } };
 }
 

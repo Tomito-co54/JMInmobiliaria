@@ -1,9 +1,15 @@
 import { cache } from "react";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import {
+  createClient,
+  createAdminClient,
+  createPublicClient,
+} from "@/lib/supabase/server";
 import type { QualityBreakdown } from "@/lib/scoring";
 import type { MatchableProperty } from "@/lib/matching";
 import type { PropertyHistoryRow } from "@/lib/db/property-history";
 import {
+  PUBLIC_CATALOG_TAG,
   PUBLIC_LISTING_STATUS,
   PUBLIC_PROPERTY_SOURCES,
 } from "@/lib/db/property-sources";
@@ -496,25 +502,52 @@ async function findArbaLookup(
  * apply the public gate is exactly the duplication that lets one of them
  * quietly stop applying it.
  *
- * Wrapped in `cache` so the landing — where both the header and the garantías
- * section want it — pays for one round trip instead of two. Per request, so
- * nothing is held between visitors.
+ * Cached on two levels, because it is asked for on every public page and the
+ * answer is the same for everyone:
+ *
+ *   - `unstable_cache` keeps it BETWEEN requests, tagged so publishing a
+ *     property drops it immediately (see PUBLIC_CATALOG_TAG). Measured before
+ *     this: a round trip to the database cost ~375ms in production, because
+ *     the database is in São Paulo and the function ran in Washington. This
+ *     query ran on every single public page view and its answer had not
+ *     changed since the last time somebody published something.
+ *   - `cache` (React) dedupes it WITHIN a request, for the landing, where the
+ *     header and the garantías section both want it.
+ *
+ * Reads with the cookie-less public client: `unstable_cache` has no request to
+ * read cookies from, and this data does not depend on who is asking.
  */
-export const getMatchableCatalog = cache(async function getMatchableCatalog(): Promise<MatchableProperty[]> {
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("properties")
-      .select(
-        "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, description, year_built",
-      )
-      .eq("is_active", true)
-      .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
-      .eq("listing_status", PUBLIC_LISTING_STATUS);
-    return (data ?? []) as unknown as MatchableProperty[];
-  } catch {
-    // An empty list degrades to the neutral prompt, which is honest: with no
-    // catalog in hand there is no best match to name.
-    return [];
-  }
-});
+const loadMatchableCatalog = unstable_cache(
+  async function loadMatchableCatalog(): Promise<MatchableProperty[]> {
+    try {
+      const supabase = createPublicClient();
+      const { data } = await supabase
+        .from("properties")
+        .select(
+          "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, description, year_built",
+        )
+        .eq("is_active", true)
+        .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+        .eq("listing_status", PUBLIC_LISTING_STATUS);
+      return (data ?? []) as unknown as MatchableProperty[];
+    } catch {
+      // An empty list degrades to the neutral prompt, which is honest: with no
+      // catalog in hand there is no best match to name.
+      return [];
+    }
+  },
+  ["matchable-catalog"],
+  {
+    tags: [PUBLIC_CATALOG_TAG],
+    // A ceiling, not the mechanism. The tag is what makes a publish visible at
+    // once; this only bounds how long a cache that missed its invalidation can
+    // stay wrong.
+    revalidate: 300,
+  },
+);
+
+export const getMatchableCatalog = cache(
+  async function getMatchableCatalog(): Promise<MatchableProperty[]> {
+    return loadMatchableCatalog();
+  },
+);
