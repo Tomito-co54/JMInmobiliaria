@@ -23,10 +23,15 @@ import type { BuildingUnitRow } from "@/lib/db/properties";
  * Grouping comes from the cadastral parcel (lib/buildings), so it is ARBA
  * saying these units share a building, not string matching on the address.
  *
- * A building with one published unit is not shown as a building: it would be
- * /propiedades again with a heading on top. Those, and any property whose
- * parcel ARBA could not resolve, are named at the foot of the page and linked
- * — this page groups the catalog, it must never look like the whole of it.
+ * A parcel with a single published unit is a building too, and it is listed
+ * as one. It carries less news than a building with four, so it sorts below
+ * them — but leaving it out would mean this page shows a different catalog
+ * than /propiedades, which is worse than a short entry.
+ *
+ * What genuinely cannot appear is a property whose parcel ARBA never
+ * resolved: without a parcel there is nothing to group it by. Those are
+ * counted at the foot of the page with a link to the full catalog, so the
+ * page never passes for the whole of the inventory.
  */
 
 export const metadata: Metadata = {
@@ -90,17 +95,19 @@ export default async function EdificiosPage() {
 
   const grouped = groupByBuilding(rows);
   const buildings = [...grouped.entries()]
-    .filter(([, units]) => units.length > 1)
     .map(([key, units]) => toGroup(key, units))
-    // Biggest buildings first — that is what the page is for. Ties by name so
-    // the order does not shuffle between requests.
+    // Biggest buildings first — comparing units within one is what the page
+    // is for, so the ones with something to compare lead. Ties by name so the
+    // order does not shuffle between requests.
     .sort(
       (a, b) =>
         b.units.length - a.units.length || a.label.localeCompare(b.label, "es"),
     );
 
+  // Everything with a parcel is now in a group, so what is left over is
+  // exactly the properties ARBA could not place.
   const groupedIds = new Set(buildings.flatMap((b) => b.units.map((u) => u.id)));
-  const loose = rows.filter((r) => !groupedIds.has(r.id));
+  const withoutParcel = rows.filter((r) => !groupedIds.has(r.id));
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -131,7 +138,7 @@ export default async function EdificiosPage() {
 
           {buildings.length === 0 ? (
             <div className="mt-10 rounded-3xl border bg-card p-8 text-center text-sm text-muted-foreground">
-              Todavía no hay ningún edificio con más de una unidad publicada.
+              Todavía no hay propiedades publicadas con parcela verificada.
             </div>
           ) : (
             <div className="mt-10 sm:mt-14 space-y-8 sm:space-y-10">
@@ -141,12 +148,12 @@ export default async function EdificiosPage() {
             </div>
           )}
 
-          {loose.length > 0 && (
+          {withoutParcel.length > 0 && (
             <div className="mt-12 rounded-2xl border border-dashed p-5 sm:p-6">
               <p className="text-sm text-muted-foreground">
-                {loose.length === 1
-                  ? "Hay 1 propiedad publicada que no comparte edificio con ninguna otra."
-                  : `Hay ${loose.length} propiedades publicadas que no comparten edificio con ninguna otra.`}{" "}
+                {withoutParcel.length === 1
+                  ? "Hay 1 propiedad publicada que todavía no tiene la parcela verificada contra ARBA, así que no podemos ubicarla en un edificio."
+                  : `Hay ${withoutParcel.length} propiedades publicadas que todavía no tienen la parcela verificada contra ARBA, así que no podemos ubicarlas en un edificio.`}{" "}
                 Están en el catálogo completo.
               </p>
               <Link
