@@ -81,10 +81,10 @@ Lo que queda es de contenido:
 1. **El catálogo tiene 4 propiedades publicadas** — las cuatro unidades de
    2 ambientes de Belgrano 1287. Faltan el loft dúplex y el 3 ambientes del
    mismo edificio, bloqueados solo por fotos.
-2. **Ninguna propiedad está marcada con ★**, así que `HomeProtagonist` no
-   renderiza y la landing quedó sin ninguna propiedad a la vista. Antes el
-   catálogo al pie tapaba el hueco; al mudarlo, el hueco quedó expuesto. Se
-   arregla con un click en `/admin/properties`.
+2. **La protagonista de la portada es Belgrano 1287 2°A** (marcada el 1-sep a
+   pedido de Tomy). `getFeaturedProperty` rota entre las marcadas, así que con
+   una sola marcada la portada muestra siempre esa. Antes no había ninguna y
+   la landing quedaba sin una sola propiedad a la vista.
 3. **El scraping corre a mano** — pero ojo, ver abajo: **GitHub Actions
    también corre solo desde el 27-ago** y escribe en la misma base.
 
@@ -1008,26 +1008,18 @@ Detalles de cada fase en **Current progress** más arriba.
 
 ### Próximo
 
-**1. Marcar una propiedad con ★** ← un click, y hoy la landing no muestra ninguna
-
-Ninguna de las cuatro tiene `is_featured = true`, así que `HomeProtagonist`
-devuelve null. Mientras el catálogo vivía al pie de la landing eso no se
-notaba; desde que se mudó a `/propiedades`, la home quedó con hero +
-garantías y **cero propiedades a la vista**. Se arregla con el toggle ★ de
-`/admin/properties`.
-
-**2. Cargar propiedades reales** ← lo único que separa al sitio de lanzar
+**1. Cargar propiedades reales** ← lo único que separa al sitio de lanzar
 
 Hay 4 publicadas, las cuatro de 2 ambientes de Belgrano 1287. Lo siguiente
 son el **loft dúplex** y el **3 ambientes de planta baja** del mismo
-edificio: los datos están en el folleto y lo único que falta son las fotos.
+edificio: los datos están en el folleto y **lo único que falta son las fotos**.
 Dos caminos:
 
 - **Formulario:** `/admin/properties/nueva`.
 - **Desde un JSON:** `npm run cargar-propiedad -- ficha.json [--dry-run]`
   (`docs/ejemplo-propiedad.json` es la plantilla, ya incluye `year_built`).
 
-**3. Correr `npm run pipeline` seguido** ← ahora es la única forma en que corre
+**2. Correr `npm run pipeline` seguido** ← ahora es la única forma en que corre
 
 Cada corrida acumula historial que no se puede reconstruir después.
 Además, dos features del centro de datos están construidas y **esperando
@@ -1039,7 +1031,7 @@ datos** para tener algo que mostrar:
   nada que detectar.
 - **Series temporales de USD/m²** — necesitan meses.
 
-**4. La matrícula del martillero** ← una línea, esperando el número
+**3. La matrícula del martillero** ← una línea, esperando el número
 
 **Ya está construido y apagado.** El bloque vive en el lugar que dejó el
 "100%" de la home y se dibuja solo cuando hay número: `MARTILLERO.matricula`
@@ -1058,16 +1050,51 @@ le crean.
 
 Falta decidir además si va también en el pie y en la ficha.
 
-**5. Los 44px que faltan** ← medido 1-sep
+**4. El desglose de superficie** ← decidido el 1-sep, es lo próximo
 
-La regla de 44px se cumple en los controles protagonistas y no en los
-secundarios. Ver **Mobile aguanta** más arriba para la tabla medida; los que
-valen son los links del nav (28px) y el CTA del hero (35px). Es decisión
-visual: subir el nav engorda el header, que ya está justo de ancho a 375px con
-el match adentro.
+Junta los dos puntos que estaban separados (el USD/m² ponderado y la
+superficie cubierta del scraper). Iban separados porque uno dependía del otro;
+van juntos porque el segundo es la única forma de hacer el primero.
 
-(El otro medio punto de esta entrada —el Quality Score que quedaba en el hero
-y en el PDF— se resolvió el 1-sep. Ver la sección del match más arriba.)
+**El problema.** Hoy el USD/m² divide por una sola superficie. Para una casa
+eso mide el lote, no lo construido. Y 40 m² cubiertos más 40 de terraza no
+valen lo mismo que 80 cubiertos — está a la vista en el propio catálogo:
+
+| Unidad | Total | Cubierta | USD/m² |
+|---|---|---|---|
+| 1°A · 1°B | 40 | 40 | **2.000** |
+| 2°A · 2°B | 80 | 40 | **1.200** |
+
+Las de arriba son la misma planta con una terraza encima. Cuestan USD 16.000
+más y aparecen 40% más baratas por metro.
+
+**Por qué falta el dato.** Zonaprop publica "superficie total" en la página de
+resultados y el desglose cubierto/descubierto sólo dentro de cada aviso.
+Medido: llega en el **1%** de las 558 filas. La antigüedad falta por lo mismo.
+
+**El enfoque decidido — no traer todo, traer los nuevos.** El techo de
+Zonaprop es por corrida y por IP (~9 pedidos), no de por vida. Entrar a los
+558 avisos de una es imposible; entrar a **los nuevos de cada día** entra
+holgado: son 13 a 30, y ni siquiera todos los días.
+
+  - De acá en adelante, cada aviso nuevo se abre una vez y se le saca el
+    desglose. Se paga una sola vez por aviso, para siempre.
+  - Los 558 que ya están quedan incompletos, o se completan de a poco con lo
+    que sobre del presupuesto de pedidos en cada corrida.
+
+En algunas semanas hay masa suficiente para sacar cuánto vale el m² cubierto y
+cuánto el descubierto en la zona, que es lo que el punto necesita. Beneficio
+lateral: la ficha individual también trae la antigüedad.
+
+**Ojo con el orden:** esto suma pedidos a una corrida que ya vive contra un
+techo. Conviene gastar primero el presupuesto en las páginas de listado (que
+es lo que mantiene el catálogo al día) y usar lo que sobre para las fichas.
+
+**5. Los 44px que faltan** ← ya casi cerrado
+
+Nav, CTA del hero y CTA de la protagonista pasaron a 44-46px el 1-sep. Queda
+sólo el **logo (24px)**, y para ese Tomy pidió otra cosa: acuse al toque, ya
+hecho. Se cierra cuando se decida si el logo también sube.
 
 **6. Mapa de búsqueda público**
 
@@ -1098,7 +1125,7 @@ jsonb, no un campo más. Vale pensarlo antes de escribirlo, porque el
 y el dashboard de mercado: si el precio pasa a ser un objeto, el número
 que esos tres leen tiene que seguir siendo el de contado sin extras.
 
-**8. Ponderar cubierto y descubierto en el precio** ← idea de Tomy, 28-ago
+**8. Ponderar cubierto y descubierto en el precio** ← *absorbido por el punto 4*, se deja el detalle
 
 Hoy el USD/m² divide por una sola superficie. Pero 40 m² cubiertos más 40
 de terraza no valen lo mismo que 80 cubiertos, y el mercado ya sabe cuánto
@@ -1132,7 +1159,7 @@ Zonaprop publica "superficie total" en el listado y el desglose
 cubierto/descubierto solo en la ficha individual. Sin ese desglose no hay
 de dónde separar los dos m². **Este punto depende del 9.**
 
-**9. Superficie cubierta en el scraper**
+**9. Superficie cubierta en el scraper** ← *absorbido por el punto 4*
 
 El USD/m² de casas mide el lote, no lo construido, porque Zonaprop
 publica "superficie total". Los avisos **sí** muestran cubiertos y
