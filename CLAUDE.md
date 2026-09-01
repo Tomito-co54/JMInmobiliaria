@@ -66,9 +66,14 @@ de la landing y pasó a `/propiedades`; apareció `/edificios`, que muestra las
 unidades agrupadas por parcela; y en la ficha el **Quality Score le dejó el
 lugar al match**, que hasta ahora era invisible para todo el mundo porque
 exigía una cuenta que nadie puede crear. El 1-sep **ARBA salió del eje del
-discurso** y el match **se abre desde la barra de pestañas**, así que ya no
-hay que scrollear la landing para llegar a él. Lo que queda sigue siendo de
-contenido:
+discurso**, el match **se abre desde la barra de pestañas** y el sitio recibió
+una **pasada de movimiento** — entre páginas, en el cambio de tema y en el
+panel. Lo que queda sigue siendo de contenido, con una excepción:
+
+0. **El cambio de pestaña se siente lento** y es anterior a todo esto — Tomy
+   lo reporta como algo de hace rato. Sin diagnosticar; punto 4 del Build map,
+   que junta lo que ya se sabe para no arrancar de cero.
+
 
 1. **El catálogo tiene 4 propiedades publicadas** — las cuatro unidades de
    2 ambientes de Belgrano 1287. Faltan el loft dúplex y el 3 ambientes del
@@ -125,6 +130,44 @@ de una pelea por su ancho), así que está en el Build map y no se tocó de
 prendido. Los de 19px son texto inline con tooltip, no botones, y valen menos
 que los otros.
 
+### Cómo se mueve el sitio
+
+Todo el movimiento es CSS sobre `transform`/`opacity` más IntersectionObserver.
+**No hay librería de animación** y no hace falta agregar una. El vocabulario es
+corto y conviene reusarlo antes de inventar:
+
+| Pieza | Qué hace | Dónde |
+|---|---|---|
+| `Reveal` | Entra al entrar en viewport. 850ms, con dirección | `components/shared/Reveal.tsx` |
+| `.page-enter` | Entrada de página, 380ms con pico y asentamiento | `globals.css` + los dos `template.tsx` |
+| `NavPending` | Barra dorada bajo el link tocado mientras se busca la página | `components/shared/NavPending.tsx` |
+| `body[data-navigating]` | La página que se va se recuesta | `globals.css`, lo prenden los NavPending |
+| `theme-sweep` | El tema nuevo entra como círculo desde el botón | `globals.css` + `theme-toggle.tsx` |
+| `.home-rise` / `-hero` | Cascada de entrada del hero | `globals.css` |
+
+Tres reglas que ya costaron algo:
+
+- **`Reveal` usa `threshold: 0`, y no se toca.** El umbral por fracción del
+  propio elemento es **imposible de satisfacer** para algo más alto que ~3
+  viewports: el ratio es área visible sobre área total, así que el techo es
+  `viewport / alto`. La etapa 4 de la guía mide 2463px contra 667 de un
+  teléfono — techo 0,247 contra un umbral de 0,3 — y se habría quedado en
+  `opacity: 0` **para siempre**. Nada explota; una sección entera desaparece.
+- **El estado escondido va detrás de `motion-safe:`, no solo la transición.**
+  Si el `opacity-0` inicial no está gateado, quien pidió menos movimiento no
+  ve la página: queda invisible en vez de simplemente no animada.
+- **Las promesas de View Transitions rechazan al abortar**, y abortar es
+  ordinario (la pestaña se va al fondo, el update pasa el plazo, empieza otra
+  transición). `.finally()` re-lanza; hay que manejarlas con
+  `then(done, done)` o queda un chorro de rechazos sin manejar en Sentry por
+  algo que ni siquiera es una falla.
+
+Y una nota de método que se repitió toda la sesión: **el panel del navegador,
+cuando está oculto, no corre `requestAnimationFrame`, no avanza transiciones
+CSS y no entrega `IntersectionObserver`.** Todo se ve congelado o roto por
+igual. Medir movimiento ahí adentro no prueba nada — hay que confirmar
+`document.visibilityState` antes de creerle a una medición de animación.
+
 
 **Recordarle correr el pipeline** cada vez que retome trabajo.
 
@@ -161,6 +204,7 @@ que los otros.
 | Fase 24 — Acomodar la home | El bloque de Quality Score salió de la home (explicaba un número que el visitante ya no ve en ningún lado donde pueda actuar sobre él) y el copy del match bajó abajo del medidor. Presupuesto desde 5.000. RUMAH: enero 2026. `lib/buildings/photos.ts` para la foto del edificio. | `c6b490d` |
 | Fase 25 — ARBA sale del eje | La cara pública lideraba con el nombre de una agencia de recaudación: el bloque de la home se titulaba "Verificación catastral" y explicaba qué es ARBA antes de decir para qué sirve; los chips decían "Verificada con ARBA". **Cambió cómo se cuenta, no qué se chequea** — la consulta a la parcela sigue corriendo y sigue habilitando el chip y el porcentaje. "Match ARBA exacto" pasó a "Ubicación confirmada en la parcela": nombraba la estrategia interna del lookup (`intersects`/`dwithin`), no lo que el dato significa. **ARBA queda solo en el catálogo de documentos de la guía**, donde "quién lo emite" es la pregunta que esa sección existe para contestar. Además la portada de cada edificio se abre en grande, reusando el visor de `/p/[id]`. | `3e822ef` |
 | Fase 26 — El match en la barra | Los criterios vivían al pie de la landing y en ningún otro lado, así que quien entraba por `/propiedades` —la página que muestra las propiedades— no tenía forma de llegar a ellos. `MatchQuickFilter`: desplegable en el header con medidor, link al mejor match y las seis preguntas. No es segunda fuente de verdad — mismo `sessionStorage`, así que tocar un criterio arriba mueve el medidor de la home en el mismo frame. `bestMatch` salió a `lib/matching` (la cuenta vivía dentro del componente de la home) y la query del catálogo a `lib/db/properties` con `cache`. El header a 375px se resolvió **midiendo**: el isotipo es apaisado y a dos tercios de alto devuelve 17px, Panel queda como ícono debajo de `sm`. Salió el último resto público del Quality Score, en la guía. | `a4e9f2c` |
+| Fase 27 — Transiciones y vida | Pasada de movimiento con la regla rectora de §2 como filtro. **Entre páginas ya no se corta en seco**: `(public)/template.tsx` — template y no layout, porque un layout persiste y un template se vuelve a montar, que es lo que le da entrada a la página nueva. **El click contesta**: `NavPending` (`useLinkStatus`) llena una barra bajo el link tocado, y la página que se va se recuesta (`body[data-navigating]`). No es un skeleton a propósito — Next mantiene la página actual hasta que la siguiente está lista, y para 300ms eso es mejor que vaciar. **El tema se barre desde el botón** (View Transitions API + `clip-path`, un solo paso compuesto; `disableTransitionOnChange` se queda). Movimiento nuevo en `/edificios` y en la guía, que es el proceso numerado de §2.3. El panel tiene su propio template, más quieto: 200ms, sin escala, sin reveals. | `52df257` `626c2da` |
 
 **Tests:** 367 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
 fase 9 → 275 tras las fases 10-15 → 300 tras la 16 → 316 tras la 18 → 319
@@ -202,7 +246,7 @@ tipologías. Están cargadas las cuatro de 2 ambientes: 1°A y 1°B a USD
 planta baja** (55 m² + patio de 22, USD 150.000, unidad única), los dos
 esperando fotos. Los precios de ficha son **contado sin cochera**; la tabla
 completa —financiado, con cochera— está en el folleto y todavía no tiene
-lugar en el sitio (ver punto 6 del Build map).
+lugar en el sitio (ver punto 7 del Build map).
 
 El catálogo público muestra dos fichas. Cargar más es lo único que separa
 al sitio de estar listo.
@@ -345,7 +389,7 @@ registro público. Esa fila solo puede existir para Tomy.
   de la protagonista" y es falso. Quedan **tres** lugares donde el visitante
   todavía lo ve: ese medallón, **el del hero de `/p/[id]`** ("71 · QUALITY ·
   Bueno", que nunca se tocó porque lo que salió en la Fase 21 fue el del
-  panel) y **la ficha PDF**. Los dos últimos están sin decidir — punto 4 del
+  panel) y **la ficha PDF**. Los dos últimos están sin decidir — punto 5 del
   Build map. Lo que sí se fue del todo es el **copy** que lo explicaba: la
   sección de la home (Fase 24) y la línea de la guía de compra (Fase 26),
   que le prometía al lector un número que ya no puede auditar.
@@ -395,7 +439,7 @@ Estado actual:
   unidad de 40 sobre una parcela de 239 "cumple" con 239 es absurdo impreso
   en el breakdown.
 
-Reconstruirlo bien depende de separar cubierto de descubierto — punto 7 del
+Reconstruirlo bien depende de separar cubierto de descubierto — punto 8 del
 Build map.
 
 ### Los servicios pagos están escondidos
@@ -547,10 +591,15 @@ Management API (config de auth, settings de proyecto). Reglas:
 ├── app/
 │   ├── (auth)/                   # login, forgot-password, reset-password, verify-email
 │   ├── (public)/                 # /p/[id], /p/[id]/servicios, /guia-de-compra
+│   │   ├── template.tsx          # ← entrada de página. Template y NO layout: un
+│   │   │                         #   layout persiste entre navegaciones, un template
+│   │   │                         #   se vuelve a montar, que es lo que da la entrada
 │   │   ├── propiedades/          # ← el catálogo (salió de la landing)
 │   │   └── edificios/            # ← agrupado por parcela catastral
 │   ├── (app)/                    # legacy del upstream — buscar, busquedas, favoritos, dashboard, perfil, alertas, mis-servicios
 │   ├── admin/                    # ← panel principal de operación
+│   │   ├── template.tsx          # ← misma idea, más quieta: 200ms, sin escala y sin
+│   │   │                         #   reveals. Es una herramienta, no una vidriera
 │   │   ├── page.tsx              # dashboard de métricas
 │   │   ├── properties/           # ← CARGADOR (nueva, listado, [id]/editar)
 │   │   ├── mercado/              # ← Centro de datos (3 pantallas)
@@ -601,7 +650,11 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   el mapa de mercado y (a futuro) el público
 │   ├── shared/                   # BrandLogo, PublicHeader (el nav público, en UN lugar:
 │   │                             #   había seis cabeceras a mano y por eso el dark mode
-│   │                             #   costó seis ediciones), AdminSidebar, UserMenu, etc.
+│   │                             #   costó seis ediciones), AdminSidebar, UserMenu,
+│   │                             #   Reveal (entrada por scroll — vivía en el archivo
+│   │                             #   de la home y lo importaban tres surfaces),
+│   │                             #   NavPending (acuse del click), theme-toggle
+│   │                             #   (el barrido circular del tema), etc.
 │   ├── education/                # BuyingProcessAdvisor (legacy)
 │   └── search/                   # SearchProfileForm (legacy)
 │
@@ -780,6 +833,7 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 26. **Fase 24 — Acomodar la home** ✅ 31-ago
 27. **Fase 25 — ARBA sale del eje del discurso** ✅ 1-sep (+ portada del edificio ampliable)
 28. **Fase 26 — El match en la barra de pestañas** ✅ 1-sep
+29. **Fase 27 — Transiciones y vida** ✅ 1-sep (páginas, tema, panel)
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -816,7 +870,33 @@ datos** para tener algo que mostrar:
   nada que detectar.
 - **Series temporales de USD/m²** — necesitan meses.
 
-**4. Los 44px que faltan, y el Quality Score que sobra** ← medido 1-sep
+**4. El cambio de pestaña se siente lento** ← reportado por Tomy, 1-sep
+
+**Sin diagnosticar todavía.** Tomy lo reporta como algo de hace rato, no como
+una regresión de la pasada de movimiento — o sea que es anterior a las
+transiciones y ellas, en el mejor caso, lo disimulan y en el peor lo subrayan.
+
+Lo que ya se sabe y sirve de punto de partida, para no arrancar de cero:
+
+- Las páginas públicas son **todas dinámicas** (`ƒ` en el build): cada
+  navegación espera queries de servidor. `/propiedades` y `/edificios` corren
+  `getPropertiesByProximity` **sin límite**, y el header corre su propia
+  consulta de sesión + rol en cada página.
+- Medido el 1-sep en local: **~300ms** entre el click y la página nueva. En 4G
+  es más. `NavPending` lo acusa, pero acusar no es acortar.
+- El First Load JS de las páginas de listado es **259-263 kB**. Debajo del
+  techo de 500, pero no es poco.
+- **No hay ningún `loading.tsx`** en la app, y se decidió a propósito que un
+  skeleton empeora una espera de 300ms. Esa decisión se apoya en que la espera
+  sea de 300ms; si resulta ser bastante más, hay que revisarla.
+
+Sospechas ordenadas por lo que costaría verificarlas, no por probabilidad:
+el `await supabase.auth.getUser()` + query de rol del `PublicHeader` en cada
+navegación; el catálogo sin límite; y si algo de esto es en realidad el modo
+dev y no producción — **medir primero contra el deploy, no contra `npm run
+dev`**, que compila por ruta y es varias veces más lento.
+
+**5. Los 44px que faltan, y el Quality Score que sobra** ← medido 1-sep
 
 Dos restos chicos, los dos de la misma familia: cosas que quedaron de una
 versión anterior y que nadie vuelve a mirar porque no rompen nada.
@@ -836,14 +916,14 @@ versión anterior y que nadie vuelve a mirar porque no rompen nada.
 - **`components/scoring/` es código muerto**: el anillo, la card y el sheet
   ya no los importa nadie, ni el público ni `/admin`.
 
-**5. Mapa de búsqueda público**
+**6. Mapa de búsqueda público**
 
 `components/map/AreaMap` ya es agnóstico y está probado con 324 puntos.
 El público es una capa fina encima: cambian de dónde salen los puntos y
 qué hace la selección. Esperando inventario — con 2 fichas no se puede
 evaluar si está bien resuelto.
 
-**6. Configurador de precio en la ficha** ← ideas de Tomy, 28-ago
+**7. Configurador de precio en la ficha** ← ideas de Tomy, 28-ago
 
 Una unidad no tiene un precio, tiene una tabla. Belgrano 1287 la muestra
 cruda: contado o financiado, con cochera o sin. El sitio tiene **un** campo
@@ -865,7 +945,7 @@ jsonb, no un campo más. Vale pensarlo antes de escribirlo, porque el
 y el dashboard de mercado: si el precio pasa a ser un objeto, el número
 que esos tres leen tiene que seguir siendo el de contado sin extras.
 
-**7. Ponderar cubierto y descubierto en el precio** ← idea de Tomy, 28-ago
+**8. Ponderar cubierto y descubierto en el precio** ← idea de Tomy, 28-ago
 
 Hoy el USD/m² divide por una sola superficie. Pero 40 m² cubiertos más 40
 de terraza no valen lo mismo que 80 cubiertos, y el mercado ya sabe cuánto
@@ -894,12 +974,12 @@ les da 77 contra 69 y 65, en buena parte porque el sub-score de precio lee
 esos USD 1.200/m² como una ganga contra los comparables. La terraza puntúa
 dos veces: una como superficie y otra como precio por metro.
 
-El dato de entrada es el problema, y es exactamente el del punto 8:
+El dato de entrada es el problema, y es exactamente el del punto 9:
 Zonaprop publica "superficie total" en el listado y el desglose
 cubierto/descubierto solo en la ficha individual. Sin ese desglose no hay
-de dónde separar los dos m². **Este punto depende del 8.**
+de dónde separar los dos m². **Este punto depende del 9.**
 
-**8. Superficie cubierta en el scraper**
+**9. Superficie cubierta en el scraper**
 
 El USD/m² de casas mide el lote, no lo construido, porque Zonaprop
 publica "superficie total". Los avisos **sí** muestran cubiertos y
@@ -907,11 +987,11 @@ descubiertos, pero en la **ficha individual**, no en el listado. Sacarlo
 son 251 pedidos extra por corrida contra un techo de ~9. Bloqueado por
 el mismo límite que el scraping, no por falta de código.
 
-**9. Dominio propio + verificación en Resend**
+**10. Dominio propio + verificación en Resend**
 
 Necesario recién cuando se encienda el informe ARBA pago. Hoy no bloquea.
 
-**10. Automatizar el pipeline**
+**11. Automatizar el pipeline**
 
 Tarea programada de Windows, diferida a propósito. Ojo con la premisa: desde
 el 27-ago **GitHub Actions ya corre solo todos los días**; lo que no puede es
@@ -1138,6 +1218,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.10 | Sep 1, 2026 | **Pasada de movimiento: el sitio deja de cortar en seco.** Entre páginas no había transición y desde que la Fase 23 partió la cara pública en tres, moverse entre páginas es lo principal que hace un visitante — cada click cambiaba la pantalla entera en un frame. Ahora hay entrada de página, la página que se va se recuesta, y el click se acusa con una barra bajo el link (`useLinkStatus`). **No hay skeletons a propósito**: Next mantiene la página actual hasta que la siguiente está lista, y para una espera de 300ms eso es mejor que vaciar a un esqueleto — lo que faltaba nunca fue el destino, era la respuesta al toque. El **cambio de tema** pasó de un frame duro a un círculo que crece desde el botón (View Transitions, un solo paso compuesto; `disableTransitionOnChange` se queda porque transicionar cada color por separado es justo lo que arrastra en un teléfono). Movimiento nuevo en `/edificios` y en la guía. El panel tiene el suyo, más quieto. **Dos bugs propios, cazados antes de subir:** `Reveal` pedía `threshold: 0.3`, que es **aritméticamente imposible** para algo más alto que ~3 viewports — la etapa 4 de la guía habría quedado invisible para siempre; y `transition.finished` rechaza al abortar, así que `.finally()` dejaba rechazos sin manejar en cada abort. Y una nota de método: **el panel del navegador oculto no corre rAF, ni transiciones, ni IntersectionObserver**, así que varias mediciones de animación de esta sesión no probaban nada hasta confirmar `visibilityState`. Nuevo en el Build map: **el cambio de pestaña se siente lento** (reportado por Tomy, sin diagnosticar). 367 tests, peso sin cambios. |
 | 2.9 | Sep 1, 2026 | **ARBA sale del eje del discurso, el match sube a la barra, y mobile deja de ser una aspiración para ser una medición.** La cara pública lideraba con el nombre de una agencia de recaudación provincial: el bloque de la home se titulaba "Verificación catastral" y explicaba qué es ARBA *antes* de decir para qué sirve. Cambió **cómo se cuenta, no qué se chequea** — la consulta a la parcela sigue corriendo y sigue habilitando el chip y el porcentaje. ARBA queda nombrada en un solo lugar y a propósito: el catálogo de documentos de la guía, donde "quién lo emite" es la pregunta que esa sección existe para contestar. El match, que vivía al pie de la landing y en ningún otro lado —o sea inalcanzable para quien entra por `/propiedades`, que es la página que muestra las propiedades— ahora se abre desde el header. **Mobile:** Tomy lo probó cinco minutos en el teléfono y anda bien; sobre esa impresión hay ahora una barrida medida a 375px que confirma lo importante (cero overflow horizontal en las cuatro surfaces públicas, 262 kB contra un techo de 500) y encuentra lo que la prueba a mano no delata: la regla de 44px se cumple en los controles protagonistas y no en los secundarios —nav de 28px, CTA del hero de 35px—. Y el documento volvió a mentir en dos cosas que él mismo afirmaba: `match.ts` **ya** no usa `surface_arba` para cruzar contra un comprador (se arregló el 31-ago), y el Quality Score **no** salió entero de la cara pública — sigue en el medallón del hero de `/p/[id]` y en la ficha PDF. **360 → 367 tests**. |
 | 2.8 | Aug 31, 2026 | **La cara pública se reordenó, y el match dejó de ser invisible.** El `MatchScoreCard` estaba en la ficha desde siempre detrás de una condición que **ningún visitante podía cumplir**: el match exigía un `search_profile`, o sea cuenta con onboarding, en un sitio sin registro público. Ahora las preguntas se responden en la página y la cuenta se hace en el navegador — el algoritmo no se tocó, era puro, solo faltaba de dónde sacar el perfil. El Quality Score le dejó el lugar en la ficha, y salió también de las cards y de la home: seguía explicándose en la landing un número que el visitante ya no veía en ningún lado donde pudiera actuar sobre él. El catálogo salió de la landing a **`/propiedades`** y apareció **`/edificios`**. Se sumaron superficie y antigüedad al match (migración 00016 `year_built`, que no existía: las únicas fechas de la tabla eran de publicación). Y otra vez un número creíble era un bug, el más caro hasta ahora: **una corrida bloqueada de Zonaprop se declaró completa y dio de baja 359 avisos**, de los cuales 208 se probaron vivos esa misma noche — una página bloqueada está igual de vacía que la siguiente al último resultado, y solo se atajaba el 403 explícito. La guarda nueva es aritmética y no lee la página, porque la marca de "sin resultados" no se pudo verificar. Se repararon los datos (154 revividas, 564 filas de historial inventado borradas) preservando **3 republicaciones reales**, las primeras. De paso se corrigió el propio `CLAUDE.md`: **GitHub Actions no está muerto** — corre solo y escribe en producción desde el 27-ago. **319 → 360 tests**, 38 → 42 rutas. |
 | 2.7 | Aug 28, 2026 | **El catálogo dejó de ser una vitrina de una sola ficha, y cargar de verdad rompió cuatro cosas.** Entraron las cuatro unidades de 2 ambientes de Belgrano 1287 con el cargador CLI. Con una propiedad ninguna de estas se veía: el cargador scoreaba sin `warmUp()` del cache de comparables; la card mostraba los 239 m² de la parcela sobre una unidad de 40; y sobre todo **la coherencia ARBA marcaba en rojo al 79% de los departamentos por ser departamentos** —40 m² declarados contra una parcela de 239 puntuaban 20/100— justo en la página cuya promesa es la verificación catastral. Es la Fase 12 otra vez, en los dos lugares que no se revisaron. Parkeado, con las bandas guardadas como spec de vuelta; el rescoreo de las 380 movió los verdes de 79 a 106. Después, tres piezas nuevas: **edificios por parcela** (dos unidades con la misma nomenclatura están en el mismo edificio: es una definición, y ya agrupa 17 parcelas de la data scrapeada, una con diez unidades), **galería de fotos** (el hero mostraba 1 de 18) y **ficha PDF** descargable. Los servicios pagos quedaron escondidos detrás de un flag. Y la guía de compra pasó de decirle al lector que fuera a sacar sus propios informes a decir de qué se encarga JM, cambiando el modelo de datos y no solo el copy. **316 → 319 tests** (+7 skipped a propósito). |
