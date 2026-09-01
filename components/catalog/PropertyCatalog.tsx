@@ -1,4 +1,4 @@
-import { Reveal } from "@/components/home/HomeGuaranteesClient";
+import { Reveal } from "@/components/shared/Reveal";
 import { buildingKey, type BuildingSummary } from "@/lib/buildings";
 import {
   PropertyPremiumCard,

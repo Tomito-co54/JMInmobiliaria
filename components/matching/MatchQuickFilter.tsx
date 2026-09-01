@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, SlidersHorizontal } from "lucide-react";
 import {
@@ -52,6 +52,7 @@ export function MatchQuickFilter({
 }) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [justChanged, setJustChanged] = useState(false);
   const { preferences, setPreferences, ready } = useMatchPreferences();
 
   // Before the first client read lands, show the neutral trigger: the server
@@ -61,6 +62,23 @@ export function MatchQuickFilter({
   const band = getMatchBand(best?.score ?? null);
   const color =
     best && best.score >= 100 ? "var(--match-perfect)" : band.hex;
+
+  // The criteria can be answered somewhere the trigger is not: the builder at
+  // the foot of the landing, or the panel on a listing. In those the number up
+  // here changes while the reader is looking two screens away, and a value
+  // that swaps silently is a value nobody learns is connected to anything. The
+  // pulse is the one job §2 allows an animation that reveals nothing new —
+  // guiding the eye to what moved.
+  const score = best?.score ?? null;
+  const previous = useRef<number | null>(null);
+  useEffect(() => {
+    const had = previous.current;
+    previous.current = score;
+    if (had === null || score === null || had === score) return;
+    setJustChanged(true);
+    const t = setTimeout(() => setJustChanged(false), 600);
+    return () => clearTimeout(t);
+  }, [score]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -75,6 +93,11 @@ export function MatchQuickFilter({
           "text-sm font-medium transition-colors",
           "hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2",
           "data-[popup-open]:bg-accent",
+          // Scale only, and only while the popover is shut — pulsing the
+          // anchor of an open popover would drag the popover with it.
+          !open &&
+            "motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out",
+          !open && justChanged && "motion-safe:scale-110",
         )}
         style={best ? { borderColor: color } : undefined}
       >

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { NavPending } from "@/components/shared/NavPending";
 import Link from "next/link";
 import { MapPin, ShieldCheck, ArrowRight, ImageIcon } from "lucide-react";
 import type { BuildingSummary } from "@/lib/buildings";
@@ -194,12 +195,15 @@ export function PropertyPremiumCard({
             )}
           </div>
 
+          {/* The whole card is the link; this is where the eye is when the
+              tap lands, so it is where the acknowledgement belongs. */}
           <span
-            className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold"
+            className="relative mt-6 inline-flex items-center gap-1.5 pb-1.5 text-sm font-semibold"
             style={{ color: "var(--brand-heading)" }}
           >
             Ver propiedad
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            <NavPending className="inset-x-0 bottom-0" />
           </span>
         </div>
       </Link>

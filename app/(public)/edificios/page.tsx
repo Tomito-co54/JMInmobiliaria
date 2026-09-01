@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { PublicHeader } from "@/components/shared/PublicHeader";
+import { Reveal } from "@/components/shared/Reveal";
 import { WhatsAppFloat } from "@/components/home/WhatsAppFloat";
 import {
   BuildingGroup,
@@ -130,7 +131,7 @@ export default async function EdificiosPage() {
 
       <section className="px-4 py-14 sm:py-20">
         <div className="max-w-5xl mx-auto">
-          <div className="max-w-2xl">
+          <Reveal className="max-w-2xl">
             <p
               className="text-xs uppercase tracking-[0.2em] font-medium"
               style={{ color: "var(--brand-gold)" }}
@@ -149,7 +150,7 @@ export default async function EdificiosPage() {
               mismo edificio cuando comparten la parcela, y la parcela es un
               dato del registro oficial.
             </p>
-          </div>
+          </Reveal>
 
           {buildings.length === 0 ? (
             <div className="mt-10 rounded-3xl border bg-card p-8 text-center text-sm text-muted-foreground">
@@ -157,14 +158,21 @@ export default async function EdificiosPage() {
             </div>
           ) : (
             <div className="mt-10 sm:mt-14 space-y-8 sm:space-y-10">
-              {buildings.map((b) => (
-                <BuildingGroup key={b.key} building={b} />
+              {/* One building at a time rather than the block at once. The
+                  stagger is capped: past a handful of buildings a per-index
+                  delay stops reading as rhythm and starts reading as the page
+                  being slow to load (§2 — movement with a job, and here the
+                  job is guiding the eye down the list). */}
+              {buildings.map((b, i) => (
+                <Reveal key={b.key} delayMs={Math.min(i, 3) * 90}>
+                  <BuildingGroup building={b} />
+                </Reveal>
               ))}
             </div>
           )}
 
           {withoutParcel.length > 0 && (
-            <div className="mt-12 rounded-2xl border border-dashed p-5 sm:p-6">
+            <Reveal className="mt-12 rounded-2xl border border-dashed p-5 sm:p-6">
               <p className="text-sm text-muted-foreground">
                 {withoutParcel.length === 1
                   ? "Hay 1 propiedad publicada que todavía no tiene la parcela verificada, así que no podemos ubicarla en un edificio."
@@ -177,7 +185,7 @@ export default async function EdificiosPage() {
               >
                 Ver todas las propiedades
               </Link>
-            </div>
+            </Reveal>
           )}
         </div>
       </section>

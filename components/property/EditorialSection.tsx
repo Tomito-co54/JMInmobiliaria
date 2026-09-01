@@ -1,4 +1,4 @@
-import { Reveal } from "@/components/home/HomeGuaranteesClient";
+import { Reveal } from "@/components/shared/Reveal";
 
 /**
  * Editorial section wrapper for the detail page (rediseño /p/[id]). Replaces

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BrandLogo } from "@/components/shared/BrandLogo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { MatchQuickFilter } from "@/components/matching/MatchQuickFilter";
+import { NavPending } from "@/components/shared/NavPending";
 import { getMatchableCatalog } from "@/lib/db/properties";
 
 /**
@@ -100,6 +101,8 @@ export async function PublicHeader({
                 aria-current={current ? "page" : undefined}
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "sm" }),
+                  // relative: NavPending anchors its bar to this link.
+                  "relative",
                   // Tighter than the default at 375px. Measured: anonymous,
                   // the row fits either way with room to spare. Logged in it
                   // does not — the "Panel" button lands the nav within a few
@@ -117,6 +120,7 @@ export async function PublicHeader({
                 )}
               >
                 {item.label}
+                <NavPending />
               </Link>
             );
           })}

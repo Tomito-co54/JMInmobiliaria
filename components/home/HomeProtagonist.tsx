@@ -4,7 +4,7 @@ import type { FeaturedPropertyRow } from "@/lib/db/properties";
 import { getScoreBand } from "@/lib/scoring/bands";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Reveal } from "@/components/home/HomeGuaranteesClient";
+import { Reveal } from "@/components/shared/Reveal";
 import { HomeProtagonistShowpiece } from "@/components/home/HomeProtagonistShowpiece";
 
 /**

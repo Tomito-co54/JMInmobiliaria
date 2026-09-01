@@ -42,43 +42,6 @@ import {
 // nada corta en seco). Reduced-motion users get the final state with no
 // transition (the hidden classes are motion-safe).
 // ---------------------------------------------------------------------------
-export function Reveal({
-  children,
-  delayMs = 0,
-  className,
-  direction = "up",
-}: {
-  children: React.ReactNode;
-  delayMs?: number;
-  className?: string;
-  /** Entrance direction. "up" rises; "left"/"right" slide in horizontally. */
-  direction?: "up" | "left" | "right";
-}) {
-  const { ref, inView } = useInView<HTMLDivElement>();
-  const hidden =
-    direction === "left"
-      ? "motion-safe:opacity-0 motion-safe:-translate-x-10 motion-safe:scale-[0.97]"
-      : direction === "right"
-        ? "motion-safe:opacity-0 motion-safe:translate-x-10 motion-safe:scale-[0.97]"
-        : "motion-safe:opacity-0 motion-safe:translate-y-9 motion-safe:scale-[0.97]";
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "motion-safe:transition-all motion-safe:duration-[850ms]",
-        inView ? "opacity-100 translate-x-0 translate-y-0 scale-100" : hidden,
-        className,
-      )}
-      style={{
-        transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
-        transitionDelay: inView ? `${delayMs}ms` : "0ms",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // TONE 1 — parcel verification (sober, pedagogical)
 // ---------------------------------------------------------------------------

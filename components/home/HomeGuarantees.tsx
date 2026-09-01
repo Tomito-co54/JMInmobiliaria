@@ -13,8 +13,8 @@ import {
   PUBLIC_PROPERTY_SOURCES,
 } from "@/lib/db/property-sources";
 import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
+import { Reveal } from "@/components/shared/Reveal";
 import {
-  Reveal,
   AreaOutlineViz,
   ServiceSteps,
 } from "@/components/home/HomeGuaranteesClient";

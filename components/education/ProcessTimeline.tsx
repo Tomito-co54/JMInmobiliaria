@@ -1,4 +1,5 @@
 import { AlertTriangle, Check, ChevronRight } from "lucide-react";
+import { Reveal } from "@/components/shared/Reveal";
 import {
   DOCUMENTS,
   type ProcessStep,
@@ -14,6 +15,13 @@ import { DocumentCard } from "./DocumentCard";
  *
  * Mobile-first — the numbered circle is the visual hook that ties
  * the steps together vertically.
+ *
+ * Each stage arrives as the reader reaches it, which is §2.3 read literally:
+ * a process told as a sequence that animates *as the user advances*. The
+ * reveal is per step and carries no index delay on purpose — a fixed
+ * timetable would make stage 6 wait for stage 1 even when someone jumps
+ * straight to it from the index at the top of the page. Here the movement
+ * follows the reader instead of a schedule.
  */
 export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
   return (
@@ -29,8 +37,9 @@ export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
       />
 
       {steps.map((step) => (
-        <li
+        <Reveal
           key={step.slug}
+          as="li"
           id={`etapa-${step.slug}`}
           className="relative pl-16 scroll-mt-16"
         >
@@ -152,7 +161,7 @@ export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
               </div>
             )}
           </article>
-        </li>
+        </Reveal>
       ))}
     </ol>
   );
