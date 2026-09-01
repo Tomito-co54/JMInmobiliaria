@@ -224,11 +224,29 @@ Tres reglas que ya costaron algo:
   `then(done, done)` o queda un chorro de rechazos sin manejar en Sentry por
   algo que ni siquiera es una falla.
 
-Y una nota de método que se repitió toda la sesión: **el panel del navegador,
-cuando está oculto, no corre `requestAnimationFrame`, no avanza transiciones
-CSS y no entrega `IntersectionObserver`.** Todo se ve congelado o roto por
-igual. Medir movimiento ahí adentro no prueba nada — hay que confirmar
+Y una nota de método que se repitió toda la sesión, en tres formas: **el panel
+del navegador, cuando está oculto, no corre `requestAnimationFrame`, no avanza
+transiciones CSS y no entrega `IntersectionObserver`.** Todo se ve congelado o
+roto por igual. Medir movimiento ahí adentro no prueba nada — hay que confirmar
 `document.visibilityState` antes de creerle a una medición de animación.
+
+**Y los screenshots mienten por lo mismo, que es peor**, porque parecen
+evidencia. Con el observer parado, todo lo que entra por `Reveal` o por un
+`inView` queda en `opacity: 0`: la captura muestra la página sin su contenido.
+El 1-sep eso hizo que dos reportes visuales de Tomy se contestaran con
+mediciones en vez de con lo que se ve, y que un bug de superficie a la vista
+(239 m² en un departamento de 80) tardara dos rondas en aparecer.
+
+El truco para verlo de verdad, cuando haga falta: forzar el estado final a
+mano antes de la captura.
+
+```js
+el.style.cssText = "opacity:1;transform:none;transition:none";
+```
+
+Si algo es visual y no se puede forzar, **la verificación es que lo mire
+Tomy** — decirlo, y no pasar una medición numérica por una confirmación
+visual.
 
 
 **Recordarle correr el pipeline** cada vez que retome trabajo.
@@ -272,6 +290,8 @@ igual. Medir movimiento ahí adentro no prueba nada — hay que confirmar
 | Fase 30 — El sitio deja de hablar como auditor | Mismo problema que el historial, en otros dos bloques: **"el aviso"**, **"m² declarados"**, **"lo que pudimos verificar"**, **"superficie no verificable"**. Todo eso describe a alguien revisando la ficha de un tercero — que era el producto del upstream. Acá la publicación es nuestra: la partida la escribimos nosotros y lo que falta falta porque no lo cargamos. La home pasó a **"Publicamos los papeles, no solo las fotos"** y se cayó el **100%**, que en 100 repetía el título y por debajo lo contradecía (y se llevó dos consultas de conteo por carga). Barrido del resto: descripción vacía y tres definiciones del glosario. La guía **no** se toca: ahí "el aviso" son los del mercado. | `7438d6c` |
 | Fase 31 — El lugar de la matrícula | Construido y **apagado**: `MARTILLERO.matricula` en `lib/brand/contact.ts` está en `""` y todo lo que la muestra pasa por `hasMatricula()`, así que hoy la home cierra en el párrafo sin ningún hueco. Se enciende escribiendo el número. Vacío y no un placeholder porque una matrícula impresa en una página pública es una afirmación sobre la situación de una persona ante un cuerpo profesional: inventada es peor que ausente, y un rótulo sin número anuncia que el sitio está sin terminar justo en el párrafo que pide que le crean. De paso quedaron con tests `whatsappLink` y `propertyLeadMessage`, que son el canal principal de contacto y no tenían ninguno. | `1f3f9b6` |
 | Fase 32 — La guarda fallaba abierta | Segunda desactivación masiva, el 1-sep: 375 bajas con 11% de cobertura. La condición que existe para eso no frenó nada porque `activeCount === 0` **saltea el test entero**, y el baseline se leía con un `try/catch` que dejaba 0 al fallar — la lectura más frágil de la corrida era la que apagaba la guarda. Ahora "no sé" es `null` y rechaza; 0 sigue habilitando porque un baseline vacío de verdad no arriesga nada. Reparado con backup y en transacción: 357 revividas, 393 filas de historial inventado borradas, y los números volvieron exactos a los del 31-ago. | `fbcd559` |
+| Fase 33 — Los botones y el brillo | Los 44px de §1 que faltaban: nav 28 → 44, CTA del hero 35 → 46, CTA de la protagonista 35 → 46 (este apareció midiendo, no estaba pedido). El header sube de 56 a 69px de alto — sube el alto, no el ancho, así que los 375px siguen sin overflow. El CTA de la portada lleva un brillo diagonal cada 7s, la única animación puramente atractiva del sitio, y entra por "guiar la mirada": desde que la portada se redujo, ese botón es la única salida al catálogo above the fold. El logo acusa el toque. | `83821bb` `fc85abf` `f47d80a` |
+| Fase 34 — La protagonista deja de parecer rota | El bloque detrás de la foto era gris con cuadrícula, o sea el dibujo universal de un placeholder; Tomy lo reportó dos veces como "la imagen que no se ve". Achicarlo no alcanzó (40% → 19% de área y lo seguía leyendo igual): el problema era qué parecía, no cuánto se veía. Ahora es un plano liso en azul de marca. Y al forzar el estado revelado para poder verlo apareció algo peor: la propiedad más visible del sitio mostraba **239,23 m²** para un 2 ambientes de 80 — `surface_arba ?? surface_total`, el bug de la Fase 12 sobreviviendo donde nadie miraba porque hasta ese día no había destacada. | `0543925` |
 
 **Tests:** 367 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
 fase 9 → 275 tras las fases 10-15 → 300 tras la 16 → 316 tras la 18 → 319
@@ -295,18 +315,27 @@ una contra el build: no falta ninguna — están las 41, con `/icon.svg` y
 
 **Project location:** `C:\dev\jotaeme-inmobiliaria` (hermano de `C:\dev\jotaeme` que es el original — este fork no toca al original).
 
-**Contenido real (reverificado contra la base el 1-sep-2026):**
+**Contenido real (reverificado contra la base al cierre del 1-sep-2026):**
 
 | Qué | Cuánto |
 |---|---|
 | Propiedades propias publicadas | **4** — Belgrano 1287, unidades 1°A, 1°B, 2°A y 2°B |
-| Scrapeadas | **558** · 429 activas · 386 geolocalizadas |
-| `property_history` | 279 eventos |
-| Total en la tabla | **563** (4 publicadas + 1 borrador + 558 scrapeadas) |
+| Scrapeadas | **562** · 434 activas · 389 geolocalizadas |
+| `property_history` | 288 eventos |
+| Total en la tabla | **567** (4 publicadas + 1 borrador + 562 scrapeadas) |
 
-El 31-ago la corrida trajo 13 avisos nuevos y actualizó 208. **Trezza devolvió
-cero** — no rompió nada porque la guarda lo atajó, pero o el parser se
-desactualizó o hay bloqueo; vale mirarlo.
+**La corrida del 1-sep a la noche, la primera con el cron ya apagado**, vio
+229 avisos (contra 45 de la automática de la mañana), insertó 4 nuevos y
+registró 9 cambios — entre ellos dos bajas de precio reales (Alvear al 1600,
+419.000 → 390.000; Oslo al 800, 149.900 → 145.000) y **una republicación**
+(Capello 200, que estaba dada de baja y volvió). Esa última es el dato que la
+detección de republicaciones venía esperando desde que se construyó.
+
+No dio de baja nada, y es correcto: Zonaprop cortó en la página 10 con un 403,
+la corrida quedó marcada como truncada y la guarda salteó la desactivación.
+
+**Trezza sigue devolviendo cero** — no rompe nada porque la guarda lo ataja,
+pero o el parser se desactualizó o hay bloqueo; vale mirarlo.
 
 Las 429 activas incluyen las 154 que se revivieron el 31-ago. El 1-sep
 cayeron a 45 por una segunda desactivación masiva, **ya diagnosticada,
@@ -1003,6 +1032,8 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 32. **Fase 30 — El sitio deja de hablar como auditor** ✅ 1-sep
 33. **Fase 31 — El lugar de la matrícula, construido y apagado** ✅ 1-sep
 34. **Fase 32 — La guarda de desactivación fallaba abierta** ✅ 1-sep
+35. **Fase 33 — Los botones llegan a 44px y el CTA se hace ver** ✅ 1-sep
+36. **Fase 34 — La protagonista deja de parecer rota** ✅ 1-sep
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -1400,6 +1431,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.16 | Sep 1, 2026 | **Cierre real del 1-sep.** Los 44px que faltaban ya están (nav 28 → 44, los dos CTA 35 → 46) y el CTA de la portada lleva un brillo diagonal cada 7s. La protagonista es **Belgrano 1287 2°A** — la primera vez que la landing muestra una propiedad. Y ahí aparecieron dos cosas que sólo se ven mirando: el bloque detrás de la foto era gris con cuadrícula, o sea el dibujo universal de un placeholder, y Tomy lo reportó **dos veces** como "la imagen que no se ve" — achicarlo no alcanzó porque el problema era qué parecía, no cuánto se veía; y la propiedad más visible del sitio mostraba **239,23 m² para un 2 ambientes de 80**, que es el bug de la Fase 12 sobreviviendo justo donde nadie miraba porque hasta ese día no había destacada. **El cron del pipeline se apagó** a pedido de Tomy: traía 45 avisos de 430 y siempre los mismos, lo que sesgaba `last_seen_at` y con él antigüedad y días en mercado. La primera corrida manual sin cron vio 229, insertó 4 y capturó dos bajas de precio y **una republicación real**. Y la nota de método de la v2.10 se completa: **los screenshots también mienten con el panel oculto**, porque los reveals no disparan y la captura sale sin contenido — eso hizo que dos reportes visuales se contestaran con números en vez de con lo que se ve. 372 → **375 tests**. |
 | 2.15 | Sep 1, 2026 | **La guarda de desactivación fallaba abierta, y se descubrió verificando este documento.** Chequear la tabla de contenido contra la base mostró 45 activas donde el doc decía 429: una segunda desactivación masiva, 375 bajas con **11% de cobertura**, o sea exactamente lo que la condición 3 de la guarda existe para frenar. No lo frenó porque `activeCount === 0` saltea el test entero, y los dos scrapers leían el baseline con un `try/catch` que dejaba 0 al fallar — **la lectura más frágil de la corrida era la que apagaba la guarda contra esa misma fragilidad**, escrito como si fuera una decisión de diseño y con un test que lo fijaba. Arreglado haciendo que "no sé" sea un estado distinto de "cero": `number \| null`, donde `null` rechaza antes de cualquier aritmética y 0 sigue habilitando porque un baseline vacío de verdad no arriesga nada. Reparado con backup y en una transacción — 357 revividas, 393 filas de historial inventado borradas, sin registrar la reparación como reactivación (lección del 31-ago) — y los números volvieron **exactos** a los del 31-ago, 429 activas y 279 eventos, que es la mejor evidencia de que el recorte estuvo bien acotado. Queda dicho lo que no se recupera: `deactivateStale` pisa `last_seen_at`, así que una baja falsa no es del todo reversible. 372 → **375 tests**. |
 | 2.14 | Sep 1, 2026 | **Cierre de la sesión del 1-sep — y verificar los números destapó una regresión grave.** Al chequear las cifras de este documento contra la base apareció que **las scrapeadas activas cayeron de 429 a 45**: 375 bajas de zonaprop en un lote, el 1-sep a las 10:00 UTC. Es el incidente del 31-ago repitiéndose **con la guarda puesta y conectada**, y la contradicción a explicar es nítida: para que la guarda autorizara, el crawl tuvo que reportar ~210 vistos, pero si hubiera visto 210 hoy habría 210 activos — hay 45. Sospecha anotada, sin tocar código: `decideDeactivation` decide con `allScraped.length` y `deactivateStale` protege `seenExternalIds`, que son poblaciones distintas. Pasa a ser el punto 1 del Build map. Aparte: Queda construido y **apagado** el lugar de la **matrícula del martillero**, que es el ancla de credibilidad que quedó sola cuando el Quality Score se fue de la cara pública: `MARTILLERO.matricula` está en `""` y todo lo que la muestra pasa por `hasMatricula()`, así que hoy la home cierra en el párrafo sin ningún hueco y se enciende escribiendo el número. Vacío y no un placeholder a propósito — una matrícula impresa en público es una afirmación sobre la situación de una persona ante un cuerpo profesional, y un rótulo sin número anuncia que el sitio está sin terminar justo en el párrafo que pide que le crean. **Y el documento volvió a tener números mal**: decía **42 rutas** y son **41** (contadas una por una contra el build — no falta ninguna, era error de conteo), **279 eventos** de historial cuando hay **672**, **562** filas cuando hay **563**, y apuntaba a `lib/market/crawl-completeness.ts` cuando ese módulo vive en `lib/services/scrapers/`. Se contaron una por una contra el build — no falta ninguna, era un error de conteo. Junto con el `match.ts` de la v2.9, el Quality Score que "había salido entero" y GitHub Actions "muerto" de la v2.8, el patrón ya no admite duda: **este documento se equivoca sobre sí mismo con cifras plausibles, y hay que verificarlas contra el build y la base, no releerlas.** 367 → **372 tests** (los nuevos cubren la matrícula y, de paso, `whatsappLink` y `propertyLeadMessage`, que eran el canal principal de contacto sin un solo test). |
 | 2.13 | Sep 1, 2026 | **El sitio deja de hablar como auditor del aviso de otro.** Tomy señaló el bloque de verificación de la home y "Datos oficiales" de la ficha, y los dos tenían el mismo problema que el historial y el Quality Score. Se nota en las palabras: *"no publicamos lo que dice **el aviso**"*, *"m² **declarados** en la propiedad"*, *"lo que **pudimos** verificar"*, *"superficie **no verificable**"*. Todo eso describe a alguien revisando la ficha de un tercero a ver si miente, que era exactamente el producto del portal upstream. Acá la publicación es nuestra: la partida la escribimos nosotros, los metros los cargamos nosotros, y lo que falta falta porque todavía no lo cargamos — que es lo que el texto dice ahora, en vez de insinuar que alguien lo escondió. La home pasó a **"Publicamos los papeles, no solo las fotos"**, que es lo que el sitio realmente hace y lo que lo diferencia. Y **se cayó el "100%"**: esa cifra sólo podía decir una de dos cosas y ninguna valía el espacio — en 100% repite el título (claro que está todo verificado, verificar es lo que hacemos antes de publicar) y por debajo lo contradice; de paso se llevó dos consultas de conteo por carga de la home. El lugar que dejó libre le corresponde a la **matrícula del martillero**, que es lo único ahí que un desconocido no puede afirmar y que no está en el código porque nadie tipeó el número — nuevo punto del Build map. |
