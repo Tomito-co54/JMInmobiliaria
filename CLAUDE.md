@@ -59,7 +59,7 @@ trajo HEAD `e64b474` del upstream.
 
 **Status (1-sep-2026):** Deployado y funcionando en producción, con
 auto-deploy desde `main`. **372 tests passing** (+7 skipped a propósito),
-`npm run build` verde, 42 rutas.
+`npm run build` verde, 41 rutas.
 
 La cara pública se reordenó entera. El catálogo dejó de ser la última sección
 de la landing y pasó a `/propiedades`; apareció `/edificios`, que muestra las
@@ -69,7 +69,14 @@ exigía una cuenta que nadie puede crear. El 1-sep **ARBA salió del eje del
 discurso**, el match **se abre desde la barra de pestañas** y el sitio recibió
 una **pasada de movimiento** — entre páginas, en el cambio de tema y en el
 panel. El 1-sep también se auditó la performance y **se resolvió la lentitud** que
-Tomy venía notando: no era código, era geografía. Lo que queda es de contenido:
+Tomy venía notando: no era código, era geografía.
+
+> ⚠️ **Y al verificar los números de este documento contra la base apareció
+> algo que no es de contenido: las scrapeadas activas cayeron de 429 a 45 el
+> 1-sep.** Es la desactivación masiva del 31-ago repitiéndose con la guarda
+> puesta. Sin diagnosticar — punto 1 del Build map.
+
+Lo que queda, además de eso, es de contenido:
 
 
 1. **El catálogo tiene 4 propiedades publicadas** — las cuatro unidades de
@@ -264,17 +271,21 @@ igual. Medir movimiento ahí adentro no prueba nada — hay que confirmar
 | Fase 28 — Auditoría de performance | La lentitud al cambiar de pestaña resultó ser **geografía**: base en San Pablo, función en Washington, ~375ms por consulta cruzando el continente. Aislado con una ruta dinámica sin consultas como testigo. Dos commits: código (catálogo del header cacheado entre requests con tag, header en `Promise.all`, íconos de Leaflet traídos a `/public`) y región (`vercel.json` → `gru1`). TTFB de `/edificios` 1,23–2,54s → **0,34s**, contra una base estática de 0,35s. Abrir una propiedad 990–1283ms → **247–508ms**. De paso apareció un bug latente: publicar revalidaba solo `/`, de cuando la landing era el catálogo. Recursos: sin fugas, 428 nodos que vuelven a 428, heap de 11 MB. | `b98a5f3` `c0b9d1f` |
 | Fase 29 — Se va lo que era del portal viejo | El Quality Score sale de los tres lugares que quedaban (medallón del hero de `/p/[id]`, ficha PDF, medallón de la protagonista) — sigue ordenando el catálogo y mandando en `/admin`. Y el **"Historial"** sale de la ficha: decía "Lo seguimos hace 3 días", que es lenguaje del portal agregador, donde seguir el aviso de **otro** en el tiempo era el producto. Acá la publicación es nuestra y contarle al comprador hace cuántos días la miramos no dice nada de la propiedad — con una ficha de tres días dice algo peor. `property_history` sigue alimentando `/admin/mercado`. De paso saca una consulta de hasta 50 filas de la página que más tarda en abrir. | `16ba93a` |
 | Fase 30 — El sitio deja de hablar como auditor | Mismo problema que el historial, en otros dos bloques: **"el aviso"**, **"m² declarados"**, **"lo que pudimos verificar"**, **"superficie no verificable"**. Todo eso describe a alguien revisando la ficha de un tercero — que era el producto del upstream. Acá la publicación es nuestra: la partida la escribimos nosotros y lo que falta falta porque no lo cargamos. La home pasó a **"Publicamos los papeles, no solo las fotos"** y se cayó el **100%**, que en 100 repetía el título y por debajo lo contradecía (y se llevó dos consultas de conteo por carga). Barrido del resto: descripción vacía y tres definiciones del glosario. La guía **no** se toca: ahí "el aviso" son los del mercado. | `7438d6c` |
+| Fase 31 — El lugar de la matrícula | Construido y **apagado**: `MARTILLERO.matricula` en `lib/brand/contact.ts` está en `""` y todo lo que la muestra pasa por `hasMatricula()`, así que hoy la home cierra en el párrafo sin ningún hueco. Se enciende escribiendo el número. Vacío y no un placeholder porque una matrícula impresa en una página pública es una afirmación sobre la situación de una persona ante un cuerpo profesional: inventada es peor que ausente, y un rótulo sin número anuncia que el sitio está sin terminar justo en el párrafo que pide que le crean. De paso quedaron con tests `whatsappLink` y `propertyLeadMessage`, que son el canal principal de contacto y no tenían ninguno. | `1f3f9b6` |
 
 **Tests:** 367 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
 fase 9 → 275 tras las fases 10-15 → 300 tras la 16 → 316 tras la 18 → 319
 tras la 20 → 360 tras las fases 21-24 → 367 tras la 26, que sumó los de
-`bestMatch`). Los 7 saltados son las bandas de
+`bestMatch`, → 372 tras la 31, que cubrió el contacto). Los 7 saltados son las bandas de
 coherencia ARBA: quedan como spec de vuelta, ver **El dato de ARBA es de la
 parcela** más abajo.
 
-**Build:** `npm run build` verde. 42 rutas (las nuevas son `/propiedades` y
-`/edificios`), First Load JS shared 183 kB. 3 warnings menores de
-`@typescript-eslint/no-unused-vars` que no bloquean.
+**Build:** `npm run build` verde. **41 rutas**, First Load JS shared 184 kB.
+3 warnings menores de `@typescript-eslint/no-unused-vars` que no bloquean.
+
+*(El documento venía diciendo 42 desde el 31-ago y son 41. Se contaron una por
+una contra el build: no falta ninguna — están las 41, con `/icon.svg` y
+`/apple-icon.png` incluidas. Era un error de conteo, no una ruta perdida.)*
 
 **Live URLs:**
 - Producción: **https://jm-inmobiliaria-d3pa.vercel.app** — deployada 12-ago-2026. Login de admin **verificado** el 24-ago. Auto-deploy desde `main`: un push llega a producción en ~60s.
@@ -289,7 +300,7 @@ parcela** más abajo.
 | Qué | Cuánto |
 |---|---|
 | Propiedades propias publicadas | **4** — Belgrano 1287, unidades 1°A, 1°B, 2°A y 2°B |
-| Scrapeadas | **558** · 429 activas · 386 geolocalizadas |
+| Scrapeadas | **558** · **45 activas** (ver la alerta abajo) · 386 geolocalizadas |
 | `property_history` | 279 eventos |
 | Total en la tabla | 562 |
 
@@ -305,7 +316,7 @@ tipologías. Están cargadas las cuatro de 2 ambientes: 1°A y 1°B a USD
 planta baja** (55 m² + patio de 22, USD 150.000, unidad única), los dos
 esperando fotos. Los precios de ficha son **contado sin cochera**; la tabla
 completa —financiado, con cochera— está en el folleto y todavía no tiene
-lugar en el sitio (ver punto 7 del Build map).
+lugar en el sitio (ver punto 8 del Build map).
 
 El catálogo público muestra dos fichas. Cargar más es lo único que separa
 al sitio de estar listo.
@@ -391,6 +402,46 @@ en los tres casos era un número creíble, no un error:
   `surface_arba`, la superficie de la parcela catastral, que para un
   departamento es el lote del edificio entero. Mediana de departamentos:
   487 así, **2.024** con la superficie declarada.
+
+### ⚠️ ABIERTO — volvió a pasar el 1-sep, y la guarda estaba puesta
+
+**Sin diagnosticar. Es lo primero que hay que mirar al retomar.**
+
+Al verificar los números de este documento contra la base (1-sep) apareció
+que las scrapeadas activas pasaron de **429 a 45**. El historial lo fecha:
+
+    2026-09-01 10:00 UTC → 375 bajas + 21 altas, todas de zonaprop, en un lote
+
+Es la misma firma que el 31-ago. La diferencia es que ahora **la guarda existe
+y está conectada**: `zonaprop/index.ts` llama a `decideDeactivation` antes de
+tocar nada, y exige haber visto al menos la mitad de lo que había activo.
+
+**La contradicción que hay que explicar:** para que la guarda autorizara, el
+crawl tuvo que reportar ~210 avisos vistos contra ~420 activos. Pero si
+hubiera visto 210, hoy habría 210 activos — el upsert reactiva todo lo que ve.
+Hay 45. O sea que **el número con el que la guarda decidió no es el mismo
+conjunto que después se usó para dar de baja**.
+
+Y ahí está la sospecha concreta, en `zonaprop/index.ts`:
+
+```
+decideDeactivation(crawlEnd, allScraped.length, activeBefore)   // decide con esto
+deactivateStale("zonaprop", partido, Array.from(seenExternalIds))  // protege esto
+```
+
+`allScraped.length` y `seenExternalIds` son poblaciones distintas: la segunda
+es un Set (colapsa duplicados) y solo se llena con lo que efectivamente pasó
+el upsert. Un crawl que trae la misma página muchas veces, o cuyos upserts
+fallan, infla el numerador de la guarda sin proteger una sola fila. La guarda
+del 31-ago cerró la puerta de "el crawl no vio nada"; esta es la de "el crawl
+dice que vio, pero no guardó".
+
+**Antes de tocar código:** confirmarlo con los logs de la corrida (el
+`deactivationReason` se imprime) y ver quién disparó a las 10:00 UTC, que no
+es el horario del cron (6 AM UTC). Y ojo con reparar los datos a mano: la
+lección del 31-ago es que **no** hay que registrar la reparación como
+reactivación, porque mete republicaciones que nunca pasaron en la única
+feature que espera ese dato.
 
 ### La corrida bloqueada que mató el catálogo (31-ago)
 
@@ -500,7 +551,7 @@ Estado actual:
   unidad de 40 sobre una parcela de 239 "cumple" con 239 es absurdo impreso
   en el breakdown.
 
-Reconstruirlo bien depende de separar cubierto de descubierto — punto 8 del
+Reconstruirlo bien depende de separar cubierto de descubierto — punto 9 del
 Build map.
 
 ### Los servicios pagos están escondidos
@@ -907,12 +958,25 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 30. **Fase 28 — Auditoría de performance** ✅ 1-sep (la lentitud era la región)
 31. **Fase 29 — Se va lo que era del portal viejo** ✅ 1-sep (Quality Score + historial)
 32. **Fase 30 — El sitio deja de hablar como auditor** ✅ 1-sep
+33. **Fase 31 — El lugar de la matrícula, construido y apagado** ✅ 1-sep
 
 Detalles de cada fase en **Current progress** más arriba.
 
 ### Próximo
 
-**1. Marcar una propiedad con ★** ← un click, y hoy la landing no muestra ninguna
+**1. La desactivación masiva volvió a pasar** ← 1-sep, sin diagnosticar
+
+Las scrapeadas activas cayeron de 429 a **45** el 1-sep a las 10:00 UTC: 375
+bajas de zonaprop en un lote, con la guarda del 31-ago puesta y conectada. Ver
+**⚠️ ABIERTO** más arriba para la contradicción que hay que explicar y la
+sospecha concreta (`allScraped.length` no es el mismo conjunto que
+`seenExternalIds`).
+
+Va primero porque es data de mercado que se sigue degradando en cada corrida
+mientras no se arregle, y porque el historial que se inventa después no se
+puede distinguir del real.
+
+**2. Marcar una propiedad con ★** ← un click, y hoy la landing no muestra ninguna
 
 Ninguna de las cuatro tiene `is_featured = true`, así que `HomeProtagonist`
 devuelve null. Mientras el catálogo vivía al pie de la landing eso no se
@@ -920,7 +984,7 @@ notaba; desde que se mudó a `/propiedades`, la home quedó con hero +
 garantías y **cero propiedades a la vista**. Se arregla con el toggle ★ de
 `/admin/properties`.
 
-**2. Cargar propiedades reales** ← lo único que separa al sitio de lanzar
+**3. Cargar propiedades reales** ← lo único que separa al sitio de lanzar
 
 Hay 4 publicadas, las cuatro de 2 ambientes de Belgrano 1287. Lo siguiente
 son el **loft dúplex** y el **3 ambientes de planta baja** del mismo
@@ -931,7 +995,7 @@ Dos caminos:
 - **Desde un JSON:** `npm run cargar-propiedad -- ficha.json [--dry-run]`
   (`docs/ejemplo-propiedad.json` es la plantilla, ya incluye `year_built`).
 
-**3. Correr `npm run pipeline` seguido**
+**4. Correr `npm run pipeline` seguido**
 
 Cada corrida acumula historial que no se puede reconstruir después.
 Además, dos features del centro de datos están construidas y **esperando
@@ -943,7 +1007,7 @@ datos** para tener algo que mostrar:
   nada que detectar.
 - **Series temporales de USD/m²** — necesitan meses.
 
-**4. La matrícula del martillero** ← una línea, esperando el número
+**5. La matrícula del martillero** ← una línea, esperando el número
 
 **Ya está construido y apagado.** El bloque vive en el lugar que dejó el
 "100%" de la home y se dibuja solo cuando hay número: `MARTILLERO.matricula`
@@ -962,7 +1026,7 @@ le crean.
 
 Falta decidir además si va también en el pie y en la ficha.
 
-**5. Los 44px que faltan** ← medido 1-sep
+**6. Los 44px que faltan** ← medido 1-sep
 
 La regla de 44px se cumple en los controles protagonistas y no en los
 secundarios. Ver **Mobile aguanta** más arriba para la tabla medida; los que
@@ -973,14 +1037,14 @@ el match adentro.
 (El otro medio punto de esta entrada —el Quality Score que quedaba en el hero
 y en el PDF— se resolvió el 1-sep. Ver la sección del match más arriba.)
 
-**6. Mapa de búsqueda público**
+**7. Mapa de búsqueda público**
 
 `components/map/AreaMap` ya es agnóstico y está probado con 324 puntos.
 El público es una capa fina encima: cambian de dónde salen los puntos y
 qué hace la selección. Esperando inventario — con 2 fichas no se puede
 evaluar si está bien resuelto.
 
-**7. Configurador de precio en la ficha** ← ideas de Tomy, 28-ago
+**8. Configurador de precio en la ficha** ← ideas de Tomy, 28-ago
 
 Una unidad no tiene un precio, tiene una tabla. Belgrano 1287 la muestra
 cruda: contado o financiado, con cochera o sin. El sitio tiene **un** campo
@@ -1002,7 +1066,7 @@ jsonb, no un campo más. Vale pensarlo antes de escribirlo, porque el
 y el dashboard de mercado: si el precio pasa a ser un objeto, el número
 que esos tres leen tiene que seguir siendo el de contado sin extras.
 
-**8. Ponderar cubierto y descubierto en el precio** ← idea de Tomy, 28-ago
+**9. Ponderar cubierto y descubierto en el precio** ← idea de Tomy, 28-ago
 
 Hoy el USD/m² divide por una sola superficie. Pero 40 m² cubiertos más 40
 de terraza no valen lo mismo que 80 cubiertos, y el mercado ya sabe cuánto
@@ -1031,12 +1095,12 @@ les da 77 contra 69 y 65, en buena parte porque el sub-score de precio lee
 esos USD 1.200/m² como una ganga contra los comparables. La terraza puntúa
 dos veces: una como superficie y otra como precio por metro.
 
-El dato de entrada es el problema, y es exactamente el del punto 9:
+El dato de entrada es el problema, y es exactamente el del punto 10:
 Zonaprop publica "superficie total" en el listado y el desglose
 cubierto/descubierto solo en la ficha individual. Sin ese desglose no hay
-de dónde separar los dos m². **Este punto depende del 9.**
+de dónde separar los dos m². **Este punto depende del 10.**
 
-**9. Superficie cubierta en el scraper**
+**10. Superficie cubierta en el scraper**
 
 El USD/m² de casas mide el lote, no lo construido, porque Zonaprop
 publica "superficie total". Los avisos **sí** muestran cubiertos y
@@ -1044,11 +1108,11 @@ descubiertos, pero en la **ficha individual**, no en el listado. Sacarlo
 son 251 pedidos extra por corrida contra un techo de ~9. Bloqueado por
 el mismo límite que el scraping, no por falta de código.
 
-**10. Dominio propio + verificación en Resend**
+**11. Dominio propio + verificación en Resend**
 
 Necesario recién cuando se encienda el informe ARBA pago. Hoy no bloquea.
 
-**11. Automatizar el pipeline**
+**12. Automatizar el pipeline**
 
 Tarea programada de Windows, diferida a propósito. Ojo con la premisa: desde
 el 27-ago **GitHub Actions ya corre solo todos los días**; lo que no puede es
@@ -1275,6 +1339,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.14 | Sep 1, 2026 | **Cierre de la sesión del 1-sep — y verificar los números destapó una regresión grave.** Al chequear las cifras de este documento contra la base apareció que **las scrapeadas activas cayeron de 429 a 45**: 375 bajas de zonaprop en un lote, el 1-sep a las 10:00 UTC. Es el incidente del 31-ago repitiéndose **con la guarda puesta y conectada**, y la contradicción a explicar es nítida: para que la guarda autorizara, el crawl tuvo que reportar ~210 vistos, pero si hubiera visto 210 hoy habría 210 activos — hay 45. Sospecha anotada, sin tocar código: `decideDeactivation` decide con `allScraped.length` y `deactivateStale` protege `seenExternalIds`, que son poblaciones distintas. Pasa a ser el punto 1 del Build map. Aparte: Queda construido y **apagado** el lugar de la **matrícula del martillero**, que es el ancla de credibilidad que quedó sola cuando el Quality Score se fue de la cara pública: `MARTILLERO.matricula` está en `""` y todo lo que la muestra pasa por `hasMatricula()`, así que hoy la home cierra en el párrafo sin ningún hueco y se enciende escribiendo el número. Vacío y no un placeholder a propósito — una matrícula impresa en público es una afirmación sobre la situación de una persona ante un cuerpo profesional, y un rótulo sin número anuncia que el sitio está sin terminar justo en el párrafo que pide que le crean. **Y el documento volvió a tener un número mal**, el cuarto de la serie: decía **42 rutas** desde el 31-ago y son **41**. Se contaron una por una contra el build — no falta ninguna, era un error de conteo. Junto con el `match.ts` de la v2.9, el Quality Score que "había salido entero" y GitHub Actions "muerto" de la v2.8, el patrón ya no admite duda: **este documento se equivoca sobre sí mismo con cifras plausibles, y hay que verificarlas contra el build y la base, no releerlas.** 367 → **372 tests** (los nuevos cubren la matrícula y, de paso, `whatsappLink` y `propertyLeadMessage`, que eran el canal principal de contacto sin un solo test). |
 | 2.13 | Sep 1, 2026 | **El sitio deja de hablar como auditor del aviso de otro.** Tomy señaló el bloque de verificación de la home y "Datos oficiales" de la ficha, y los dos tenían el mismo problema que el historial y el Quality Score. Se nota en las palabras: *"no publicamos lo que dice **el aviso**"*, *"m² **declarados** en la propiedad"*, *"lo que **pudimos** verificar"*, *"superficie **no verificable**"*. Todo eso describe a alguien revisando la ficha de un tercero a ver si miente, que era exactamente el producto del portal upstream. Acá la publicación es nuestra: la partida la escribimos nosotros, los metros los cargamos nosotros, y lo que falta falta porque todavía no lo cargamos — que es lo que el texto dice ahora, en vez de insinuar que alguien lo escondió. La home pasó a **"Publicamos los papeles, no solo las fotos"**, que es lo que el sitio realmente hace y lo que lo diferencia. Y **se cayó el "100%"**: esa cifra sólo podía decir una de dos cosas y ninguna valía el espacio — en 100% repite el título (claro que está todo verificado, verificar es lo que hacemos antes de publicar) y por debajo lo contradice; de paso se llevó dos consultas de conteo por carga de la home. El lugar que dejó libre le corresponde a la **matrícula del martillero**, que es lo único ahí que un desconocido no puede afirmar y que no está en el código porque nadie tipeó el número — nuevo punto 4 del Build map. |
 | 2.12 | Sep 1, 2026 | **Se va lo último que quedaba del portal agregador.** El Quality Score sale de los tres lugares donde un visitante todavía lo veía: el medallón del hero de `/p/[id]`, la **ficha PDF** —la peor, porque se descarga y se reenvía, así que el número salía del sitio y seguía viaje sin nada que lo explicara— y el medallón de la protagonista, que se había defendido como gesto de diseño cuando el gesto es la foto rompiendo el cuadrante y el medallón era solo lo que colgaba de él. Sigue ordenando el catálogo y mandando en `/admin`. Y sale el **"Historial"** de la ficha, que decía *"Lo seguimos hace 3 días"*: eso es lenguaje de un portal donde seguir el aviso de **otro** a lo largo del tiempo era el producto y el comprador quería saber si el precio se había movido antes de que él llegara. Acá la publicación es nuestra. `property_history` sigue registrando todo y sigue siendo la materia prima de `/admin/mercado`, que es donde ese dato significa algo — y sacarlo de la ficha se lleva de paso una consulta de hasta 50 filas en la página que más tarda en abrir. |
 | 2.11 | Sep 1, 2026 | **La lentitud era geografía, y ahora está medida de las dos puntas.** Tomy reportó que cambiar de pestaña y abrir una propiedad tardaban, y que venía de hace rato. No era código: **la base está en San Pablo y la función corría en Washington**, el default de Vercel que nadie eligió, así que cada consulta cruzaba el continente. Aislado con una ruta dinámica sin consultas como testigo — estática 0,35s, dinámica-sin-consultas 0,39s, dinámica-con-dos-consultas 1,13s — o sea **~375ms por consulta**, y nada de eso eran bytes: el payload de una navegación es de 5 a 8 kB. Se arregló en dos commits separados para poder atribuir cada mejora: código (el catálogo del header, que corría en cada página pública sin haber cambiado desde la última publicación, pasa a cachearse entre requests con tag; el header deja de esperar en fila; los íconos de Leaflet dejan de venir de unpkg) y región (`vercel.json` → `gru1`). **`/edificios` pasó de 1,23–2,54s a 0,34s**, contra una línea base estática de 0,35s: las consultas dejaron de costar. Abrir una propiedad, de 990–1283ms a 247–508ms. **Recursos: sanos** — heap de 11 MB contra un límite de 4.096, 428 nodos DOM que vuelven exactamente a 428 tras seis navegaciones, sin fugas. De paso apareció un bug latente: publicar una propiedad revalidaba solo `/`, de cuando la landing era el catálogo, así que `/propiedades` y `/edificios` seguían sirviendo el set anterior. Y otra vez la trampa del panel oculto: ahí `setTimeout` se estrangula a ~1s y cualquier cronómetro propio devuelve 1000ms para todo — las mediciones que valen son las del navegador y las de curl. |
