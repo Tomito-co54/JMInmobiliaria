@@ -141,7 +141,18 @@
        temperature (slate, à la macOS / Claude dark), layered by elevation:
        background → card/popover → secondary/muted, each a step lighter.
        The brand navy is reserved for ACCENTS now; gold stays the accent and
-       primary buttons flip to white-on-slate so they still pop. */
+       primary buttons flip to white-on-slate so they still pop.
+
+       2-sep-2026: the whole ladder was raised by 0.035 OKLCH lightness at
+       Tomy's request — a bit lighter, same blue. Raised as a CONSTANT so the
+       steps between elevations keep their exact spacing: brightening the base
+       alone would have flattened the card against the page, and that spacing
+       is the only thing separating them (there are no borders doing it).
+       Hue and chroma are untouched, so this is the same colour with more
+       light in it and not a different blue. White text still clears 13.8:1 at
+       the lightest surface, and the white-alpha borders keep their contrast
+       against the surface almost exactly (the alpha rides on 1 - surface, so
+       it scales with the change). */
 
     /* Theme-aware brand tokens — flipped from light. Navy on navy is
        unreadable, so:
@@ -164,17 +175,17 @@
        same reason --brand-heading flips to white here. */
     --match-perfect: #8081DB;
 
-    --background: #0D1017;            /* cold slate, near-black (page base) */
+    --background: #15181F;            /* cold slate (page base) */
     --foreground: #FFFFFF;
-    --card: #161A22;                  /* +1 elevation */
+    --card: #1E222B;                  /* +1 elevation */
     --card-foreground: #FFFFFF;
-    --popover: #161A22;
+    --popover: #1E222B;
     --popover-foreground: #FFFFFF;
     --primary: #FFFFFF;               /* white CTAs on slate */
     --primary-foreground: var(--brand-navy);
-    --secondary: #1F242E;             /* +2 elevation (chips / hover) */
+    --secondary: #272D37;             /* +2 elevation (chips / hover) */
     --secondary-foreground: #FFFFFF;
-    --muted: #1F242E;
+    --muted: #272D37;
     --muted-foreground: oklch(1 0 0 / 70%);
     --accent: var(--brand-gold);
     --accent-foreground: var(--brand-navy);
@@ -187,11 +198,11 @@
     --chart-3: oklch(1 0 0 / 55%);
     --chart-4: oklch(1 0 0 / 40%);
     --chart-5: oklch(1 0 0 / 25%);
-    --sidebar: #0A0D13;              /* a touch darker than the page base */
+    --sidebar: #11151B;              /* a touch darker than the page base */
     --sidebar-foreground: #FFFFFF;
     --sidebar-primary: var(--brand-gold);
     --sidebar-primary-foreground: var(--brand-navy);
-    --sidebar-accent: #1F242E;
+    --sidebar-accent: #272D37;
     --sidebar-accent-foreground: #FFFFFF;
     --sidebar-border: oklch(1 0 0 / 14%);
     --sidebar-ring: var(--brand-gold);
