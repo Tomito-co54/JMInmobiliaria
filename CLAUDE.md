@@ -802,6 +802,78 @@ defendible, pero sobreestima lo habitable — y es exactamente la tensión que e
 punto 4 del Build map existe para resolver, ponderando cubierto y descubierto
 en vez de sumarlos.
 
+### La auditoría de fail-open (2-sep) — lo que quedó abierto
+
+Barrida de todo el código con una sola lente: **dónde la ausencia de un dato se
+vuelve en silencio el caso permisivo**. Es el patrón que ya costó tres
+desactivaciones masivas, siempre con distinto disfraz.
+
+**Lo que está sano, y conviene saberlo para no volver a mirarlo:**
+
+- **La autorización falla cerrada.** `isAdminPreview()` y `requireAdmin()`
+  devuelven `false`/`null` cuando falta el usuario o el perfil, y si la
+  consulta del rol falla, `data` viene null y también cierran.
+- **El gate público está en los 10 sitios** con las dos condiciones. El único
+  condicional —el preview de borradores— tiene la polaridad correcta
+  (`if (!allowDrafts)`) y su default es el filtro estricto.
+- **El geocoding falla cerrado**: devuelve `null` y cachea el negativo.
+- **El Quality Score prefiere callarse**: por debajo de
+  `MIN_EFFECTIVE_WEIGHT_RATIO` persiste `null` en vez de un número
+  plausible.
+- Los `?? 0` restantes (`lib/db/admin.ts`, paginación, contadores de
+  `/admin/mercado`) son de **display**: un conteo mal en un dashboard es
+  cosmético, no desarma nada.
+
+**Arreglado en el acto** (`76f0752`): la cuota de búsquedas guardadas usaba
+`(count ?? 0) >= LIMIT`, o sea el mismo bug que `countActiveListings` en otra
+tabla. No poder verificar una cuota no es permiso para excederla.
+
+**Los tres que quedan abiertos, porque son decisión tuya y no mía:**
+
+**1. "Propiedad verificada" se enciende con un campo tipeado a mano.** La
+condición de la ficha es `!!property.partida || matchStrategy === ...`, y el
+comentario justo arriba dice *"verified = matcheamos la parcela contra el
+servicio catastral"* — que es exactamente lo que esa línea no comprueba. No es
+un descuido suelto: es la **costura entre dos decisiones que por separado están
+bien**. `canPublishProperty` **no exige** datos de ARBA a propósito y lo
+argumenta ("el servicio provincial puede estar caído y una publicación no debe
+quedar rehén de eso"), y ese mismo comentario aclara que el porcentaje de la
+home contaba `nomenclatura_catastral` *"precisamente para reflejarlo en vez de
+sobreestimar"*. O sea que **el código ya sabe cuál es el campo que significa
+confirmado**, y el chip usa el otro. Hoy no miente —las 5 publicadas tienen
+partida **y** confirmación— pero la primera cuya consulta falle se publica con
+el chip igual. Lo que hay que decidir: si "verificada" quiere decir *lo
+confirmó el catastro* (entonces la condición va contra `nomenclatura_catastral`)
+o *el martillero la escribió del papel* (entonces el copy tiene que decir otra
+cosa).
+
+**2. Un bloqueo blando todavía puede leerse como "llegué al final".**
+`parseListPage` devuelve `[]` cuando el selector de cards no aparece en 15s, y
+el llamador lee `[]` como `exhausted`, que autoriza la desactivación. Es la
+raíz del 31-ago, y la guarda de cobertura la **mitiga pero no la cubre**: sólo
+ataja las corridas flacas. Una corrida con buena cobertura que se bloquea en
+una página tardía sigue pudiendo dar de baja el resto — el 2-sep, con 61% de
+cobertura, si la página 10 hubiera renderizado sin cards en vez de tirar 403,
+se daban de baja ~157. El 403 se distingue (`page_error`); el bloqueo blando
+no. Arreglarlo *bien* requiere decidir cómo distinguir "no hay más resultados"
+de "no me dejaron ver", y el documento ya advierte que una guarda parada sobre
+un selector sin verificar es la misma apuesta que perdió el 31-ago.
+
+**3. El webhook de MercadoPago no verifica firma si falta el secret.** El
+código es `if (secret) { verificar }`, y el comentario dice "en prod el secret
+es obligatorio" — pero eso es un comentario, no un chequeo. **`MERCADOPAGO_WEBHOOK_SECRET`
+está vacía en `.env.local`.** El daño real es acotado porque el cumplimiento
+está defendido aparte: consulta el pago contra la API de MP, exige `approved`,
+que la referencia exista, y que **monto y moneda coincidan** con lo cobrado. Así
+que es defensa en profundidad, no un agujero abierto. Antes de cerrarlo hay que
+confirmar que el secret **sí** esté en Vercel, porque si no está, cerrarlo
+convierte cada webhook en un 401.
+
+**Menor:** `lib/services/arba/index.ts` hace `distanceMeters ?? 0` al leer del
+cache, y 0 metros es el valor **más** confiable que existe (significa que el
+punto cayó dentro del polígono). Hoy el dato es informativo y no decide nada,
+pero afirma más precisión de la que hay.
+
 ### Los servicios pagos están escondidos
 
 `PAID_SERVICES_PUBLIC` en `lib/services/offering.ts` está en `false`. El
