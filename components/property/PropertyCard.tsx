@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { MapPin, ImageIcon } from "lucide-react";
+import { formatPrice } from "@/lib/property/price";
 import {
   getMatchBand,
   type MatchBreakdown,
@@ -41,6 +42,7 @@ const TYPE_LABELS: Record<string, string> = {
 interface PropertyCardProperty {
   id: string;
   property_type: string | null;
+  operation_type?: "venta" | "alquiler" | null;
   partido: string | null;
   address: string | null;
   price_amount: number | null;
@@ -62,9 +64,7 @@ interface PropertyCardProps {
   signedOut?: boolean;
 }
 
-function fmtPrice(amount: number): string {
-  return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(amount);
-}
+
 
 function BandBadge({
   label,
@@ -135,9 +135,9 @@ export function PropertyCard({
         </div>
 
         <div className="min-w-0 flex-1 space-y-1.5">
-          {property.price_amount !== null && property.price_currency ? (
+          {formatPrice(property.price_amount, property.price_currency, property.operation_type, { compact: true }) ? (
             <p className="text-lg font-bold tabular-nums leading-tight">
-              {property.price_currency} {fmtPrice(property.price_amount)}
+              {formatPrice(property.price_amount, property.price_currency, property.operation_type, { compact: true })}
             </p>
           ) : (
             <p className="text-base font-bold text-muted-foreground leading-tight">

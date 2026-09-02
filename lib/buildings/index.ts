@@ -67,6 +67,7 @@ export function groupByBuilding<T extends BuildingKeyed>(
 export interface PricedUnit extends BuildingKeyed {
   price_amount: number | null;
   price_currency: "USD" | "ARS" | null;
+  operation_type?: "venta" | "alquiler" | null;
 }
 
 export interface BuildingSummary {
@@ -75,6 +76,8 @@ export interface BuildingSummary {
   /** Cheapest published unit, for a "desde" line. Null when none has a price. */
   fromPrice: number | null;
   fromCurrency: "USD" | "ARS" | null;
+  /** Operation of the cohort the "desde" price came from, so it can be shown per-month. */
+  fromOperation: "venta" | "alquiler" | null;
 }
 
 /**
@@ -87,6 +90,12 @@ export interface BuildingSummary {
  * The "desde" price only mixes what can be compared — the cheapest is picked
  * within the currency most of the units use, because "desde $80.000" next to
  * "desde USD 80.000" is worse than saying nothing.
+ *
+ * Operation joins the currency in that cohort key for the same reason and
+ * more strongly: a monthly rent and a sale price are not two sizes of one
+ * quantity, so the cheapest across both is always the rent, and a building
+ * with one flat to let would advertise itself "desde $ 450.000" as though
+ * that bought it.
  */
 export function summariseBuildings(
   rows: readonly PricedUnit[],
@@ -96,26 +105,31 @@ export function summariseBuildings(
   for (const [key, units] of groupByBuilding(rows)) {
     if (units.length < 2) continue;
 
-    const byCurrency = new Map<string, number[]>();
+    // Cohort key is currency + operation; "·" cannot occur in either.
+    const byCohort = new Map<string, number[]>();
     for (const u of units) {
       if (u.price_amount === null || u.price_amount <= 0 || !u.price_currency) continue;
-      const list = byCurrency.get(u.price_currency);
+      const cohort = `${u.price_currency}·${u.operation_type ?? ""}`;
+      const list = byCohort.get(cohort);
       if (list) list.push(u.price_amount);
-      else byCurrency.set(u.price_currency, [u.price_amount]);
+      else byCohort.set(cohort, [u.price_amount]);
     }
 
     let fromPrice: number | null = null;
     let fromCurrency: "USD" | "ARS" | null = null;
+    let fromOperation: "venta" | "alquiler" | null = null;
     let best = 0;
-    for (const [currency, prices] of byCurrency) {
+    for (const [cohort, prices] of byCohort) {
       if (prices.length > best) {
         best = prices.length;
+        const [currency, operation] = cohort.split("·");
         fromCurrency = currency as "USD" | "ARS";
+        fromOperation = operation === "" ? null : (operation as "venta" | "alquiler");
         fromPrice = Math.min(...prices);
       }
     }
 
-    out.set(key, { key, unitCount: units.length, fromPrice, fromCurrency });
+    out.set(key, { key, unitCount: units.length, fromPrice, fromCurrency, fromOperation });
   }
 
   return out;

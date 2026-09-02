@@ -6,6 +6,7 @@ import { FavoriteButton } from "./FavoriteButton";
 import { PropertyMatchPanel } from "./PropertyMatchPanel";
 import { WhatsAppButton } from "./WhatsAppButton";
 import type { PropertyForMatching } from "@/lib/matching";
+import { formatPrice } from "@/lib/property/price";
 import { buildingAgeYears } from "@/lib/matching/match";
 import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
 
@@ -34,15 +35,12 @@ const SOURCE_LABELS: Record<string, string> = {
   agency: "la inmobiliaria",
 };
 
-function fmtPrice(amount: number): string {
-  return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(amount);
-}
-
 interface PropertyDataPanelProps {
   propertyId: string;
   address: string | null;
   priceAmount: number | null;
   priceCurrency: "USD" | "ARS" | null;
+  operationType: "venta" | "alquiler" | null;
   rooms: number | null;
   bedrooms: number | null;
   bathrooms: number | null;
@@ -63,6 +61,7 @@ export function PropertyDataPanel({
   address,
   priceAmount,
   priceCurrency,
+  operationType,
   rooms,
   bedrooms,
   bathrooms,
@@ -121,9 +120,9 @@ export function PropertyDataPanel({
     <div className="rounded-3xl border bg-card p-5 sm:p-6 lg:p-7 space-y-6">
       {/* Price — Fraunces, the personality moment */}
       <div>
-        {priceAmount !== null && priceCurrency ? (
+        {formatPrice(priceAmount, priceCurrency, operationType) ? (
           <p className="font-heading text-3xl sm:text-4xl font-medium tracking-tight tabular-nums">
-            {priceCurrency} {fmtPrice(priceAmount)}
+            {formatPrice(priceAmount, priceCurrency, operationType)}
           </p>
         ) : (
           <p className="text-2xl font-bold text-muted-foreground">Consultar precio</p>

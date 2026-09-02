@@ -11,6 +11,15 @@ import type { ComparableStats } from "./types";
  * outliers can't be converted reliably without a daily official rate, and
  * the cohort would be too small to be useful anyway.
  *
+ * Why the cohort is scoped by operation: a monthly rent and a sale price are
+ * different quantities that happen to share a currency. Mixing them does not
+ * produce a noisy median, it produces a meaningless one — and then a rental
+ * priced against sale comparables scores as the bargain of the century. The
+ * scraped corpus is 100% sales (the Zonaprop crawler asks for
+ * `inmuebles-venta-` and nothing else), so today a rental finds an empty
+ * cohort and the sub-score abstains. That is the correct answer, and it stays
+ * correct on its own the day rentals are crawled.
+ *
  * Surface basis: surface_total (the DECLARED surface). USD/m² is a function
  * of the asking price, which the seller sets against the surface they
  * advertise — so the denominator must be the declared surface, not ARBA's.
@@ -28,6 +37,7 @@ interface ComparableRow {
 interface ComparableRowWithKeys {
   partido: string | null;
   property_type: string | null;
+  operation_type: string | null;
   price_amount: number | string;
   surface_arba: number | string | null;
   surface_total: number | string | null;
@@ -61,8 +71,15 @@ function pricePerM2(row: ComparableRow): number | null {
 export async function getComparableStats(
   partido: string | null,
   propertyType: string | null,
+  operationType: string | null,
 ): Promise<ComparableStats> {
-  if (!partido || !propertyType) return { medianPricePerM2Usd: null, sampleSize: 0 };
+  // An unknown operation gets an empty cohort rather than the union of both.
+  // "I don't know what this is" must not resolve to "compare it against
+  // everything" — that is the shape of every wrong-but-plausible number this
+  // codebase has had to unwind.
+  if (!partido || !propertyType || !operationType) {
+    return { medianPricePerM2Usd: null, sampleSize: 0 };
+  }
   const supabase = getAdminClient();
   const { data, error } = await supabase
     .from("properties")
@@ -70,6 +87,7 @@ export async function getComparableStats(
     .eq("is_active", true)
     .eq("partido", partido)
     .eq("property_type", propertyType)
+    .eq("operation_type", operationType)
     .eq("price_currency", "USD")
     .not("price_amount", "is", null);
   if (error) throw error;
@@ -92,15 +110,17 @@ export class ComparablesCache {
   private cache = new Map<string, ComparableStats>();
   private warmed = false;
 
-  private key(partido: string, propertyType: string): string {
-    return `${partido}|${propertyType}`;
+  private key(partido: string, propertyType: string, operationType: string): string {
+    return `${partido}|${propertyType}|${operationType}`;
   }
 
   async warmUp(): Promise<void> {
     const supabase = getAdminClient();
     const { data, error } = await supabase
       .from("properties")
-      .select("partido, property_type, price_amount, surface_arba, surface_total")
+      .select(
+        "partido, property_type, operation_type, price_amount, surface_arba, surface_total",
+      )
       .eq("is_active", true)
       .eq("price_currency", "USD")
       .not("price_amount", "is", null);
@@ -108,10 +128,10 @@ export class ComparablesCache {
 
     const groups = new Map<string, number[]>();
     for (const row of (data ?? []) as unknown as ComparableRowWithKeys[]) {
-      if (!row.partido || !row.property_type) continue;
+      if (!row.partido || !row.property_type || !row.operation_type) continue;
       const p = pricePerM2(row);
       if (p === null) continue;
-      const key = this.key(row.partido, row.property_type);
+      const key = this.key(row.partido, row.property_type, row.operation_type);
       let arr = groups.get(key);
       if (!arr) {
         arr = [];
@@ -129,13 +149,19 @@ export class ComparablesCache {
     this.warmed = true;
   }
 
-  get(partido: string | null, propertyType: string | null): ComparableStats {
+  get(
+    partido: string | null,
+    propertyType: string | null,
+    operationType: string | null,
+  ): ComparableStats {
     if (!this.warmed) {
       throw new Error("ComparablesCache.get called before warmUp()");
     }
-    if (!partido || !propertyType) return { medianPricePerM2Usd: null, sampleSize: 0 };
+    if (!partido || !propertyType || !operationType) {
+      return { medianPricePerM2Usd: null, sampleSize: 0 };
+    }
     return (
-      this.cache.get(this.key(partido, propertyType)) ?? {
+      this.cache.get(this.key(partido, propertyType, operationType)) ?? {
         medianPricePerM2Usd: null,
         sampleSize: 0,
       }
@@ -143,11 +169,21 @@ export class ComparablesCache {
   }
 
   /** For diagnostics / CLI summary printing. */
-  entries(): Array<{ partido: string; propertyType: string; stats: ComparableStats }> {
-    const out: Array<{ partido: string; propertyType: string; stats: ComparableStats }> = [];
+  entries(): Array<{
+    partido: string;
+    propertyType: string;
+    operationType: string;
+    stats: ComparableStats;
+  }> {
+    const out: Array<{
+      partido: string;
+      propertyType: string;
+      operationType: string;
+      stats: ComparableStats;
+    }> = [];
     for (const [key, stats] of this.cache) {
-      const [partido, propertyType] = key.split("|");
-      out.push({ partido, propertyType, stats });
+      const [partido, propertyType, operationType] = key.split("|");
+      out.push({ partido, propertyType, operationType, stats });
     }
     return out;
   }

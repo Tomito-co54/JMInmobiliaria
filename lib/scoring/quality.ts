@@ -86,6 +86,7 @@ const PROPERTY_COLS = [
   "id",
   "source",
   "property_type",
+  "operation_type",
   "partido",
   "partida",
   "nomenclatura_catastral",
@@ -112,6 +113,7 @@ interface RawPropertyRow {
   id: string;
   source: string;
   property_type: string | null;
+  operation_type: "venta" | "alquiler" | null;
   partido: string | null;
   partida: string | null;
   nomenclatura_catastral: string | null;
@@ -148,6 +150,7 @@ function normalizeProperty(row: RawPropertyRow): PropertyForScoring {
     id: row.id,
     source: row.source,
     property_type: row.property_type,
+    operation_type: row.operation_type,
     partido: row.partido,
     partida: row.partida,
     nomenclatura_catastral: row.nomenclatura_catastral,
@@ -211,8 +214,12 @@ export async function gatherScoringInputs(
   const history = (historyRows ?? []) as unknown as HistoryEvent[];
 
   const comparableStats = comparables
-    ? comparables.get(property.partido, property.property_type)
-    : await getComparableStats(property.partido, property.property_type);
+    ? comparables.get(property.partido, property.property_type, property.operation_type)
+    : await getComparableStats(
+        property.partido,
+        property.property_type,
+        property.operation_type,
+      );
 
   return { property, arbaLookup, history, comparableStats };
 }

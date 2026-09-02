@@ -4,6 +4,7 @@ import { getPropertyForPublicView, getBuildingUnits } from "@/lib/db/properties"
 import { getPrimarySearchProfile } from "@/lib/db/search-profiles";
 import type { PropertyForMatching } from "@/lib/matching";
 import { getCurrentUserId } from "@/lib/db/users";
+import { operationLabel } from "@/lib/property/price";
 import { isFavorited } from "@/lib/db/favorites";
 import { PreviewBanner } from "./preview-banner";
 import { PropertyTopBar } from "@/components/property/PropertyTopBar";
@@ -136,16 +137,10 @@ export default async function PublicPropertyPage({ params }: PageProps) {
     lote: "Lote",
     local: "Local",
   };
-  const OP_LABELS: Record<string, string> = {
-    venta: "en venta",
-    alquiler: "en alquiler",
-  };
   const typeLabel = property.property_type
     ? TYPE_LABELS[property.property_type] ?? property.property_type
     : "Propiedad";
-  const opLabel = property.operation_type
-    ? OP_LABELS[property.operation_type] ?? property.operation_type
-    : null;
+  const opLabel = operationLabel(property.operation_type);
 
   // Verified = we matched the parcel against the cadastral service. The chip
   // it drives no longer names the agency; the check is the same one.
@@ -203,6 +198,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
                 address={property.address}
                 priceAmount={property.price_amount}
                 priceCurrency={property.price_currency}
+                operationType={property.operation_type}
                 rooms={property.rooms}
                 bedrooms={property.bedrooms}
                 bathrooms={property.bathrooms}
@@ -281,6 +277,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               address={property.address}
               priceAmount={property.price_amount}
               priceCurrency={property.price_currency}
+              operationType={property.operation_type}
               rooms={property.rooms}
               bedrooms={property.bedrooms}
               bathrooms={property.bathrooms}
@@ -304,6 +301,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
         address={property.address}
         priceAmount={property.price_amount}
         priceCurrency={property.price_currency}
+        operationType={property.operation_type}
         isFavorited={favorited}
         signedOut={!userId}
       />

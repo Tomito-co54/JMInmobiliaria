@@ -90,6 +90,13 @@ export function PropertyMatchPanel({
           <MatchPreferencesForm
             value={preferences}
             onChange={setPreferences}
+            // This panel sees one listing, not the catalog, so it cannot tell
+            // whether a buy/rent question is worth asking. The header's quick
+            // filter can and does — it holds the whole catalog and is on every
+            // public page. What is passed here keeps an already-chosen
+            // operation visible and clearable, which is the part that must
+            // never depend on which surface the visitor happens to be on.
+            operations={[property.operation_type, preferences.operation]}
           />
           <Button
             variant="outline"

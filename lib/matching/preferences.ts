@@ -20,9 +20,23 @@ import type { SearchProfileForMatching } from "./types";
  * visitor actually expressed, instead of averaging in silent defaults.
  */
 export interface MatchPreferences {
+  /**
+   * Buy or rent. Null = not asked.
+   *
+   * It is the first question a real-estate visitor answers and the only one
+   * where a mismatch is disqualifying rather than costly: a renter shown a
+   * sale is not looking at a worse option, they are looking at a different
+   * product. `computeMatchScore` treats it that way — see the gate there.
+   */
+  operation: MatchOperation | null;
   /** Partidos the buyer would live in. Empty = no zone preference. */
   partidos: string[];
-  /** Ceiling in USD. Null = no ceiling. */
+  /**
+   * Price ceiling, expressed in the currency and cadence of `operation` —
+   * dollars outright for a sale, pesos per month for a rental. The two are
+   * different quantities, which is why the scale is derived rather than
+   * fixed: see `priceScaleFor`. Null = no ceiling.
+   */
   priceMax: number | null;
   /** Minimum rooms ("ambientes"). Null = unspecified. */
   roomsMin: number | null;
@@ -41,6 +55,7 @@ export interface MatchPreferences {
 }
 
 export const EMPTY_MATCH_PREFERENCES: MatchPreferences = {
+  operation: null,
   partidos: [],
   priceMax: null,
   roomsMin: null,
@@ -52,22 +67,65 @@ export const EMPTY_MATCH_PREFERENCES: MatchPreferences = {
 /** The types a buyer picks between. Mirrors the `property_type` enum. */
 export const MATCH_PROPERTY_TYPES = ["casa", "departamento", "ph"] as const;
 
+export type MatchOperation = "venta" | "alquiler";
+
+/** The operations a visitor picks between. Mirrors the `operation_type` enum. */
+export const MATCH_OPERATIONS = ["venta", "alquiler"] as const;
+
 /**
- * Price ceilings offered by the slider, in USD.
+ * The budget control, which is a different control depending on what is being
+ * bought.
  *
- * The top value means "no ceiling" rather than "up to 400k" — a buyer who
- * pushes the control to its end is saying price is not their constraint, and
- * scoring that as a hard 400k limit would punish exactly the listings they
- * are most relaxed about.
+ * A sale ceiling and a monthly rent are not the same quantity in different
+ * sizes — they are different currencies, different orders of magnitude and
+ * different cadences. One slider spanning both would have its entire rental
+ * range compressed into its first pixel, and a stored "400.000" would mean a
+ * comfortable house or an absurd rent depending on a field stored elsewhere.
+ * So the scale is derived from the operation, and the number is only ever
+ * read together with it.
  *
- * The floor is 5k rather than a plausible entry price. It is not a claim that
- * anything sells for that: it is where the control starts, and starting it
- * above the cheapest thing a visitor might hope for makes the first drag feel
- * like an argument.
+ * In both scales the top notch means "no ceiling" rather than its literal
+ * value — a control pushed to its end is the absence of a constraint, and
+ * scoring it as a hard limit would punish exactly the listings the visitor is
+ * most relaxed about. The floor is likewise where the control starts, not a
+ * claim that anything is available at that price.
  */
-export const PRICE_MAX_FLOOR = 5_000;
-export const PRICE_MAX_CEILING = 400_000;
-export const PRICE_MAX_STEP = 5_000;
+export interface PriceScale {
+  floor: number;
+  ceiling: number;
+  step: number;
+  currency: "USD" | "ARS";
+  /** Rendered after the amount: "" for a sale, " por mes" for a rental. */
+  period: string;
+}
+
+export const SALE_PRICE_SCALE: PriceScale = {
+  floor: 5_000,
+  ceiling: 400_000,
+  step: 5_000,
+  currency: "USD",
+  period: "",
+};
+
+/**
+ * Rents are quoted in pesos here, and the range covers what the Zona Sur
+ * market actually asks per month rather than the whole span of the concept.
+ */
+export const RENT_PRICE_SCALE: PriceScale = {
+  floor: 100_000,
+  ceiling: 2_000_000,
+  step: 50_000,
+  currency: "ARS",
+  period: " por mes",
+};
+
+/**
+ * An unanswered operation gets the sale scale, because that is what this
+ * catalog mostly is — not because the two are interchangeable.
+ */
+export function priceScaleFor(operation: MatchOperation | null): PriceScale {
+  return operation === "alquiler" ? RENT_PRICE_SCALE : SALE_PRICE_SCALE;
+}
 
 /**
  * Surface floor offered by the slider, in m². The top notch means "no
@@ -95,6 +153,7 @@ export const AGE_MAX_OPTIONS = [0, 10, 30, 50] as const;
 /** Whether the visitor has told us anything at all. */
 export function hasAnyPreference(p: MatchPreferences): boolean {
   return (
+    p.operation !== null ||
     p.partidos.length > 0 ||
     p.priceMax !== null ||
     p.roomsMin !== null ||
@@ -123,14 +182,13 @@ export function toSearchProfile(p: MatchPreferences): SearchProfileForMatching {
     })),
     price_min: null,
     price_max: p.priceMax,
-    // The catalog is USD-priced end to end; offering a currency toggle would
-    // be a control with one real position.
-    price_currency: "USD",
+    // The currency is not a preference, it is a consequence: a ceiling the
+    // visitor set on the rental scale is in pesos per month and comparing it
+    // against a dollar sale price would be arithmetic between two different
+    // things. Reading them apart is what made this a hardcoded "USD" before.
+    price_currency: priceScaleFor(p.operation).currency,
     property_types: p.propertyTypes,
-    // Not asked: the public catalog is sale-only, so an operation question
-    // would have a single answer. Null keeps the sub-score out of the maths
-    // instead of awarding a free 100.
-    operation_type: null,
+    operation_type: p.operation,
     rooms_min: p.roomsMin,
     surface_min: p.surfaceMin,
     max_age_years: p.maxAgeYears,
@@ -170,9 +228,20 @@ function asBoundedNumber(
 export function parseMatchPreferences(raw: unknown): MatchPreferences {
   if (typeof raw !== "object" || raw === null) return EMPTY_MATCH_PREFERENCES;
   const o = raw as Record<string, unknown>;
+  // Operation first: it decides which scale the stored ceiling is even
+  // measured on. A ceiling saved under one operation is out of range under
+  // the other and gets dropped, which is the intended outcome — a budget does
+  // not carry from a purchase to a rent.
+  const operation = (MATCH_OPERATIONS as readonly string[]).includes(
+    o.operation as string,
+  )
+    ? (o.operation as MatchOperation)
+    : null;
+  const scale = priceScaleFor(operation);
   return {
+    operation,
     partidos: asStringArray(o.partidos, PARTIDOS_ZONA_SUR),
-    priceMax: asBoundedNumber(o.priceMax, PRICE_MAX_FLOOR, PRICE_MAX_CEILING),
+    priceMax: asBoundedNumber(o.priceMax, scale.floor, scale.ceiling),
     roomsMin: asBoundedNumber(o.roomsMin, 1, 10),
     propertyTypes: asStringArray(o.propertyTypes, MATCH_PROPERTY_TYPES),
     surfaceMin: asBoundedNumber(

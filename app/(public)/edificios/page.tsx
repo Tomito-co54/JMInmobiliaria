@@ -53,21 +53,32 @@ function toGroup(key: string, units: Row[]): BuildingGroupData {
     (u): u is Row & { price_amount: number; price_currency: "USD" | "ARS" } =>
       u.price_amount !== null && u.price_amount > 0 && !!u.price_currency,
   );
-  // Only compare what is comparable — the cheapest within the currency most
-  // units use, the same rule summariseBuildings applies to the catalog badge.
-  const byCurrency = new Map<string, number[]>();
+  // Only compare what is comparable — the cheapest within the cohort most
+  // units share, the same rule summariseBuildings applies to the catalog
+  // badge. Keep the two in step: they answer the same question for the same
+  // reader on two different pages.
+  //
+  // The cohort is currency AND operation. A rent is the smallest number in a
+  // mixed building by an order of magnitude, so without the operation the
+  // "desde" of a building of USD 80.000 flats becomes the rent of the one
+  // flat that is to let.
+  const byCohort = new Map<string, number[]>();
   for (const u of priced) {
-    const list = byCurrency.get(u.price_currency);
+    const cohort = `${u.price_currency}·${u.operation_type ?? ""}`;
+    const list = byCohort.get(cohort);
     if (list) list.push(u.price_amount);
-    else byCurrency.set(u.price_currency, [u.price_amount]);
+    else byCohort.set(cohort, [u.price_amount]);
   }
   let fromPrice: number | null = null;
   let fromCurrency: "USD" | "ARS" | null = null;
+  let fromOperation: "venta" | "alquiler" | null = null;
   let most = 0;
-  for (const [currency, prices] of byCurrency) {
+  for (const [cohort, prices] of byCohort) {
     if (prices.length > most) {
       most = prices.length;
+      const [currency, operation] = cohort.split("·");
       fromCurrency = currency as "USD" | "ARS";
+      fromOperation = operation === "" ? null : (operation as "venta" | "alquiler");
       fromPrice = Math.min(...prices);
     }
   }
@@ -98,6 +109,7 @@ function toGroup(key: string, units: Row[]): BuildingGroupData {
     units: ordered,
     fromPrice,
     fromCurrency,
+    fromOperation,
     surfaceMin: surfaces.length ? Math.min(...surfaces) : null,
     surfaceMax: surfaces.length ? Math.max(...surfaces) : null,
   };

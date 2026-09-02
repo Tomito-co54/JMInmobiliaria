@@ -13,10 +13,12 @@ const unit = (
   nomenclatura: string | null,
   price: number | null = 80000,
   currency: "USD" | "ARS" | null = "USD",
+  operation: "venta" | "alquiler" | null = "venta",
 ) => ({
   nomenclatura_catastral: nomenclatura,
   price_amount: price,
   price_currency: currency,
+  operation_type: operation,
 });
 
 describe("buildingKey", () => {
@@ -74,6 +76,31 @@ describe("summariseBuildings", () => {
     ]).get(PARCEL_A)!;
     expect(s.fromCurrency).toBe("USD");
     expect(s.fromPrice).toBe(80000);
+  });
+
+  it("never mixes operations in the 'desde' either", () => {
+    // Three flats for sale and one to let. The rent is the smallest number in
+    // the building by an order of magnitude, so a cohort keyed on currency
+    // alone would advertise a building of USD 80.000 flats as "desde $
+    // 450.000 " — a price for something else entirely.
+    const s = summariseBuildings([
+      unit(PARCEL_A, 80000, "USD", "venta"),
+      unit(PARCEL_A, 96000, "USD", "venta"),
+      unit(PARCEL_A, 96000, "USD", "venta"),
+      unit(PARCEL_A, 450000, "ARS", "alquiler"),
+    ]).get(PARCEL_A)!;
+    expect(s.fromOperation).toBe("venta");
+    expect(s.fromPrice).toBe(80000);
+    expect(s.unitCount).toBe(4);
+  });
+
+  it("reports the operation so the 'desde' can be shown per month", () => {
+    const s = summariseBuildings([
+      unit(PARCEL_A, 500000, "ARS", "alquiler"),
+      unit(PARCEL_A, 450000, "ARS", "alquiler"),
+    ]).get(PARCEL_A)!;
+    expect(s.fromOperation).toBe("alquiler");
+    expect(s.fromPrice).toBe(450000);
   });
 
   it("still counts units when none of them has a price", () => {

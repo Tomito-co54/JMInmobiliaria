@@ -1,5 +1,6 @@
 import { FavoriteButton } from "./FavoriteButton";
 import { WhatsAppButton } from "./WhatsAppButton";
+import { formatPrice } from "@/lib/property/price";
 
 /**
  * Sticky bottom action bar — MOBILE ONLY (hidden lg:+). Keeps price + Save +
@@ -8,14 +9,11 @@ import { WhatsAppButton } from "./WhatsAppButton";
  * sticky right panel already covers this, so this is suppressed there.
  */
 
-function fmtPrice(amount: number): string {
-  return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(amount);
-}
-
 export function PropertyMobileBar({
   address,
   priceAmount,
   priceCurrency,
+  operationType,
   propertyId,
   isFavorited,
   signedOut,
@@ -24,6 +22,7 @@ export function PropertyMobileBar({
   propertyId: string;
   priceAmount: number | null;
   priceCurrency: "USD" | "ARS" | null;
+  operationType: "venta" | "alquiler" | null;
   isFavorited: boolean;
   signedOut: boolean;
 }) {
@@ -31,9 +30,9 @@ export function PropertyMobileBar({
     <div className="lg:hidden fixed inset-x-0 bottom-0 z-30 border-t bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="flex items-center gap-3 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="min-w-0 flex-1">
-          {priceAmount !== null && priceCurrency ? (
+          {formatPrice(priceAmount, priceCurrency, operationType, { compact: true }) ? (
             <p className="font-heading text-lg font-medium tabular-nums leading-none truncate">
-              {priceCurrency} {fmtPrice(priceAmount)}
+              {formatPrice(priceAmount, priceCurrency, operationType, { compact: true })}
             </p>
           ) : (
             <p className="text-sm font-semibold text-muted-foreground">Consultar precio</p>

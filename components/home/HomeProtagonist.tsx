@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Reveal } from "@/components/shared/Reveal";
 import { HomeProtagonistShowpiece } from "@/components/home/HomeProtagonistShowpiece";
+import { formatPrice } from "@/lib/property/price";
 
 /**
  * The home protagonista — Jotaeme's brand-signature gesture (Block 3 del
@@ -53,9 +54,7 @@ const TYPE_LABELS: Record<string, string> = {
   local: "Local",
 };
 
-function fmtPrice(amount: number): string {
-  return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(amount);
-}
+
 
 export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | null }) {
   const p = property;
@@ -63,6 +62,7 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
   // flows hero → features → catalog without a gap.
   if (!p) return null;
 
+  const priceText = formatPrice(p.price_amount, p.price_currency, p.operation_type);
   const cover = p.photos?.[0] ?? null;
   // La segunda foto va detrás de la primera. Null si sólo hay una.
   const behind = p.photos?.[1] ?? null;
@@ -112,9 +112,9 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
             <p className="mt-2 text-sm text-muted-foreground">{p.partido}</p>
           )}
 
-          {p.price_amount !== null && p.price_currency ? (
+          {priceText ? (
             <p className="mt-5 text-2xl sm:text-3xl font-bold tabular-nums leading-none">
-              {p.price_currency} {fmtPrice(p.price_amount)}
+              {priceText}
             </p>
           ) : (
             <p className="mt-5 text-xl font-bold text-muted-foreground leading-none">

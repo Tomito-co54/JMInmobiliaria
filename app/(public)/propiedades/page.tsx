@@ -4,6 +4,7 @@ import { PropertyCatalog } from "@/components/catalog/PropertyCatalog";
 import { WhatsAppFloat } from "@/components/home/WhatsAppFloat";
 import { summariseBuildings } from "@/lib/buildings";
 import { getPropertiesByProximity, ZONA_SUR_CENTER } from "@/lib/db/properties";
+import { catalogOperationLabel } from "@/lib/property/price";
 import type { PremiumCardProperty } from "@/components/catalog/PropertyPremiumCard";
 
 /**
@@ -24,7 +25,7 @@ import type { PremiumCardProperty } from "@/components/catalog/PropertyPremiumCa
 export const metadata: Metadata = {
   title: "Propiedades — Jotaeme",
   description:
-    "Propiedades en venta en Zona Sur del Gran Buenos Aires, con los datos verificados antes de publicarse.",
+    "Propiedades en Zona Sur del Gran Buenos Aires, con los datos verificados antes de publicarse.",
 };
 
 export default async function PropiedadesPage() {
@@ -37,6 +38,12 @@ export default async function PropiedadesPage() {
   const properties = proximity.data as unknown as PremiumCardProperty[];
   const buildings = summariseBuildings(properties);
 
+  // The heading used to read "Propiedades en venta", which was true for as
+  // long as a sale was the only thing loadable. Asked of the catalog instead,
+  // it cannot outlive its own contents: it keeps the qualifier while the
+  // catalog is one operation and drops it the day it is not.
+  const operationLabel = catalogOperationLabel(properties.map((p) => p.operation_type));
+
   return (
     <main className="min-h-screen flex flex-col">
       <PublicHeader active="propiedades" />
@@ -46,7 +53,7 @@ export default async function PropiedadesPage() {
         totalProperties={proximity.count}
         buildings={buildings}
         eyebrow="El catálogo"
-        heading="Propiedades en venta"
+        heading={operationLabel ? `Propiedades ${operationLabel}` : "Propiedades"}
       />
 
       <WhatsAppFloat />

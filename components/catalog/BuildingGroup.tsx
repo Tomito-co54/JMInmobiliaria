@@ -1,6 +1,7 @@
 import { BuildingCover } from "@/components/catalog/BuildingCover";
 import { BuildingUnits } from "@/components/property/BuildingUnits";
 import type { BuildingUnitRow } from "@/lib/db/properties";
+import { formatPrice } from "@/lib/property/price";
 
 /**
  * One building and the units published in it.
@@ -24,6 +25,7 @@ export interface BuildingGroupData {
   units: BuildingUnitRow[];
   fromPrice: number | null;
   fromCurrency: "USD" | "ARS" | null;
+  fromOperation: "venta" | "alquiler" | null;
   surfaceMin: number | null;
   surfaceMax: number | null;
   /**
@@ -39,13 +41,6 @@ export interface BuildingGroupData {
   coverPhoto: string | null;
 }
 
-function fmtPrice(amount: number, currency: string): string {
-  const n = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(
-    amount,
-  );
-  return currency === "USD" ? `USD ${n}` : `$ ${n}`;
-}
-
 function surfaceLine(min: number | null, max: number | null): string | null {
   if (min === null) return null;
   // One number when every unit is the same size — "40 a 40 m²" reads like a
@@ -59,8 +54,10 @@ export function BuildingGroup({ building }: { building: BuildingGroupData }) {
     `${building.units.length} ${
       building.units.length === 1 ? "unidad publicada" : "unidades publicadas"
     }`,
-    building.fromPrice !== null && building.fromCurrency
-      ? `desde ${fmtPrice(building.fromPrice, building.fromCurrency)}`
+    formatPrice(building.fromPrice, building.fromCurrency, building.fromOperation, {
+      compact: true,
+    })
+      ? `desde ${formatPrice(building.fromPrice, building.fromCurrency, building.fromOperation, { compact: true })}`
       : null,
     surfaceLine(building.surfaceMin, building.surfaceMax),
   ].filter((f): f is string => f !== null);

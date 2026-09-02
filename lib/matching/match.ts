@@ -255,6 +255,14 @@ function typeSubScore(p: PropertyForMatching, profile: SearchProfileForMatching)
 
 // ---------------------------------------------------------------------------
 // Sub-score: operation type
+//
+// Its weight is deliberately small, and that is not a claim that operation
+// barely matters — it is the opposite. A mismatch here is disqualifying, and
+// a weighted average cannot express "disqualifying": even at the largest
+// weight in the table a renter shown a sale would still read 75%, which is a
+// recommendation. So the disqualification is a gate in computeMatchScore and
+// this sub-score's job is only to carry the sentence that explains it into
+// the breakdown.
 // ---------------------------------------------------------------------------
 
 function operationSubScore(p: PropertyForMatching, profile: SearchProfileForMatching): MatchSubScore {
@@ -578,6 +586,22 @@ export function computeMatchScore(
     );
     score = Math.round(weighted / effectiveWeight);
   }
+
+  // Operation is a gate, not a criterion. When the visitor has said whether
+  // they are buying or renting and this listing is the other one, no amount
+  // of agreement on zone, price and size makes it a candidate: it is the
+  // wrong transaction. Scoring it as "almost right" would put a sale at the
+  // top of a renter's results on the strength of everything except the one
+  // thing they asked for.
+  //
+  // Zero rather than null: null means "not enough data to say", and this is
+  // the opposite — a confident no. The breakdown stays intact underneath so
+  // the sheet can say which two operations disagreed.
+  const operationMismatch =
+    profile.operation_type !== null &&
+    property.operation_type !== null &&
+    profile.operation_type !== property.operation_type;
+  if (operationMismatch && score !== null) score = 0;
 
   const subscores = {} as Record<MatchSubScoreId, MatchSubScoreBody>;
   for (const s of subs) {

@@ -157,7 +157,11 @@ export function MatchQuickFilter({
           </Link>
         )}
 
-        <MatchPreferencesForm value={preferences} onChange={setPreferences} />
+        <MatchPreferencesForm
+          value={preferences}
+          onChange={setPreferences}
+          operations={properties.map((p) => p.operation_type)}
+        />
       </PopoverContent>
     </Popover>
   );

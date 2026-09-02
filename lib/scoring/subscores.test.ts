@@ -288,6 +288,38 @@ describe("timeOnMarketSubScore", () => {
 // ---------------------------------------------------------------------------
 
 describe("priceVsComparablesSubScore", () => {
+  // Rentals: the cohort is scoped by operation upstream, so what arrives here
+  // for a rental is an empty cohort. These pin the abstention — the failure
+  // being guarded against is a rent measured against sale prices, which does
+  // not crash, it just reports a spectacular bargain.
+  it("abstains when the operation is unknown instead of comparing anyway", () => {
+    const input = makeInput({
+      property: makeProperty({
+        operation_type: null,
+        price_amount: 200000,
+        surface_total: 100,
+      }),
+      comparableStats: { medianPricePerM2Usd: 2000, sampleSize: 12 },
+    });
+    const s = priceVsComparablesSubScore(input);
+    expect(s.confidence).toBe(0);
+    expect(s.reason).toContain("operación");
+  });
+
+  it("abstains for a rental with no rental cohort, and says which cohort", () => {
+    const input = makeInput({
+      property: makeProperty({
+        operation_type: "alquiler",
+        price_amount: 900,
+        surface_total: 40,
+      }),
+      comparableStats: { medianPricePerM2Usd: null, sampleSize: 0 },
+    });
+    const s = priceVsComparablesSubScore(input);
+    expect(s.confidence).toBe(0);
+    expect(s.reason).toContain("alquiler");
+  });
+
   it("scores 50 when matching the median exactly", () => {
     const input = makeInput({
       property: makeProperty({ price_amount: 200000, surface_total: 100 }),

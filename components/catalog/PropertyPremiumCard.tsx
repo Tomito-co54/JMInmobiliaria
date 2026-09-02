@@ -3,6 +3,7 @@ import { NavPending } from "@/components/shared/NavPending";
 import Link from "next/link";
 import { MapPin, ShieldCheck, ArrowRight, ImageIcon } from "lucide-react";
 import type { BuildingSummary } from "@/lib/buildings";
+import { formatPrice } from "@/lib/property/price";
 
 /**
  * Premium editorial card for the public home catalog (Block 5 del
@@ -37,6 +38,7 @@ export interface PremiumCardProperty {
   id: string;
   nomenclatura_catastral?: string | null;
   property_type: string | null;
+  operation_type?: "venta" | "alquiler" | null;
   partido: string | null;
   address: string | null;
   price_amount: number | null;
@@ -48,10 +50,6 @@ export interface PremiumCardProperty {
   surface_arba: number | null;
   partida: string | null;
   photos: string[];
-}
-
-function fmtPrice(amount: number): string {
-  return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(amount);
 }
 
 export function PropertyPremiumCard({
@@ -66,6 +64,19 @@ export function PropertyPremiumCard({
   building?: BuildingSummary;
 }) {
   const cover = property.photos?.[0] ?? null;
+  // One formatter for every price on the card, so a rental cannot lose its
+  // "por mes" on one line and keep it on another.
+  const priceText = formatPrice(
+    property.price_amount,
+    property.price_currency,
+    property.operation_type,
+    { compact: true },
+  );
+  const buildingFromText = building
+    ? formatPrice(building.fromPrice, building.fromCurrency, building.fromOperation, {
+        compact: true,
+      })
+    : null;
   const typeLabel = property.property_type
     ? TYPE_LABELS[property.property_type] ?? property.property_type
     : null;
@@ -124,9 +135,9 @@ export function PropertyPremiumCard({
             </p>
           )}
 
-          {property.price_amount !== null && property.price_currency ? (
+          {priceText ? (
             <p className="mt-2 text-2xl sm:text-3xl font-bold tabular-nums leading-none">
-              {property.price_currency} {fmtPrice(property.price_amount)}
+              {priceText}
             </p>
           ) : (
             <p className="mt-2 text-xl font-bold text-muted-foreground leading-none">
@@ -163,11 +174,10 @@ export function PropertyPremiumCard({
               style={{ color: "var(--brand-accent)" }}
             >
               {building.unitCount} unidades en este edificio
-              {building.fromPrice !== null && building.fromCurrency && (
+              {buildingFromText && (
                 <span className="text-muted-foreground font-normal">
                   {" · desde "}
-                  {building.fromCurrency === "USD" ? "USD " : "$ "}
-                  {fmtPrice(building.fromPrice)}
+                  {buildingFromText}
                 </span>
               )}
             </p>

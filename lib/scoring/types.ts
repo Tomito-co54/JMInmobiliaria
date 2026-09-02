@@ -48,6 +48,13 @@ export interface PropertyForScoring {
   id: string;
   source: string;
   property_type: string | null;
+  /**
+   * Sale or rental. Absent from this shape until rentals existed, which is
+   * exactly why the price sub-score could measure a monthly rent against
+   * sale comparables with nothing objecting: the scorer could not see the
+   * difference because the difference was not modelled.
+   */
+  operation_type: "venta" | "alquiler" | null;
   partido: string | null;
   partida: string | null;
   nomenclatura_catastral: string | null;

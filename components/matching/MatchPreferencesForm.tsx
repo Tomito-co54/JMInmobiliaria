@@ -4,10 +4,9 @@ import { cn } from "@/lib/utils";
 import { PARTIDOS_ZONA_SUR } from "@/lib/zona-sur/partidos";
 import {
   AGE_MAX_OPTIONS,
+  MATCH_OPERATIONS,
   MATCH_PROPERTY_TYPES,
-  PRICE_MAX_CEILING,
-  PRICE_MAX_FLOOR,
-  PRICE_MAX_STEP,
+  priceScaleFor,
   SURFACE_MIN_CEILING,
   SURFACE_MIN_FLOOR,
   SURFACE_MIN_STEP,
@@ -102,22 +101,48 @@ export function MatchPreferencesForm({
   value,
   onChange,
   className,
+  operations,
 }: {
   value: MatchPreferences;
   onChange: (next: MatchPreferences) => void;
   className?: string;
+  /**
+   * The operations present in the catalog this form is shown beside.
+   *
+   * The buy/rent question only appears when there is more than one, because
+   * a control with a single real position is not a question — it is a claim
+   * that the visitor has a choice they do not have. It turns itself on the
+   * day a rental is published and needs no edit here.
+   *
+   * The exception is a visitor who already answered: their choice stays
+   * visible and clearable even if the catalog has since narrowed, so nobody
+   * is left filtered into an operation with no control to undo it.
+   */
+  operations?: ReadonlyArray<string | null | undefined>;
 }) {
   const toggle = (list: string[], item: string) =>
     list.includes(item) ? list.filter((x) => x !== item) : [...list, item];
 
-  // The slider's top notch means "no ceiling", not "up to 400k" — a buyer who
-  // pushes it to the end is saying price is not their constraint, and pinning
-  // them to 400k would penalise the listings they are most relaxed about.
-  const sliderValue = value.priceMax ?? PRICE_MAX_CEILING;
+  const distinctOperations = new Set(
+    (operations ?? []).filter((o): o is string => o === "venta" || o === "alquiler"),
+  );
+  const showOperation = distinctOperations.size > 1 || value.operation !== null;
+
+  // The slider's top notch means "no ceiling", not its literal value — a
+  // buyer who pushes it to the end is saying price is not their constraint,
+  // and pinning them to the top would penalise the listings they are most
+  // relaxed about.
+  //
+  // Which slider it is depends on the operation: a sale ceiling in dollars
+  // and a monthly rent in pesos are different quantities, so the control is
+  // rebuilt rather than relabelled when the visitor switches.
+  const scale = priceScaleFor(value.operation);
+  const money = scale.currency === "ARS" ? "$" : "USD";
+  const sliderValue = value.priceMax ?? scale.ceiling;
   const priceLabel =
     value.priceMax === null
       ? "Sin límite"
-      : `Hasta USD ${value.priceMax.toLocaleString("es-AR")}`;
+      : `Hasta ${money} ${value.priceMax.toLocaleString("es-AR")}${scale.period}`;
 
   // Mirrors the price control, at the other end: parked at the floor means
   // "no minimum", so the absence of a constraint is the slider's rest state
@@ -128,6 +153,32 @@ export function MatchPreferencesForm({
 
   return (
     <div className={cn("space-y-6", className)}>
+      {showOperation ? (
+        <Field label="Operación">
+          <div className="flex flex-wrap gap-2">
+            {MATCH_OPERATIONS.map((op) => (
+              <Chip
+                key={op}
+                on={value.operation === op}
+                label={op === "venta" ? "Comprar" : "Alquilar"}
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    operation: value.operation === op ? null : op,
+                    // The ceiling is measured on the operation's own scale, so
+                    // carrying it across would silently reinterpret the number
+                    // — a rent of 600.000 becoming a purchase budget of 600.000.
+                    priceMax: null,
+                  })
+                }
+              >
+                {op === "venta" ? "Comprar" : "Alquilar"}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+      ) : null}
+
       <Field label="Zona">
         <div className="flex flex-wrap gap-2">
           {PARTIDOS_ZONA_SUR.map((p) => (
@@ -147,17 +198,21 @@ export function MatchPreferencesForm({
       <Field label="Presupuesto" hint={priceLabel}>
         <input
           type="range"
-          min={PRICE_MAX_FLOOR}
-          max={PRICE_MAX_CEILING}
-          step={PRICE_MAX_STEP}
+          min={scale.floor}
+          max={scale.ceiling}
+          step={scale.step}
           value={sliderValue}
-          aria-label="Presupuesto máximo en dólares"
+          aria-label={
+            scale.currency === "ARS"
+              ? "Alquiler máximo por mes en pesos"
+              : "Presupuesto máximo en dólares"
+          }
           aria-valuetext={priceLabel}
           onChange={(e) => {
             const n = Number(e.target.value);
             onChange({
               ...value,
-              priceMax: n >= PRICE_MAX_CEILING ? null : n,
+              priceMax: n >= scale.ceiling ? null : n,
             });
           }}
           className="w-full accent-[var(--brand-gold)] h-11 cursor-pointer"

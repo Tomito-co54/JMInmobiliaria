@@ -364,7 +364,8 @@ export function timeOnMarketSubScore(input: ScoringInput): SubScore {
 // ---------------------------------------------------------------------------
 
 export function priceVsComparablesSubScore(input: ScoringInput): SubScore {
-  const { price_amount, price_currency, property_type, partido } = input.property;
+  const { price_amount, price_currency, property_type, partido, operation_type } =
+    input.property;
   // USD/m² uses the DECLARED surface (surface_total), not surface_arba.
   // ARBA's surface is a cadastral *verification* signal (see arbaCoherence),
   // not the denominator of the asking price — the price is set against the
@@ -373,13 +374,21 @@ export function priceVsComparablesSubScore(input: ScoringInput): SubScore {
   const surface = input.property.surface_total ?? null;
   const weight = SUBSCORE_WEIGHTS.price_vs_comparables;
 
-  if (!price_amount || !price_currency || !property_type || !partido || !surface || surface <= 0) {
+  if (
+    !price_amount ||
+    !price_currency ||
+    !property_type ||
+    !partido ||
+    !operation_type ||
+    !surface ||
+    surface <= 0
+  ) {
     return {
       id: "price_vs_comparables",
       value: 0,
       weight,
       confidence: 0,
-      reason: "Faltan datos para comparar (precio, superficie, tipo o partido)",
+      reason: "Faltan datos para comparar (precio, superficie, tipo, partido u operación)",
     };
   }
 
@@ -393,6 +402,11 @@ export function priceVsComparablesSubScore(input: ScoringInput): SubScore {
     };
   }
 
+  // The cohort handed in is already scoped to this property's operation (see
+  // lib/scoring/comparables.ts). Naming the operation in the reason matters
+  // because the empty cohort is expected, not broken: the crawled corpus is
+  // sales only, so every rental legitimately lands here, and a breakdown that
+  // just said "muestra insuficiente" would read as a data gap to go fix.
   const { medianPricePerM2Usd, sampleSize } = input.comparableStats;
   if (medianPricePerM2Usd === null || sampleSize < 5) {
     return {
@@ -400,7 +414,7 @@ export function priceVsComparablesSubScore(input: ScoringInput): SubScore {
       value: 0,
       weight,
       confidence: 0,
-      reason: `Muestra insuficiente (n=${sampleSize} en ${partido} · ${property_type}, se requieren ≥5)`,
+      reason: `Muestra insuficiente (n=${sampleSize} en ${partido} · ${property_type} · ${operation_type}, se requieren ≥5)`,
     };
   }
 

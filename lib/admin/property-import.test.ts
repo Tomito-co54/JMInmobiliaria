@@ -40,6 +40,28 @@ describe("isRemotePhoto", () => {
 });
 
 describe("parseImportPayload", () => {
+  it("loads a rental, in pesos, through the same file format", () => {
+    // Nothing about the loader had to change for this — the enum and the
+    // schema always allowed it. The test exists because "it should already
+    // work" was the assumption that let a rental be priced, displayed and
+    // scored as a sale everywhere downstream.
+    const r = parseImportPayload({
+      ...VALID,
+      operation_type: "alquiler",
+      price_amount: 450000,
+      price_currency: "ARS",
+    });
+    expect(r.ok).toBe(true);
+    expect(r.payload!.row.operation_type).toBe("alquiler");
+    expect(r.payload!.row.price_currency).toBe("ARS");
+    expect(r.payload!.row.price_amount).toBe(450000);
+  });
+
+  it("rejects an operation that is not one of the two", () => {
+    const r = parseImportPayload({ ...VALID, operation_type: "permuta" });
+    expect(r.ok).toBe(false);
+  });
+
   it("accepts a complete property", () => {
     const r = parseImportPayload(VALID);
     expect(r.ok).toBe(true);

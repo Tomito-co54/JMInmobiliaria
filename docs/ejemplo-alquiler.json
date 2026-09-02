@@ -1,0 +1,28 @@
+{
+  "_comentario": "Plantilla de ALQUILER. Igual que ejemplo-propiedad.json salvo dos campos: operation_type y price_currency. El precio es MENSUAL — el sitio le agrega 'por mes' solo, en la ficha, en las cards, en el PDF y en el edificio. No escribir 'por mes' adentro del numero ni de la descripcion.",
+
+  "address": "Belgrano 1287 3o C",
+  "partido": "Lomas de Zamora",
+  "partida": "063-47850-2",
+
+  "property_type": "departamento",
+  "operation_type": "alquiler",
+  "price_amount": 450000,
+  "price_currency": "ARS",
+
+  "surface_total": 40,
+  "surface_covered": 40,
+  "rooms": 2,
+  "bedrooms": 1,
+  "bathrooms": 1,
+  "garages": 0,
+  "year_built": 2024,
+
+  "description": "Dos ambientes al frente, cocina integrada y balcon. A cuatro cuadras de la estacion de Banfield.",
+
+  "photos": [
+    "C:/Users/tomit/Pictures/belgrano-1287/3c-living.jpg"
+  ],
+
+  "is_featured": false
+}

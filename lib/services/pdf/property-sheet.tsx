@@ -123,10 +123,20 @@ export interface PropertySheetInput {
   };
 }
 
-function money(amount: number | null, currency: string | null): string {
+/**
+ * The sheet is downloaded and forwarded, so it is read with none of the page
+ * around it. A rent printed without its period is the one number on it that
+ * can be misread as an entire purchase price.
+ */
+function money(
+  amount: number | null,
+  currency: string | null,
+  operation: string | null,
+): string {
   if (amount === null || !currency) return "Consultar";
   const n = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(amount);
-  return currency === "USD" ? `USD ${n}` : `$ ${n}`;
+  const base = currency === "USD" ? `USD ${n}` : `$ ${n}`;
+  return operation === "alquiler" ? `${base} por mes` : base;
 }
 
 const m2 = (v: number | null) => (v === null || v === undefined ? "—" : `${v} m²`);
@@ -160,7 +170,9 @@ export function PropertySheetDocument({ data }: { data: PropertySheetInput }) {
         {p.coverUrl && <Image style={s.cover} src={p.coverUrl} />}
 
         <View style={s.priceRow}>
-          <Text style={s.price}>{money(p.price_amount, p.price_currency)}</Text>
+          <Text style={s.price}>
+            {money(p.price_amount, p.price_currency, p.operation_type)}
+          </Text>
         </View>
 
         <View style={s.specs}>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import type { BuildingUnitRow } from "@/lib/db/properties";
+import { formatPrice } from "@/lib/property/price";
 
 /**
  * "Otras unidades en este edificio" — the sibling listings standing on the
@@ -16,12 +17,6 @@ import type { BuildingUnitRow } from "@/lib/db/properties";
  * A row, not a card grid (§6 blacklist): photo, address, price, and the two
  * facts that separate one unit from another — surface and rooms.
  */
-function fmtPrice(amount: number | null, currency: string | null): string {
-  if (amount === null || !currency) return "Consultar";
-  const n = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(amount);
-  return currency === "USD" ? `USD ${n}` : `$ ${n}`;
-}
-
 function fmtSpecs(u: BuildingUnitRow): string {
   const bits: string[] = [];
   if (u.rooms) bits.push(`${u.rooms} amb`);
@@ -70,7 +65,9 @@ export function BuildingUnits({ units }: { units: BuildingUnitRow[] }) {
                   className="text-sm font-semibold tabular-nums"
                   style={{ color: "var(--brand-heading)" }}
                 >
-                  {fmtPrice(u.price_amount, u.price_currency)}
+                  {formatPrice(u.price_amount, u.price_currency, u.operation_type, {
+                    compact: true,
+                  }) ?? "Consultar"}
                 </p>
               </div>
 

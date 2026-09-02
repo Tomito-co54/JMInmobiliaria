@@ -53,7 +53,11 @@ export interface PublicPropertyRow {
   lat: number | null;
   lng: number | null;
   property_type: string | null;
-  operation_type: string | null;
+  // Narrowed to the enum, like price_currency beside it: this is a Postgres
+  // enum, and every surface that renders a price now needs to tell a sale
+  // from a rent. A bare `string` here pushed that decision out to the call
+  // sites, where "it is not 'alquiler'" is a guess rather than a check.
+  operation_type: "venta" | "alquiler" | null;
   price_amount: number | null;
   price_currency: "USD" | "ARS" | null;
   surface_total: number | null;
@@ -178,6 +182,7 @@ export interface BuildingUnitRow {
   id: string;
   address: string | null;
   property_type: string | null;
+  operation_type: "venta" | "alquiler" | null;
   price_amount: number | null;
   price_currency: "USD" | "ARS" | null;
   rooms: number | null;
@@ -210,7 +215,7 @@ export async function getBuildingUnits(
   const { data, error } = await supabase
     .from("properties")
     .select(
-      "id, address, property_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_covered, photos, quality_score",
+      "id, address, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_covered, photos, quality_score",
     )
     .eq("nomenclatura_catastral", nomenclatura.trim())
     .neq("id", excludeId)
@@ -338,6 +343,7 @@ export interface FeaturedPropertyRow {
   address: string | null;
   partido: string | null;
   property_type: string | null;
+  operation_type: "venta" | "alquiler" | null;
   price_amount: number | null;
   price_currency: "USD" | "ARS" | null;
   rooms: number | null;
@@ -355,6 +361,7 @@ const FEATURED_PROPERTY_COLS = [
   "address",
   "partido",
   "property_type",
+  "operation_type",
   "price_amount",
   "price_currency",
   "rooms",

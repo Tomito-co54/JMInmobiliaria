@@ -3,8 +3,10 @@ import {
   AGE_MAX_OPTIONS,
   EMPTY_MATCH_PREFERENCES,
   MATCH_PROPERTY_TYPES,
-  PRICE_MAX_CEILING,
+  RENT_PRICE_SCALE,
+  SALE_PRICE_SCALE,
   SURFACE_MIN_CEILING,
+  priceScaleFor,
   hasAnyPreference,
   parseMatchPreferences,
   toSearchProfile,
@@ -155,13 +157,106 @@ describe("parseMatchPreferences", () => {
   it("round-trips what the form produces", () => {
     const p = prefs({
       partidos: ["Lomas de Zamora"],
-      priceMax: PRICE_MAX_CEILING - 5_000,
+      priceMax: SALE_PRICE_SCALE.ceiling - 5_000,
       roomsMin: 3,
       propertyTypes: ["ph"],
       surfaceMin: SURFACE_MIN_CEILING,
       maxAgeYears: 10,
     });
     expect(parseMatchPreferences(JSON.parse(JSON.stringify(p)))).toEqual(p);
+  });
+});
+
+describe("operation and the budget scale that follows it", () => {
+  it("passes the visitor's operation through to the matcher", () => {
+    expect(toSearchProfile(prefs({ operation: "alquiler" })).operation_type).toBe(
+      "alquiler",
+    );
+  });
+
+  it("prices a rental search in pesos and a purchase in dollars", () => {
+    expect(toSearchProfile(prefs({ operation: "alquiler" })).price_currency).toBe("ARS");
+    expect(toSearchProfile(prefs({ operation: "venta" })).price_currency).toBe("USD");
+    // Unanswered falls back to the sale scale, which is what this catalog
+    // mostly is — not a claim the two are interchangeable.
+    expect(toSearchProfile(prefs()).price_currency).toBe("USD");
+  });
+
+  it("counts a chosen operation as having said something", () => {
+    expect(hasAnyPreference(prefs({ operation: "alquiler" }))).toBe(true);
+    expect(hasAnyPreference(prefs())).toBe(false);
+  });
+
+  it("keeps a stored ceiling that is valid on its own operation's scale", () => {
+    const p = prefs({ operation: "alquiler", priceMax: 600_000 });
+    expect(parseMatchPreferences(JSON.parse(JSON.stringify(p)))).toEqual(p);
+  });
+
+  it("drops a ceiling that belongs to the other operation's scale", () => {
+    // 600.000 is a plausible monthly rent in pesos and an implausible sale
+    // price in dollars. Read under the wrong operation it is not a smaller
+    // number, it is a different quantity — so it is dropped, not clamped.
+    const stored = { operation: "venta", priceMax: 600_000 };
+    expect(parseMatchPreferences(stored).priceMax).toBeNull();
+    expect(RENT_PRICE_SCALE.ceiling).toBeGreaterThanOrEqual(600_000);
+    expect(SALE_PRICE_SCALE.ceiling).toBeLessThan(600_000);
+  });
+
+  it("rejects an operation it does not recognise", () => {
+    expect(parseMatchPreferences({ operation: "permuta" }).operation).toBeNull();
+  });
+
+  it("scales the budget control by operation", () => {
+    expect(priceScaleFor("alquiler")).toBe(RENT_PRICE_SCALE);
+    expect(priceScaleFor("venta")).toBe(SALE_PRICE_SCALE);
+    expect(priceScaleFor(null)).toBe(SALE_PRICE_SCALE);
+  });
+});
+
+describe("the operation gate", () => {
+  const RENTAL: PropertyForMatching = { ...UNIT, operation_type: "alquiler" };
+
+  it("zeroes a sale for someone who is renting, however well it fits", () => {
+    // Everything else agrees: same partido, same type, same size, no budget.
+    const m = computeMatchScore(UNIT, toSearchProfile(prefs({
+      operation: "alquiler",
+      partidos: ["Lomas de Zamora"],
+      propertyTypes: ["departamento"],
+    })));
+    expect(m.score).toBe(0);
+    // Zero, not null: this is a confident no, not missing data.
+    expect(m.insufficient_data).toBe(false);
+  });
+
+  it("leaves the same listing scoring normally for a buyer", () => {
+    const m = computeMatchScore(UNIT, toSearchProfile(prefs({
+      operation: "venta",
+      partidos: ["Lomas de Zamora"],
+      propertyTypes: ["departamento"],
+    })));
+    expect(m.score).toBeGreaterThan(0);
+  });
+
+  it("does not gate when the visitor has not said which operation", () => {
+    const m = computeMatchScore(RENTAL, toSearchProfile(prefs({
+      partidos: ["Lomas de Zamora"],
+    })));
+    expect(m.score).not.toBe(0);
+  });
+
+  it("does not gate a listing that declares no operation", () => {
+    const undeclared: PropertyForMatching = { ...UNIT, operation_type: null };
+    const m = computeMatchScore(undeclared, toSearchProfile(prefs({
+      operation: "alquiler",
+      partidos: ["Lomas de Zamora"],
+    })));
+    expect(m.score).not.toBe(0);
+  });
+
+  it("keeps the breakdown intact so the sheet can explain the zero", () => {
+    const m = computeMatchScore(UNIT, toSearchProfile(prefs({ operation: "alquiler" })));
+    expect(m.subscores.operation.reason).toContain("alquiler");
+    expect(m.subscores.operation.reason).toContain("venta");
   });
 });
 

@@ -10,6 +10,7 @@ export function makeProperty(overrides: Partial<PropertyForScoring> = {}): Prope
     id: "11111111-1111-1111-1111-111111111111",
     source: "zonaprop",
     property_type: "casa",
+    operation_type: "venta",
     partido: "Lomas de Zamora",
     partida: "12345",
     nomenclatura_catastral: "070-01-001-01-001-001",
