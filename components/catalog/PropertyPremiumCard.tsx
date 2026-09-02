@@ -3,7 +3,7 @@ import { NavPending } from "@/components/shared/NavPending";
 import Link from "next/link";
 import { MapPin, ShieldCheck, ArrowRight, ImageIcon } from "lucide-react";
 import type { BuildingSummary } from "@/lib/buildings";
-import { formatPrice } from "@/lib/property/price";
+import { formatPrice, labelWithOperation } from "@/lib/property/price";
 
 /**
  * Premium editorial card for the public home catalog (Block 5 del
@@ -66,15 +66,19 @@ export function PropertyPremiumCard({
   const cover = property.photos?.[0] ?? null;
   // One formatter for every price on the card, so a rental cannot lose its
   // "por mes" on one line and keep it on another.
+  // No period on the number: the eyebrow right above it says "en alquiler",
+  // and saying it twice makes the price read like a unit of measure.
   const priceText = formatPrice(
     property.price_amount,
     property.price_currency,
     property.operation_type,
-    { compact: true },
   );
+  // The exception: this one summarises a cohort of units and has no label of
+  // its own, so it keeps the period.
   const buildingFromText = building
     ? formatPrice(building.fromPrice, building.fromCurrency, building.fromOperation, {
         compact: true,
+        period: true,
       })
     : null;
   const typeLabel = property.property_type
@@ -131,7 +135,9 @@ export function PropertyPremiumCard({
         >
           {(typeLabel || property.partido) && (
             <p className="text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">
-              {[typeLabel, property.partido].filter(Boolean).join(" · ")}
+              {[labelWithOperation(typeLabel, property.operation_type), property.partido]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           )}
 

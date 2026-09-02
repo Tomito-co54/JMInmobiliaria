@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import type { BuildingUnitRow } from "@/lib/db/properties";
-import { formatPrice } from "@/lib/property/price";
+import { formatPrice, operationNoun } from "@/lib/property/price";
 
 /**
  * "Otras unidades en este edificio" — the sibling listings standing on the
@@ -19,6 +19,13 @@ import { formatPrice } from "@/lib/property/price";
  */
 function fmtSpecs(u: BuildingUnitRow): string {
   const bits: string[] = [];
+  // The operation leads, and it is not decoration here. These rows show a
+  // price with no type label beside it, and a neighbouring unit can be the
+  // other operation than the listing being read — a building with three flats
+  // for sale and one to let would otherwise put "$ 450.000" in a column of
+  // dollar sale prices with nothing to separate them.
+  const op = operationNoun(u.operation_type);
+  if (op) bits.push(op);
   if (u.rooms) bits.push(`${u.rooms} amb`);
   const surface = u.surface_total ?? u.surface_covered;
   if (surface) bits.push(`${surface} m²`);

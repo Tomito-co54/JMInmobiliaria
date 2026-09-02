@@ -2,6 +2,7 @@ import "server-only";
 import React from "react";
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { theme } from "./theme";
+import { labelWithOperation } from "@/lib/property/price";
 
 /**
  * Ficha de propiedad — the one-pager a buyer downloads and shares.
@@ -128,15 +129,16 @@ export interface PropertySheetInput {
  * around it. A rent printed without its period is the one number on it that
  * can be misread as an entire purchase price.
  */
-function money(
-  amount: number | null,
-  currency: string | null,
-  operation: string | null,
-): string {
+/**
+ * The sheet is downloaded and forwarded, so it is read with none of the page
+ * around it — but it does carry its own type line, and that line names the
+ * operation ("Casa en alquiler"). So the number stays clean here for the same
+ * reason it does on a card.
+ */
+function money(amount: number | null, currency: string | null): string {
   if (amount === null || !currency) return "Consultar";
   const n = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 }).format(amount);
-  const base = currency === "USD" ? `USD ${n}` : `$ ${n}`;
-  return operation === "alquiler" ? `${base} por mes` : base;
+  return currency === "USD" ? `USD ${n}` : `$ ${n}`;
 }
 
 const m2 = (v: number | null) => (v === null || v === undefined ? "—" : `${v} m²`);
@@ -151,7 +153,13 @@ function trim(text: string | null, max = 900): string | null {
 
 export function PropertySheetDocument({ data }: { data: PropertySheetInput }) {
   const p = data.property;
-  const typeLine = [p.property_type, p.operation_type].filter(Boolean).join(" · ");
+  // "Casa en alquiler" rather than "casa · alquiler": this is the line that
+  // has to carry the operation now that the price does not.
+  const typeLine =
+    labelWithOperation(
+      p.property_type ? p.property_type[0].toUpperCase() + p.property_type.slice(1) : null,
+      p.operation_type as "venta" | "alquiler" | null,
+    ) ?? "";
   const description = trim(p.description);
 
   return (
@@ -170,9 +178,7 @@ export function PropertySheetDocument({ data }: { data: PropertySheetInput }) {
         {p.coverUrl && <Image style={s.cover} src={p.coverUrl} />}
 
         <View style={s.priceRow}>
-          <Text style={s.price}>
-            {money(p.price_amount, p.price_currency, p.operation_type)}
-          </Text>
+          <Text style={s.price}>{money(p.price_amount, p.price_currency)}</Text>
         </View>
 
         <View style={s.specs}>

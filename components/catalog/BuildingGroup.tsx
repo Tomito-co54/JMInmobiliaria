@@ -56,8 +56,9 @@ export function BuildingGroup({ building }: { building: BuildingGroupData }) {
     }`,
     formatPrice(building.fromPrice, building.fromCurrency, building.fromOperation, {
       compact: true,
+      period: true,
     })
-      ? `desde ${formatPrice(building.fromPrice, building.fromCurrency, building.fromOperation, { compact: true })}`
+      ? `desde ${formatPrice(building.fromPrice, building.fromCurrency, building.fromOperation, { compact: true, period: true })}`
       : null,
     surfaceLine(building.surfaceMin, building.surfaceMax),
   ].filter((f): f is string => f !== null);

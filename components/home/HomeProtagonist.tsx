@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Reveal } from "@/components/shared/Reveal";
 import { HomeProtagonistShowpiece } from "@/components/home/HomeProtagonistShowpiece";
-import { formatPrice } from "@/lib/property/price";
+import { formatPrice, labelWithOperation } from "@/lib/property/price";
 
 /**
  * The home protagonista — Jotaeme's brand-signature gesture (Block 3 del
@@ -80,7 +80,7 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
   const headline = p.address ?? [typeLabel, p.partido].filter(Boolean).join(" en ");
 
   const specs = [
-    typeLabel,
+    labelWithOperation(typeLabel, p.operation_type),
     p.rooms !== null ? `${p.rooms} amb` : null,
     p.bedrooms !== null ? `${p.bedrooms} dorm` : null,
     surface !== null ? `${surface} m²` : null,

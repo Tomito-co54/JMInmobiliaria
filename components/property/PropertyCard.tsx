@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { MapPin, ImageIcon } from "lucide-react";
-import { formatPrice } from "@/lib/property/price";
+import { formatPrice, labelWithOperation } from "@/lib/property/price";
 import {
   getMatchBand,
   type MatchBreakdown,
@@ -135,9 +135,9 @@ export function PropertyCard({
         </div>
 
         <div className="min-w-0 flex-1 space-y-1.5">
-          {formatPrice(property.price_amount, property.price_currency, property.operation_type, { compact: true }) ? (
+          {formatPrice(property.price_amount, property.price_currency, property.operation_type) ? (
             <p className="text-lg font-bold tabular-nums leading-tight">
-              {formatPrice(property.price_amount, property.price_currency, property.operation_type, { compact: true })}
+              {formatPrice(property.price_amount, property.price_currency, property.operation_type)}
             </p>
           ) : (
             <p className="text-base font-bold text-muted-foreground leading-tight">
@@ -145,7 +145,7 @@ export function PropertyCard({
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            {[typeLabel, property.rooms !== null ? `${property.rooms} amb` : null, surface !== null ? `${surface}m²` : null]
+            {[labelWithOperation(typeLabel, property.operation_type), property.rooms !== null ? `${property.rooms} amb` : null, surface !== null ? `${surface}m²` : null]
               .filter(Boolean)
               .join(" · ")}
           </p>

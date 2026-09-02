@@ -52,24 +52,58 @@ export function pricePeriodSuffix(
 }
 
 /**
- * A price, complete and unambiguous, or `null` when there is no price to
- * show. Callers already branch on the null — they were branching on
- * `price_amount !== null` before this existed.
+ * A price, or `null` when there is no price to show. Callers already branch
+ * on the null — they were branching on `price_amount !== null` before this
+ * existed.
  *
- * `compact` is for cards and other tight spots: `$ 500.000/mes` instead of
- * `$ 500.000 por mes`. It shortens the period, never drops it.
+ * **The period is opt-in, and that is a deliberate trade.** A rent has to be
+ * legible as monthly, but the price is not the only place that can say so:
+ * where the listing already carries "Casa en alquiler" beside it, "por mes"
+ * on the number is the same fact twice, and the label says it better because
+ * it says it before the reader has decided what the number means.
+ *
+ * So `period: true` is for the places with no such label next to them — a
+ * building's "desde" line summarising a cohort, and anywhere a price travels
+ * without its listing. Pass it there and nowhere else; the rule is not "never
+ * show the period", it is "never show a rent that nothing marks as a rent".
+ *
+ * `compact` shortens that period when it is shown: `/mes` rather than
+ * ` por mes`. It never drops it.
  */
 export function formatPrice(
   amount: number | null | undefined,
   currency: PriceCurrency | null | undefined,
   operation: OperationType | null | undefined,
-  opts: { compact?: boolean } = {},
+  opts: { compact?: boolean; period?: boolean } = {},
 ): string | null {
   if (amount === null || amount === undefined) return null;
   if (!currency) return null;
   if (!Number.isFinite(amount)) return null;
-  const suffix = pricePeriodSuffix(operation ?? null, opts.compact ?? false);
+  const suffix = opts.period
+    ? pricePeriodSuffix(operation ?? null, opts.compact ?? false)
+    : "";
   return `${currencySymbol(currency)} ${formatAmount(amount)}${suffix}`;
+}
+
+/**
+ * Puts the operation into the label that names the property: "Casa" becomes
+ * "Casa en alquiler".
+ *
+ * Takes an already-resolved label rather than a raw `property_type` because
+ * the surfaces disagree on vocabulary on purpose — the catalog card says
+ * "Departamento" and the narrow legacy card says "Depto" — and unifying that
+ * here would be a rendering decision made in the wrong place.
+ *
+ * Returns the label untouched when the operation is unknown, so a listing
+ * loaded without one reads as it always did instead of trailing an "en".
+ */
+export function labelWithOperation(
+  typeLabel: string | null | undefined,
+  operation: OperationType | null | undefined,
+): string | null {
+  if (!typeLabel) return operationNoun(operation);
+  const op = operationLabel(operation);
+  return op ? `${typeLabel} ${op}` : typeLabel;
 }
 
 /** "en venta" / "en alquiler" — reads after a noun ("Departamento en venta"). */
