@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "pipeline": "tsx scripts/scrape-zonaprop.ts \"Lomas de Zamora\" && tsx scripts/scrape-trezza.ts \"Lomas de Zamora\" && tsx scripts/dedup-properties.ts && tsx scripts/geocode-properties.ts && tsx scripts/enrich-cadastral.ts && tsx scripts/score-properties.ts",
-    "cargar-propiedad": "tsx scripts/create-property.ts"
+    "cargar-propiedad": "tsx scripts/create-property.ts",
+    "buscar-partida": "tsx scripts/buscar-partida.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
