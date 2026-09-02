@@ -187,10 +187,28 @@ export async function upsertScrapedProperty(
  * upsert loop it would be useless: the loop reactivates everything it saw,
  * which is precisely the number under suspicion.
  */
+/**
+ * How many listings this source+partido has active right now.
+ *
+ * Returns `null` when the count could not be read, and that distinction is
+ * the whole point. It used to end in `count ?? 0`, which turned "I don't
+ * know" into "zero" — and zero waives the coverage guard in
+ * `decideDeactivation`, because a genuinely empty baseline has nothing to
+ * lose. So an unreadable baseline disarmed the exact protection that exists
+ * for unreliable runs.
+ *
+ * That is the same fail-open as 1-sep-2026, one layer down. That fix made the
+ * scrapers start from `null` and only overwrite on success — but this
+ * function never handed them a `null` to keep, and it does not throw when
+ * PostgREST answers without a count header, so the scrapers' catch never
+ * fired either. On 2-sep-2026 a run that saw ~25 listings deactivated 380.
+ *
+ * Callers must treat `null` as "refuse to deactivate", never as zero.
+ */
 export async function countActiveListings(
   source: ScrapedProperty["source"],
   partido: string,
-): Promise<number> {
+): Promise<number | null> {
   const supabase = getAdminClient();
   const { count, error } = await supabase
     .from("properties")
@@ -199,7 +217,9 @@ export async function countActiveListings(
     .eq("partido", partido)
     .eq("is_active", true);
   if (error) throw error;
-  return count ?? 0;
+  // A missing count is not an empty table. PostgREST can answer 200 with no
+  // count header; only an actual number is a baseline.
+  return typeof count === "number" ? count : null;
 }
 
 /**
