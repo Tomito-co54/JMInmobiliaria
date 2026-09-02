@@ -337,13 +337,19 @@ una contra el build: no falta ninguna — están las 41, con `/icon.svg` y
 | Qué | Cuánto |
 |---|---|
 | Propiedades propias publicadas | **5** — Belgrano 1287 (1°A, 1°B, 2°A, 2°B) + **Talcahuano 258, el primer alquiler** |
-| Scrapeadas | **562** · 434 activas · 389 geolocalizadas |
-| `property_history` | 289 eventos |
-| Total en la tabla | **570** (5 publicadas + 3 borradores + 562 scrapeadas) |
+| Scrapeadas | **567** · 439 activas · 392 geolocalizadas |
+| `property_history` | 291 eventos |
+| Total en la tabla | **575** (5 publicadas + 3 borradores + 567 scrapeadas) |
 
-Las 434 activas son el número de después de reparar la tercera desactivación
-masiva, el 2-sep — ver la sección propia más abajo. Y los **borradores son 3**,
-no 1: este documento decía 1 desde el 31-ago.
+Números de después de la corrida manual del 2-sep a la tarde, que es la
+primera con la guarda reparada. Vio **250 avisos** (61% de cobertura, holgado
+sobre el umbral del 50%), insertó **5 nuevos**, registró un cambio de precio
+—Sáenz al 200, 115.000 → 118.000— y **no dio de baja nada**, que es lo
+correcto: Zonaprop corta en la página 10, el crawl queda marcado como truncado
+y la desactivación se saltea. Los **borradores son 3**, no 1: este documento
+decía 1 desde el 31-ago.
+
+**Trezza sigue devolviendo cero** — 27 filas, sin moverse.
 
 **La corrida del 1-sep a la noche, la primera con el cron ya apagado**, vio
 229 avisos (contra 45 de la automática de la mañana), insertó 4 nuevos y
