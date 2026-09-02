@@ -851,7 +851,14 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   NavPending (acuse del click), theme-toggle
 │   │                             #   (el barrido circular del tema), etc.
 │   ├── education/                # BuyingProcessAdvisor (legacy)
-│   └── search/                   # SearchProfileForm (legacy)
+│   ├── payment/                  # PaymentReturnLayout — el marco compartido por las
+│   │                             #   tres vueltas de MercadoPago (/pago/exito,
+│   │                             #   /pendiente, /error)
+│   ├── services/                 # ServiceCard — servicios pagos. Sin entrada pública
+│   │                             #   hoy: PAID_SERVICES_PUBLIC está en false
+│   └── search-profile/           # SearchProfileForm (legacy). El nombre importa: este
+│                                 #   documento decía `components/search/` hasta la
+│                                 #   v2.18, y esa carpeta estaba vacía
 │
 ├── lib/
 │   ├── db/                       # queries tipadas — properties, admin, favorites, etc.
@@ -867,7 +874,11 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │   ├── geocoding/            # Nominatim wrapper
 │   │   ├── dedup/                # cross-source matching
 │   │   ├── mercadopago/          # legacy upstream — checkout + webhook
-│   │   ├── email/                # Resend wrappers
+│   │   ├── email/                # Resend wrappers (client · send · templates).
+│   │   │                         #   Los mails de recuperación NO salen de acá: esos
+│   │   │                         #   los manda Supabase Auth con su propio SMTP
+│   │   ├── storage/              # deliverables.ts — bucket de los informes pagos.
+│   │   │                         #   Distinto de lib/storage/, que es el de fotos
 │   │   ├── pdf/                  # @react-pdf renderer — informe ARBA (pago)
 │   │   │                         #   + property-sheet.tsx (ficha publica)
 │   │   └── offering.ts           # ← PAID_SERVICES_PUBLIC: apaga las entradas
@@ -876,8 +887,11 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   stats.ts · geo.ts (áreas) · listing-bands.ts
 │   │                             #   (color) · crawl-completeness.ts
 │   ├── scoring/                  # quality.ts + subscores + comparables + bands
-│   ├── matching/                 # match.ts (legacy buyer-side)
 │   ├── validators/               # Zod schemas — auth, property, etc.
+│   ├── property/                 # ← verified-data.ts: arma la lista "Datos oficiales"
+│   │                             #   de la ficha. Pura, con tests. Es donde vive la
+│   │                             #   decisión de no nombrar a ARBA y de no hablar
+│   │                             #   como auditor del aviso de otro
 │   ├── matching/                 # match.ts + preferences.ts (perfil anónimo, puro)
 │   │                             #   + best-match.ts: el mejor match del catálogo,
 │   │                             #   compartido por la home y el header para que los
@@ -896,7 +910,8 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   lugar que sabe como se identifica un
 │   │                             #   edificio, asi que una tabla `buildings`
 │   │                             #   entra cambiando solo esa funcion
-│   ├── storage/                  # property-photos.ts (upload/delete helpers)
+│   ├── storage/                  # property-photos.ts (upload/delete helpers).
+│   │                             #   El de informes pagos es lib/services/storage/
 │   ├── zona-sur/                 # partidos + arbaCode mapping
 │   ├── education/                # guía de compra contenido (legacy)
 │   ├── brand/                    # tokens de marca
@@ -916,7 +931,10 @@ Management API (config de auth, settings de proyecto). Reglas:
 │                                 #   la base. Sin esto la funcion corre en Washington
 │                                 #   y cada consulta cruza el continente (~375ms)
 ├── supabase/
-│   ├── migrations/               # 00001..00016 (00011+ son del fork)
+│   ├── migrations/               # 00001..00016 + 00015b (00011+ son del fork).
+│   │                             #   00015b es compañera de 00015: indexa
+│   │                             #   arba_lookups por partida, que es la clave de
+│   │                             #   las propias. La tabla solo tenía (lat, lng)
 │   ├── seed.sql
 │   └── reset.sql
 ├── scripts/                      # CLIs: scrape, dedup, geocode, ARBA, score, alerts,
@@ -1443,6 +1461,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.18 | Sep 2, 2026 | **El mapa del repo y el doc de arte dejan de contradecir al repo.** Dos correcciones de documentación, las dos del mismo tipo que este archivo viene coleccionando: afirmaciones plausibles que nadie volvió a chequear. **(1) El Project Structure tenía huecos y un puntero roto.** Decía `components/search/ — SearchProfileForm` y esa carpeta **estaba vacía**: el form vive en `components/search-profile/`. Faltaban además `components/payment/`, `components/services/`, `lib/property/` (el `verified-data.ts` que decide no nombrar a ARBA y no hablar como auditor — o sea el módulo donde viven dos decisiones que el propio doc explica largo) y `lib/services/storage/`, que es el bucket de informes pagos y **no** es `lib/storage/`, el de fotos. `lib/matching/` figuraba **dos veces**, con dos descripciones distintas. Y faltaba la migración **00015b**, que indexa `arba_lookups` por partida: sin ella la lectura de las propiedades propias no tiene índice, así que omitirla del mapa es omitir justo la que sostiene la vía por partida. Se borraron las dos carpetas vacías (`components/search/` y `lib/services/resend/`, las dos con un `.gitkeep` y nada más — los wrappers de Resend están en `lib/services/email/`). **(2) `DIRECCION_DE_ARTE.md` §5 mandaba usar Framer Motion**, listada bajo "Stack disponible (ya en el proyecto)", cuando **no está instalada** y todo el movimiento sale de CSS + `use-in-view.ts` + View Transitions. La contradicción no era teórica: el doc de arte es de lectura obligatoria antes de tocar cualquier cosa visual, así que la regla dura mandaba leer un archivo que pedía sumar una librería contra la que el §3 del mismo archivo decide ("gana mobile") y que costaría el presupuesto de peso que hoy está en 262 kB de 500. Ahora §5 dice que no hay librería, por qué, y remite al vocabulario ya construido en *Cómo se mueve el sitio*. Sin cambios de código: 375 tests, 41 rutas. |
 | 2.17 | Sep 1, 2026 | **La segunda foto, y por qué costó tres rondas.** El recuadro detrás de la propiedad destacada nunca fue decorativo: **era el hueco de una segunda foto**, y por eso se leía como una imagen que no cargó — lo era. Tomy lo dijo tres veces y las tres se interpretó como un problema de aspecto (se achicó el recuadro, se le sacó la grilla, se lo eliminó); ninguna era la respuesta. Vale como recordatorio de que **cuando alguien repite el mismo reporte, lo que falla es la interpretación, no la ejecución**. Ahora `photos[1]` ocupa ese lugar con la principal encima, inclinadas en abanico. Dos trampas técnicas de la misma tanda quedan escritas en *Cómo se mueve el sitio*: un keyframe que escribe `transform` **pisa** las clases de `skew`/`rotate`, y el JSX pasado como prop de servidor a cliente **necesita `key`** — este último era el warning de consola que el proyecto arrastraba desde antes de la sesión y que se había dado por preexistente sin diagnosticar. |
 | 2.16 | Sep 1, 2026 | **Cierre real del 1-sep.** Los 44px que faltaban ya están (nav 28 → 44, los dos CTA 35 → 46) y el CTA de la portada lleva un brillo diagonal cada 7s. La protagonista es **Belgrano 1287 2°A** — la primera vez que la landing muestra una propiedad. Y ahí aparecieron dos cosas que sólo se ven mirando: el bloque detrás de la foto era gris con cuadrícula, o sea el dibujo universal de un placeholder, y Tomy lo reportó **dos veces** como "la imagen que no se ve" — achicarlo no alcanzó porque el problema era qué parecía, no cuánto se veía; y la propiedad más visible del sitio mostraba **239,23 m² para un 2 ambientes de 80**, que es el bug de la Fase 12 sobreviviendo justo donde nadie miraba porque hasta ese día no había destacada. **El cron del pipeline se apagó** a pedido de Tomy: traía 45 avisos de 430 y siempre los mismos, lo que sesgaba `last_seen_at` y con él antigüedad y días en mercado. La primera corrida manual sin cron vio 229, insertó 4 y capturó dos bajas de precio y **una republicación real**. Y la nota de método de la v2.10 se completa: **los screenshots también mienten con el panel oculto**, porque los reveals no disparan y la captura sale sin contenido — eso hizo que dos reportes visuales se contestaran con números en vez de con lo que se ve. 372 → **375 tests**. |
 | 2.15 | Sep 1, 2026 | **La guarda de desactivación fallaba abierta, y se descubrió verificando este documento.** Chequear la tabla de contenido contra la base mostró 45 activas donde el doc decía 429: una segunda desactivación masiva, 375 bajas con **11% de cobertura**, o sea exactamente lo que la condición 3 de la guarda existe para frenar. No lo frenó porque `activeCount === 0` saltea el test entero, y los dos scrapers leían el baseline con un `try/catch` que dejaba 0 al fallar — **la lectura más frágil de la corrida era la que apagaba la guarda contra esa misma fragilidad**, escrito como si fuera una decisión de diseño y con un test que lo fijaba. Arreglado haciendo que "no sé" sea un estado distinto de "cero": `number \| null`, donde `null` rechaza antes de cualquier aritmética y 0 sigue habilitando porque un baseline vacío de verdad no arriesga nada. Reparado con backup y en una transacción — 357 revividas, 393 filas de historial inventado borradas, sin registrar la reparación como reactivación (lección del 31-ago) — y los números volvieron **exactos** a los del 31-ago, 429 activas y 279 eventos, que es la mejor evidencia de que el recorte estuvo bien acotado. Queda dicho lo que no se recupera: `deactivateStale` pisa `last_seen_at`, así que una baja falsa no es del todo reversible. 372 → **375 tests**. |

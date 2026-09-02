@@ -151,8 +151,18 @@ espectacular y que la página cargue rápido en mobile, **gana mobile.**
   apoyarse fuerte en Fraunces para los momentos de personalidad y, si se justifica,
   evaluar una alternativa de cuerpo más distintiva que Inter sin romper legibilidad ni
   performance.
-- **Framer Motion / Motion** es la librería indicada para las animaciones en React
-  (entradas escalonadas, scroll-triggered, transiciones de estado).
+- **Sin librería de animación — y es una decisión tomada, no una omisión.** Este
+  documento indicaba Framer Motion; la construcción nunca la necesitó y el proyecto
+  **no la tiene instalada**. Todo el movimiento —entradas escalonadas,
+  scroll-triggered, transiciones entre páginas, el barrido del tema— sale de CSS sobre
+  `transform`/`opacity`, del hook propio `hooks/use-in-view.ts`
+  (IntersectionObserver) y de la View Transitions API del navegador. Es parte de por
+  qué las páginas de listado pesan 262 kB contra un presupuesto de 500, y es
+  exactamente lo que pide el §3: entre el efecto espectacular y que vuele en un celular
+  de gama media, gana mobile. El vocabulario ya construido (`Reveal`, `.page-enter`,
+  `NavPending`, `theme-sweep`, `.home-rise`) está catalogado en **CLAUDE.md →
+  *Cómo se mueve el sitio***, con las tres reglas que ya costaron una ronda cada una.
+  **Reusarlo antes de inventar**, y no proponer sumar una librería sin discutir el peso.
 - **Leaflet** ya está para mapas.
 
 No cambiar de tecnología. Todo lo de este documento se construye sobre este stack.
