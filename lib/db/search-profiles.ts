@@ -233,11 +233,21 @@ export async function createSearchProfile(
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId);
   if (countError) throw countError;
-  if ((count ?? 0) >= FREE_TIER_PROFILE_LIMIT) {
+  // A missing count is not zero profiles. PostgREST can answer 200 without a
+  // count header, and `count ?? 0` would turn "I could not read it" into the
+  // one value that waives the limit — the same fail-open that let a scraper
+  // deactivate 380 listings on 2-sep-2026 (see countActiveListings). Refuse
+  // instead: not being able to check a quota is not permission to exceed it.
+  if (count === null || count === undefined) {
+    throw new Error(
+      "No se pudo contar las búsquedas guardadas, así que no se puede verificar el límite.",
+    );
+  }
+  if (count >= FREE_TIER_PROFILE_LIMIT) {
     throw new SearchProfileLimitError();
   }
 
-  const shouldBePrimary = input.is_primary ?? (count ?? 0) === 0;
+  const shouldBePrimary = input.is_primary ?? count === 0;
 
   if (shouldBePrimary) {
     // Clear any existing primary flag — only one primary per user.
