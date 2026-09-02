@@ -46,6 +46,7 @@ interface PropertyDataPanelProps {
   bathrooms: number | null;
   garages: number | null;
   surfaceTotal: number | null;
+  surfaceCovered: number | null;
   surfaceArba: number | null;
   yearBuilt: number | null;
   /** Fields the client-side matcher scores against. */
@@ -67,6 +68,7 @@ export function PropertyDataPanel({
   bathrooms,
   garages,
   surfaceTotal,
+  surfaceCovered,
   surfaceArba,
   yearBuilt,
   propertyForMatching,
@@ -105,6 +107,21 @@ export function PropertyDataPanel({
       ? { icon: Car, value: garages, label: garages === 1 ? "cochera" : "cocheras" }
       : null,
     surface !== null ? { icon: Maximize2, value: surface, label: "m²" } : null,
+    // Split, when there is one to show. For a house the total is the LOT —
+    // that is the convention here and it is what the owner loads — so the
+    // total alone would read as the size of the house. Talcahuano 258 is
+    // 325 m² of land and 95 built; without this chip the panel said "325 m²"
+    // for a house you can walk across in fifteen steps.
+    //
+    // The uncovered figure is derived and not stored: a third column could
+    // disagree with the two it is made of, and the day it did there would be
+    // no way to know which one was right.
+    surfaceCovered !== null && surface !== null && surface > surfaceCovered
+      ? { icon: null, value: surfaceCovered, label: "cubiertos" }
+      : null,
+    surfaceCovered !== null && surface !== null && surface > surfaceCovered
+      ? { icon: null, value: Math.round((surface - surfaceCovered) * 100) / 100, label: "descubiertos" }
+      : null,
     // Age of the BUILDING, derived at render time from the construction year.
     // Deliberately not `first_seen_at`, which is how old the ad is.
     age !== null

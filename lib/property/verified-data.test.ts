@@ -64,6 +64,30 @@ describe("deriveVerifiedDataItems", () => {
     }
   });
 
+  it("breaks the total into covered and uncovered when both are known", () => {
+    // Talcahuano 258: 325 m² of land, 95 built. For a house the declared
+    // total IS the lot, so on its own it says nothing about how much of that
+    // lot is built — which is the thing the reader is asking.
+    const items = deriveVerifiedDataItems(
+      makeProperty({ surface_total: 325, surface_covered: 95, surface_arba: 325.2 }),
+      null,
+    );
+    const sup = items.find((i) => i.id === "superficie")!;
+    expect(sup.detail).toContain("95 m² son cubiertos");
+    expect(sup.detail).toContain("230 descubiertos");
+  });
+
+  it("says nothing about a split when the covered area is the whole thing", () => {
+    // A flat: total and covered are the same number, and "0 descubiertos"
+    // would be noise dressed as a fact.
+    const items = deriveVerifiedDataItems(
+      makeProperty({ surface_total: 40, surface_covered: 40, surface_arba: 239.23 }),
+      null,
+    );
+    const sup = items.find((i) => i.id === "superficie")!;
+    expect(sup.detail).not.toContain("cubiertos");
+  });
+
   it("falls back to surface_covered when surface_total is missing", () => {
     const items = deriveVerifiedDataItems(
       makeProperty({ surface_total: null, surface_covered: 98, surface_arba: 100 }),

@@ -204,6 +204,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
                 bathrooms={property.bathrooms}
                 garages={property.garages}
                 surfaceTotal={property.surface_total}
+                surfaceCovered={property.surface_covered}
                 surfaceArba={property.surface_arba}
                 yearBuilt={property.year_built}
                 propertyForMatching={propertyForMatching}
@@ -283,6 +284,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               bathrooms={property.bathrooms}
               garages={property.garages}
               surfaceTotal={property.surface_total}
+              surfaceCovered={property.surface_covered}
               surfaceArba={property.surface_arba}
               yearBuilt={property.year_built}
               propertyForMatching={propertyForMatching}

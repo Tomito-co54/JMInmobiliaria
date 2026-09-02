@@ -80,6 +80,22 @@ export function deriveVerifiedDataItems(
   const declared = property.surface_total ?? property.surface_covered;
   const arba = property.surface_arba;
 
+  // For a house the declared total is the LOT, which is the convention here,
+  // so on its own it says nothing about how much of that lot is built. The
+  // split is what the reader is actually asking. Derived and not stored: a
+  // third column could disagree with the two it is made of.
+  const covered = property.surface_covered;
+  const split =
+    declared !== null &&
+    declared !== undefined &&
+    covered !== null &&
+    covered !== undefined &&
+    declared > covered
+      ? `, de los que ${covered} m² son cubiertos y ${
+          Math.round((declared - covered) * 100) / 100
+        } descubiertos`
+      : "";
+
   if (declared !== null && declared !== undefined && arba !== null && arba !== undefined && arba > 0) {
     // No comparison, on purpose — same reason the score's coherence sub-score
     // is parked (see ARBA_COHERENCE_PARKED in lib/scoring/subscores.ts).
@@ -92,7 +108,7 @@ export function deriveVerifiedDataItems(
       id: "superficie",
       status: "verified",
       title: "Superficie",
-      detail: `La parcela mide ${arba} m² y esta propiedad ${declared} m². En departamentos y PH la parcela es la del edificio entero, no la de la unidad.`,
+      detail: `La parcela mide ${arba} m² y esta propiedad ${declared} m²${split}. En departamentos y PH la parcela es la del edificio entero, no la de la unidad.`,
       termId: "superficie_arba",
     });
   } else if (arba !== null && arba !== undefined) {

@@ -774,6 +774,34 @@ perfil que busca alquilar mientras las cuatro ventas quedan en cero.
 `docs/ejemplo-alquiler.json` es la plantilla: cambian `operation_type` y
 `price_currency`, y **el precio se escribe mensual y pelado**.
 
+### El descubierto se deriva, no se guarda
+
+Talcahuano 258 es la primera propiedad con un desglose real de superficie:
+**325 m² de terreno, 95 cubiertos, 230 descubiertos**. Vale dejar escrito cómo
+se representa, porque no es obvio y es fácil de "arreglar" mal.
+
+- **No hay columna de descubierto, y no debería haberla.** Las columnas son
+  `surface_total`, `surface_covered` y `surface_arba`. El descubierto es
+  `total − cubierta`. Una tercera columna podría contradecir a las dos de las
+  que sale, y el día que lo hiciera no habría forma de saber cuál tiene razón.
+
+- **En una casa, `surface_total` ES el terreno**, y eso no es el bug de la
+  Fase 12. Aquel era sobre **departamentos**, donde `surface_arba` es la
+  parcela del edificio entero. Una casa está sola en su lote, así que el total
+  y la parcela coinciden — acá 325 declarados contra 325,2 del catastro, que
+  es justamente la confirmación de que la partida es la correcta.
+
+- **Por eso el total solo no alcanza en la ficha.** Sin desglose, la ficha
+  decía "325 m²" para una casa de 95 construidos. Ahora el panel muestra los
+  tres números y "Datos oficiales" los explica en prosa.
+
+**La consecuencia a tener presente:** el sub-score de superficie del match lee
+`surface_total`, así que quien pida "desde 100 m²" ahora matchea esta casa por
+sus 325 de lote, no por sus 95 cubiertos. Para una casa con fondo es
+defendible, pero sobreestima lo habitable — y es exactamente la tensión que el
+punto 4 del Build map existe para resolver, ponderando cubierto y descubierto
+en vez de sumarlos.
+
 ### Los servicios pagos están escondidos
 
 `PAID_SERVICES_PUBLIC` en `lib/services/offering.ts` está en `false`. El
