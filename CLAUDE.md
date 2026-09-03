@@ -57,9 +57,13 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status (1-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **375 tests passing** (+7 skipped a propósito),
-`npm run build` verde, 41 rutas.
+**Status (2-sep-2026):** Deployado y funcionando en producción, con
+auto-deploy desde `main`. **393 tests passing** (+7 skipped a propósito),
+`npm run build` verde, **34 rutas**.
+
+*(Los tres números de arriba se verificaron contra el build y la base al cierre
+del 2-sep, no se copiaron del párrafo anterior. Este encabezado decía "1-sep,
+375 tests, 41 rutas" y los tres habían quedado viejos el mismo día.)*
 
 La cara pública se reordenó entera. El catálogo dejó de ser la última sección
 de la landing y pasó a `/propiedades`; apareció `/edificios`, que muestra las
