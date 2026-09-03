@@ -302,6 +302,7 @@ visual.
 | Fase 32 — La guarda fallaba abierta | Segunda desactivación masiva, el 1-sep: 375 bajas con 11% de cobertura. La condición que existe para eso no frenó nada porque `activeCount === 0` **saltea el test entero**, y el baseline se leía con un `try/catch` que dejaba 0 al fallar — la lectura más frágil de la corrida era la que apagaba la guarda. Ahora "no sé" es `null` y rechaza; 0 sigue habilitando porque un baseline vacío de verdad no arriesga nada. Reparado con backup y en transacción: 357 revividas, 393 filas de historial inventado borradas, y los números volvieron exactos a los del 31-ago. | `fbcd559` |
 | Fase 33 — Los botones y el brillo | Los 44px de §1 que faltaban: nav 28 → 44, CTA del hero 35 → 46, CTA de la protagonista 35 → 46 (este apareció midiendo, no estaba pedido). El header sube de 56 a 69px de alto — sube el alto, no el ancho, así que los 375px siguen sin overflow. El CTA de la portada lleva un brillo diagonal cada 7s, la única animación puramente atractiva del sitio, y entra por "guiar la mirada": desde que la portada se redujo, ese botón es la única salida al catálogo above the fold. El logo acusa el toque. | `83821bb` `fc85abf` `f47d80a` |
 | Fase 34 — La protagonista deja de parecer rota | El bloque detrás de la foto era gris con cuadrícula, o sea el dibujo universal de un placeholder; Tomy lo reportó dos veces como "la imagen que no se ve". Achicarlo no alcanzó (40% → 19% de área y lo seguía leyendo igual): el problema era qué parecía, no cuánto se veía. Ahora es un plano liso en azul de marca. Y al forzar el estado revelado para poder verlo apareció algo peor: la propiedad más visible del sitio mostraba **239,23 m²** para un 2 ambientes de 80 — `surface_arba ?? surface_total`, el bug de la Fase 12 sobreviviendo donde nadie miraba porque hasta ese día no había destacada. | `0543925` |
+| Fase 39 — Se van los servicios pagos, y la voz del portal | Baja completa del subsistema pago: MercadoPago (checkout, webhook, `/pago/*`), el informe ARBA en PDF, el fulfillment, el bucket de deliverables, el mail de entrega, `/p/[id]/servicios`, `/mis-servicios` y el flag `PAID_SERVICES_PUBLIC` con los cuatro lugares que lo miraban. **3.012 líneas, 41 → 34 rutas.** La ficha pública en PDF se queda: la separación resultó limpia. De la misma pasada salieron dos restos de voz en los dos lugares donde más pesan — el **metadata raíz** (lo que ve Google y toda pestaña) ofrecía "scoring transparente para compradores", con un scoring que ya no se muestra; y el **`DIRECCION_DE_ARTE.md`**, de lectura obligatoria antes de diseñar, seguía describiendo "una plataforma que trabaja para el comprador" con "un score de calidad por propiedad". Y se fue el chip **"Propiedad verificada"**: si todas están verificadas no distingue nada, y encima se encendía con la partida tipeada a mano y no con la confirmación del catastro. | `f4a5faa` `8807dde` `9c20184` |
 | Fase 38 — La guarda fallaba abierta otra vez, una capa más abajo | **Tercera** desactivación masiva, el 2-sep: una corrida que vio ~25 avisos dio de baja 380 (434 activas → 54). El cron estaba apagado y la guarda de la Fase 32 estaba en el código. `countActiveListings` terminaba en `count ?? 0`: un conteo nulo sin error —PostgREST puede contestar 200 sin header de conteo— se volvía 0, y **0 desarma la prueba de cobertura** porque un baseline genuinamente vacío no tiene nada que perder. O sea que el arreglo del 1-sep hizo que los scrapers arrancaran en `null`, pero esta función nunca les entregaba un `null` para conservar, y tampoco lanza, así que el `catch` tampoco se disparaba. Reparado con backup y en transacción: 380 revividas, 380 filas de historial inventado borradas, y las activas volvieron **exactas** a 434. | `8470b66` |
 | Fase 37 — La operación va en la etiqueta | Donde decía "Casa" ahora dice **"Casa en alquiler"**, y el precio pierde el "/mes". El razonamiento es de Tomy y es mejor: la etiqueta lo dice **antes** de que el lector decida qué significa el número, así que "por mes" pegado al precio es el mismo dato dos veces y hace que el precio se lea como una unidad de medida. El período pasó a ser opt-in y queda sólo donde no hay etiqueta al lado: el "desde" de un edificio. De paso, **"Otras unidades en este edificio"** ganó la etiqueta que no tenía — mostraba precios sin tipo, y una unidad hermana puede ser de otra operación que la que estás leyendo. | `32a179c` |
 | Fase 36 — Los alquileres existen y se diferencian | El enum, el validador y el cargador **siempre** aceptaron `alquiler`. Lo que no existía era la **diferencia**: aguas abajo un alquiler se mostraba, se puntuaba y se matcheaba como una venta, y las cuatro fallas devuelven un número creíble. (1) **El precio dice de qué precio habla** — `lib/property/price.ts` es el único lugar que convierte un precio en texto; seis superficies lo imprimían inline. (2) **El Quality Score deja de comparar un alquiler contra ventas**, y la causa raíz no era la query: `PropertyForScoring` **no tenía `operation_type`**, así que el scorer no podía ver la diferencia porque la diferencia no estaba modelada. (3) **El match pregunta la operación, y una operación distinta es un portón, no un criterio** — un promedio ponderado no puede expresar "descalificante": aun con el peso más alto de la tabla, a quien busca alquilar una venta le daría 75%. (4) **La moneda es consecuencia, no preferencia**. (5) **El copy sale del catálogo** en vez de estar escrito a mano. | `47fa961` |
@@ -311,13 +312,16 @@ visual.
 fase 9 → 275 tras las fases 10-15 → 300 tras la 16 → 316 tras la 18 → 319
 tras la 20 → 360 tras las fases 21-24 → 367 tras la 26, que sumó los de
 `bestMatch`, → 372 tras la 31, que cubrió el contacto, → 375 tras la 32,
-→ **420** tras las fases 36-37: el formateo de precios, la cohorte de
-comparables por operación, el portón del match y la carga de un alquiler por
-CLI). Los 7 saltados son las bandas de
+→ 420 tras las fases 36-37 —el formateo de precios, la cohorte de comparables
+por operación, el portón del match y la carga de un alquiler por CLI—,
+→ 422 con el desglose de superficie, y → **393** tras la 39: los 29 que faltan
+son los del webhook, el catálogo de servicios, la geometría del PDF pago y el
+mail de entrega, que se fueron con el código que probaban). Los 7 saltados son las bandas de
 coherencia ARBA: quedan como spec de vuelta, ver **El dato de ARBA es de la
 parcela** más abajo.
 
-**Build:** `npm run build` verde. **41 rutas**, First Load JS shared 184 kB.
+**Build:** `npm run build` verde. **34 rutas** (eran 41 hasta que se borraron
+los servicios pagos), First Load JS shared 183 kB.
 3 warnings menores de `@typescript-eslint/no-unused-vars` que no bloquean.
 
 *(El documento venía diciendo 42 desde el 31-ago y son 41. Se contaron una por
@@ -859,31 +863,47 @@ no. Arreglarlo *bien* requiere decidir cómo distinguir "no hay más resultados"
 de "no me dejaron ver", y el documento ya advierte que una guarda parada sobre
 un selector sin verificar es la misma apuesta que perdió el 31-ago.
 
-**3. El webhook de MercadoPago no verifica firma si falta el secret.** El
-código es `if (secret) { verificar }`, y el comentario dice "en prod el secret
-es obligatorio" — pero eso es un comentario, no un chequeo. **`MERCADOPAGO_WEBHOOK_SECRET`
-está vacía en `.env.local`.** El daño real es acotado porque el cumplimiento
-está defendido aparte: consulta el pago contra la API de MP, exige `approved`,
-que la referencia exista, y que **monto y moneda coincidan** con lo cobrado. Así
-que es defensa en profundidad, no un agujero abierto. Antes de cerrarlo hay que
-confirmar que el secret **sí** esté en Vercel, porque si no está, cerrarlo
-convierte cada webhook en un 401.
+**3. El webhook de MercadoPago no verificaba firma si faltaba el secret** —
+`if (secret) { verificar }`, con un comentario que decía "en prod el secret es
+obligatorio" que era un comentario y no un chequeo. **Resuelto por borrado el
+mismo día:** Tomy confirmó que los servicios pagos no se usan y el subsistema se
+fue entero, webhook incluido. Queda anotado porque la forma vale: el daño era
+acotado no por la firma sino porque el cumplimiento estaba defendido aparte
+—consultaba el pago contra la API de MP, exigía `approved`, que la referencia
+existiera y que monto y moneda coincidieran—, que es cómo se ve una defensa en
+profundidad que funciona.
 
 **Menor:** `lib/services/arba/index.ts` hace `distanceMeters ?? 0` al leer del
 cache, y 0 metros es el valor **más** confiable que existe (significa que el
 punto cayó dentro del polígono). Hoy el dato es informativo y no decide nada,
 pero afirma más precisión de la que hay.
 
-### Los servicios pagos están escondidos
+### Los servicios pagos ya no existen (2-sep)
 
-`PAID_SERVICES_PUBLIC` en `lib/services/offering.ts` está en `false`. El
-checkout de MercadoPago y el informe ARBA en PDF **funcionan** desde el
-Block 7 del upstream; lo que se apagó son las **cuatro** entradas públicas: el
-botón del panel, el CTA del advisor, que el advisor proponga comprar un
-informe, y —agregada el 31-ago— la sección "Del dato al informe, en tres
-pasos" de la home, que era la más ruidosa de las cuatro y se había pasado por
-alto: una sección entera ofreciendo algo que no se puede comprar. La ruta `/p/[id]/servicios` sigue resolviendo y el webhook sigue
-cumpliendo órdenes. Misma decisión que la Fase 8: esconder, no borrar.
+Estuvieron escondidos detrás de `PAID_SERVICES_PUBLIC` desde la Fase 8. El
+2-sep se **borraron enteros**, a pedido de Tomy, con el argumento de que
+mantener apagado algo que no se usa significa que cada cambio futuro tiene que
+seguir sin romperlo.
+
+Se fue: MercadoPago completo (checkout, preferencias, webhook con verificación
+de firma, `/pago/*`), el informe ARBA en PDF con su geometría de polígonos, el
+fulfillment, el bucket de deliverables, el email de entrega, `/p/[id]/servicios`,
+`/mis-servicios`, el KPI "Servicios contratados" de `/admin`, la sección "Del
+dato al informe" de la home, y el propio flag con los cuatro lugares que lo
+miraban. **3.012 líneas, 41 → 34 rutas.**
+
+**La ficha pública en PDF se queda.** `pdf/property-sheet.tsx` es gratis y no
+tiene nada que ver con el informe pago; la separación resultó limpia porque
+`pdf/geometry` lo usaba sólo el informe, mientras `theme` y `fonts` se
+comparten. `/p/[id]/ficha.pdf` sigue andando.
+
+**Lo que NO se tocó, porque borrar datos es otra decisión:** la tabla
+`service_orders` y el bucket `service-deliverables` siguen en la base, ahora
+sin ningún código que los lea. Dropearlos es una migración aparte.
+
+**Y quedan las KEY de MercadoPago en las env** (`MERCADOPAGO_PUBLIC_KEY`,
+`MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`) — Tomy las borra a
+mano de Vercel y de `.env.local`. Ya no las lee nadie.
 
 ### El basemap tiene dueño (y contesta 200 cuando dice que no)
 
@@ -1110,16 +1130,12 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │   ├── scrapers/             # Zonaprop + Trezza (alimentan inteligencia de mercado)
 │   │   ├── geocoding/            # Nominatim wrapper
 │   │   ├── dedup/                # cross-source matching
-│   │   ├── mercadopago/          # legacy upstream — checkout + webhook
 │   │   ├── email/                # Resend wrappers (client · send · templates).
 │   │   │                         #   Los mails de recuperación NO salen de acá: esos
 │   │   │                         #   los manda Supabase Auth con su propio SMTP
-│   │   ├── storage/              # deliverables.ts — bucket de los informes pagos.
-│   │   │                         #   Distinto de lib/storage/, que es el de fotos
-│   │   ├── pdf/                  # @react-pdf renderer — informe ARBA (pago)
-│   │   │                         #   + property-sheet.tsx (ficha publica)
-│   │   └── offering.ts           # ← PAID_SERVICES_PUBLIC: apaga las entradas
-│   │                             #   publicas a los servicios pagos
+│   │   └── pdf/                  # @react-pdf — property-sheet.tsx, la ficha
+│   │                             #   publica y gratis. El informe ARBA pago que
+│   │                             #   compartia esta carpeta se borro el 2-sep
 │   ├── market/                   # ← lógica del centro de datos (pura, testeable)
 │   │                             #   stats.ts · geo.ts (áreas) · listing-bands.ts
 │   │                             #   (color) · crawl-completeness.ts
@@ -1152,8 +1168,7 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   lugar que sabe como se identifica un
 │   │                             #   edificio, asi que una tabla `buildings`
 │   │                             #   entra cambiando solo esa funcion
-│   ├── storage/                  # property-photos.ts (upload/delete helpers).
-│   │                             #   El de informes pagos es lib/services/storage/
+│   ├── storage/                  # property-photos.ts (upload/delete helpers)
 │   ├── zona-sur/                 # partidos + arbaCode mapping
 │   ├── education/                # guía de compra contenido (legacy)
 │   ├── brand/                    # tokens de marca
@@ -1240,7 +1255,8 @@ source IN ('owner_direct','agency') AND listing_status = 'publicada'
 ```
 Vive como constantes en `lib/db/property-sources.ts` y se aplica en 6
 surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
-`/p/[id]/servicios` (action de checkout).
+y `/edificios`. (La sexta era `/p/[id]/servicios`, que se borró con los
+servicios pagos el 2-sep.)
 
 ### Storage: bucket `property-photos`
 
@@ -1255,7 +1271,10 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 
 - `users` — perfiles de app extendiendo `auth.users`. Solo vos vas a estar acá.
 - `search_profiles`, `favorites`, `alerts` — sistema de matching buyer-side del upstream. Sigue activo para que vos puedas usarlo "como comprador" si querés.
-- `service_orders` — informes ARBA pagos via MercadoPago (Block 7 del upstream).
+- `service_orders` — informes ARBA pagos via MercadoPago (Block 7 del
+  upstream). **Sin código que la lea desde el 2-sep**, cuando se borraron los
+  servicios pagos. La tabla y el bucket `service-deliverables` quedaron en la
+  base a propósito: borrar datos es una decisión aparte de borrar código.
 - `property_history` — audit log de cambios. Migración 00014 sumó
   `price_at_change` + `price_currency_at_change`: una baja sin el precio al
   que se cayó contesta cuándo, no a cuánto, y el precio de la fila se pisa
@@ -1316,6 +1335,7 @@ surfaces: home grid, home stats, `/p/[id]`, `/buscar`, `/favoritos`,
 38. **Fase 36 — Los alquileres existen y se diferencian** ✅ 2-sep
 39. **Fase 37 — La operación va en la etiqueta del tipo** ✅ 2-sep
 40. **Fase 38 — La guarda fallaba abierta otra vez** ✅ 2-sep
+41. **Fase 39 — Se van los servicios pagos, y la voz del portal** ✅ 2-sep
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -1482,7 +1502,11 @@ el mismo límite que el scraping, no por falta de código.
 
 **10. Dominio propio + verificación en Resend**
 
-Necesario recién cuando se encienda el informe ARBA pago. Hoy no bloquea.
+Era necesario "cuando se encienda el informe ARBA pago" — y ese se borró el
+2-sep, así que el motivo original se cayó. Sigue teniendo sentido el día que el
+sitio le mande un mail a alguien que no sea Tomy: hoy `smtp_admin_email` es
+`onboarding@resend.dev`, el dominio sandbox de Resend, que sólo entrega al
+dueño de la cuenta. Los leads van por WhatsApp, así que no bloquea nada.
 
 **11. Automatizar el pipeline**
 
@@ -1497,10 +1521,14 @@ que tiene IP de casa.
 - Form de contacto por mail vía Resend para quien no usa WhatsApp
   (baja prioridad — el canal principal ya cubre el caso de uso).
 - Galería fullscreen con swipe (espera múltiples fotos por propiedad).
-- Eliminación total de surfaces legacy buyer-facing (`/buscar`,
-  `/favoritos`, `/onboarding`, `/mis-servicios`, `/busquedas`) — hoy
-  esconden sus CTAs públicos pero las rutas viven. Borrar solo si Tomy
-  confirma que no las quiere como herramienta personal.
+- Surfaces legacy buyer-facing que **siguen vivas a propósito**: `/buscar`,
+  `/favoritos`, `/busquedas`, `/dashboard`, `/perfil`, `/onboarding`. Ninguna
+  es alcanzable por un visitante —el único camino es el `UserMenu`, que exige
+  sesión, y la única sesión es la de Tomy— así que son herramientas suyas, no
+  restos. `/mis-servicios` sí se borró el 2-sep, con los servicios pagos.
+  El `BuyingProcessAdvisor` de la ficha está en la misma categoría: se
+  renderiza sólo con sesión, o sea que es una card de comprador que sólo ve
+  Tomy sobre su propia publicación. Candidato a salir, sin decidir.
 
 ---
 
@@ -1713,6 +1741,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.20 | Sep 2, 2026 | **Se va lo que quedaba del portal viejo.** (1) El chip **"Propiedad verificada"** sale de las tres superficies: si todas van a estar verificadas no distingue nada —mismo motivo por el que se fue el Quality Score— y de paso cierra el fail-open que encontró la auditoría, porque se encendía con la partida **tipeada a mano** mientras el comentario de arriba decía que medía la confirmación del catastro. (2) **Los servicios pagos se borran enteros**, no se esconden: MercadoPago, el informe ARBA en PDF, el fulfillment, el bucket, el mail de entrega, dos rutas y el flag. **3.012 líneas, 41 → 34 rutas.** La ficha pública en PDF sobrevive intacta. (3) Dos restos de **voz** en los dos peores lugares: el metadata raíz —lo que ve Google y toda pestaña— ofrecía *"scoring transparente para compradores"* de una *"Plataforma Inmobiliaria"*, y el **`DIRECCION_DE_ARTE.md`**, que es de lectura obligatoria antes de tocar nada visual, seguía describiendo *"una plataforma que trabaja para el comprador"* con *"un score de calidad por propiedad"*. Es el mismo problema que el Framer Motion de la v2.18 y en el mismo archivo: un documento obligatorio que describe un producto que ya no existe manda construir para el sitio equivocado. También quedó la **auditoría de fail-open** completa, con lo que está sano y los que siguen abiertos. **422 → 393 tests** (bajan porque se fueron los tests del código borrado). |
 | 2.19 | Sep 2, 2026 | **Los alquileres existen; la operación va en la etiqueta; y la guarda fallaba abierta por tercera vez.** (1) Cargar un alquiler siempre se pudo, pero **aguas abajo se mostraba, se puntuaba y se matcheaba como una venta**: el precio se imprimía plano en seis superficies, el Quality Score comparaba contra ventas —y la causa raíz no era la query, era que `PropertyForScoring` **no tenía `operation_type`**, o sea que el scorer no podía ver la diferencia porque la diferencia no estaba modelada—, el match no preguntaba la operación, y la moneda estaba fija en USD. La operación entró como **portón y no como criterio**, porque un promedio ponderado no puede expresar "descalificante". (2) A pedido de Tomy, **la operación se dice en la etiqueta del tipo** ("Casa en alquiler") y el precio queda limpio: la etiqueta lo dice antes de que el lector decida qué significa el número. El período quedó opt-in, con la regla **nunca mostrar un alquiler que nada marque como alquiler**. (3) **Tercera desactivación masiva** (380 bajas con ~25 vistos), otra vez descubierta verificando este documento, otra vez el mismo error con distinto disfraz: `countActiveListings` terminaba en `count ?? 0`, y 0 desarma la cobertura — el arreglo del 1-sep hizo que los scrapers empezaran en `null`, pero esta función nunca les entregaba un `null` que conservar. Reparado con backup y en transacción; las activas volvieron **exactas** a 434. Se publicó **el primer alquiler** (Talcahuano 258) y quedó `npm run buscar-partida`. **375 → 420 tests**. *(Nota: la v2.19 se publicó primero con este archivo corrompido —triplicado a 2879 líneas— por un bug de la herramienta de edición: `String.replace` interpreta `$` + backtick como "todo el texto anterior", y el texto de esta entrada contenía esa secuencia. Reconstruido desde la v2.18. Los archivos de código quedaron intactos, verificado por tamaño, `tsc`, tests y build.)* |
 | 2.18 | Sep 2, 2026 | **El mapa del repo y el doc de arte dejan de contradecir al repo.** Dos correcciones de documentación, las dos del mismo tipo que este archivo viene coleccionando: afirmaciones plausibles que nadie volvió a chequear. **(1) El Project Structure tenía huecos y un puntero roto.** Decía `components/search/ — SearchProfileForm` y esa carpeta **estaba vacía**: el form vive en `components/search-profile/`. Faltaban además `components/payment/`, `components/services/`, `lib/property/` (el `verified-data.ts` que decide no nombrar a ARBA y no hablar como auditor — o sea el módulo donde viven dos decisiones que el propio doc explica largo) y `lib/services/storage/`, que es el bucket de informes pagos y **no** es `lib/storage/`, el de fotos. `lib/matching/` figuraba **dos veces**, con dos descripciones distintas. Y faltaba la migración **00015b**, que indexa `arba_lookups` por partida: sin ella la lectura de las propiedades propias no tiene índice, así que omitirla del mapa es omitir justo la que sostiene la vía por partida. Se borraron las dos carpetas vacías (`components/search/` y `lib/services/resend/`, las dos con un `.gitkeep` y nada más — los wrappers de Resend están en `lib/services/email/`). **(2) `DIRECCION_DE_ARTE.md` §5 mandaba usar Framer Motion**, listada bajo "Stack disponible (ya en el proyecto)", cuando **no está instalada** y todo el movimiento sale de CSS + `use-in-view.ts` + View Transitions. La contradicción no era teórica: el doc de arte es de lectura obligatoria antes de tocar cualquier cosa visual, así que la regla dura mandaba leer un archivo que pedía sumar una librería contra la que el §3 del mismo archivo decide ("gana mobile") y que costaría el presupuesto de peso que hoy está en 262 kB de 500. Ahora §5 dice que no hay librería, por qué, y remite al vocabulario ya construido en *Cómo se mueve el sitio*. Sin cambios de código: 375 tests, 41 rutas. |
 | 2.17 | Sep 1, 2026 | **La segunda foto, y por qué costó tres rondas.** El recuadro detrás de la propiedad destacada nunca fue decorativo: **era el hueco de una segunda foto**, y por eso se leía como una imagen que no cargó — lo era. Tomy lo dijo tres veces y las tres se interpretó como un problema de aspecto (se achicó el recuadro, se le sacó la grilla, se lo eliminó); ninguna era la respuesta. Vale como recordatorio de que **cuando alguien repite el mismo reporte, lo que falla es la interpretación, no la ejecución**. Ahora `photos[1]` ocupa ese lugar con la principal encima, inclinadas en abanico. Dos trampas técnicas de la misma tanda quedan escritas en *Cómo se mueve el sitio*: un keyframe que escribe `transform` **pisa** las clases de `skew`/`rotate`, y el JSX pasado como prop de servidor a cliente **necesita `key`** — este último era el warning de consola que el proyecto arrastraba desde antes de la sesión y que se había dado por preexistente sin diagnosticar. |
