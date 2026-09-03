@@ -14,26 +14,26 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "12mb",
     },
   },
-  // Force-include the woff fonts used by @react-pdf/renderer for the
-  // service deliverable PDFs. The fonts.ts module resolves them with
-  // path.join(process.cwd(), "node_modules", ...) which Next.js's
-  // build-time tracer can't follow, so without this declaration Vercel
-  // ships a serverless function without the font files and PDF
-  // generation fails at runtime with ENOENT.
+  // Force-include the woff fonts that @react-pdf/renderer needs at runtime.
+  //
+  // `lib/services/pdf/fonts.ts` resolves them with
+  // `path.join(process.cwd(), "node_modules", ...)`, a path built from string
+  // fragments. Next's build-time tracer cannot follow that, so without this
+  // declaration Vercel ships a serverless function with no font files and the
+  // render dies with ENOENT — **only in production**. Locally `node_modules`
+  // is right there, so it always works on the machine where you test it.
+  //
+  // Which is exactly how this went unnoticed: until 2-sep-2026 the three keys
+  // here were the three PAID-service routes, and `/p/[id]/ficha.pdf` — added
+  // later, in la Fase 20 — never got one. The public listing PDF had been
+  // returning 500 in production since the day it shipped, with a green build
+  // and a working localhost. Se encontró al verificar producción después de
+  // borrar los servicios pagos, que es lo que dejó las tres claves apuntando
+  // a rutas inexistentes.
+  //
+  // Si se agrega otra ruta que genere un PDF, va acá también.
   outputFileTracingIncludes: {
-    "/api/admin/orders/[id]/fulfill": [
-      "./node_modules/@fontsource/inter/files/inter-latin-400-normal.woff",
-      "./node_modules/@fontsource/inter/files/inter-latin-700-normal.woff",
-      "./node_modules/@fontsource/fraunces/files/fraunces-latin-400-normal.woff",
-      "./node_modules/@fontsource/fraunces/files/fraunces-latin-700-normal.woff",
-    ],
-    "/api/mercadopago/webhook": [
-      "./node_modules/@fontsource/inter/files/inter-latin-400-normal.woff",
-      "./node_modules/@fontsource/inter/files/inter-latin-700-normal.woff",
-      "./node_modules/@fontsource/fraunces/files/fraunces-latin-400-normal.woff",
-      "./node_modules/@fontsource/fraunces/files/fraunces-latin-700-normal.woff",
-    ],
-    "/api/dev/test-arba-pdf": [
+    "/p/[id]/ficha.pdf": [
       "./node_modules/@fontsource/inter/files/inter-latin-400-normal.woff",
       "./node_modules/@fontsource/inter/files/inter-latin-700-normal.woff",
       "./node_modules/@fontsource/fraunces/files/fraunces-latin-400-normal.woff",
