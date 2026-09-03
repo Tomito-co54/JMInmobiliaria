@@ -10,18 +10,27 @@
 ## 0. Qué es esto y para quién
 
 Jotaeme es el sitio de una inmobiliaria personal en el sur del Gran Buenos Aires
-(Argentina). No es un portal agregador ni una agencia tradicional: es una plataforma
-**que trabaja para el comprador**. Invierte la asimetría de información del mercado
-inmobiliario con datos verificados, un score de calidad por propiedad, y la firma de un
-martillero matriculado que responde por lo que publica.
+(Argentina). No es un portal agregador: es **la web operativa de una inmobiliaria**, y
+lo que muestra es **su propio inventario**, cargado a mano y publicado con los papeles
+en la mano. Invierte la asimetría de información del rubro con datos registrales
+verificados y la firma de un martillero matriculado que responde por lo que publica.
 
-El usuario es un comprador B2C, muchas veces primerizo, navegando casi siempre **desde
-el celular**. Llega desconfiado —el rubro le enseñó a desconfiar— y la página tiene que
-ganarse esa confianza.
+> **Corregido el 2-sep-2026.** Este párrafo describía el producto del upstream: "una
+> plataforma que trabaja para el comprador", con "un score de calidad por propiedad".
+> Las dos cosas quedaron viejas. Esto no es una plataforma con catálogo ajeno sino una
+> inmobiliaria con el suyo, y **el Quality Score dejó de mostrarse en público en la
+> Fase 29** — hoy ordena el catálogo y manda en el panel de admin, nada más. Un
+> documento de lectura obligatoria que describe un producto que ya no existe es peor
+> que no tenerlo: manda construir para el sitio equivocado.
+
+El visitante es alguien mirando **nuestras** propiedades, muchas veces comprando por
+primera vez, casi siempre **desde el celular**. Llega desconfiado —el rubro le enseñó a
+desconfiar— y la página tiene que ganarse esa confianza.
 
 **Tensión central del diseño, y la idea más importante de todo este documento:**
-la seriedad NO la aporta un diseño tímido. La aportan los datos verificados, el score y
-el martillero matriculado. Eso es el ancla de credibilidad. Y *justamente porque el
+la seriedad NO la aporta un diseño tímido. La aportan los datos registrales verificados
+y el martillero matriculado que firma. (Decía "el score" — ver la nota del §0: ya no lo
+ve nadie de afuera, así que no puede ser un ancla de credibilidad pública.) Eso es el ancla de credibilidad. Y *justamente porque el
 fondo es serio*, la forma queda libre para ser audaz, original y memorable sin parecer
 poco confiable. Un diseño aburrido sería desperdiciar esa libertad. El traje puede ser
 llamativo porque quien lo usa ya demostró que es serio.
@@ -66,7 +75,7 @@ blur sutil) para dar sensación de profundidad sin 3D real.
 
 ### 2.2 Hover/tap que revela al instante
 Al interactuar con un elemento, se revela información relacionada de inmediato (una foto,
-un dato del score, una vista de la propiedad).
+un dato registral, una vista de la propiedad).
 - **HACER:** premiar la curiosidad con respuesta inmediata y fluida.
 - **CRÍTICO — MOBILE:** en celular NO hay hover. El dedo toca y listo. Todo efecto de
   hover debe tener un equivalente táctil claro (tap que expande, primer tap revela /
@@ -195,5 +204,5 @@ orden:
 Si las cuatro dan que sí, es Jotaeme. Si alguna da que no, se corrige hasta que dé que sí.
 
 > **Norte en una frase:** identidad propia y movimiento con intención, ejecutados con la
-> liviandad de Vaulk y la creatividad de Hubtown, donde el fondo serio (datos, score,
-> martillero) le da permiso a la forma para ser audaz.
+> liviandad de Vaulk y la creatividad de Hubtown, donde el fondo serio (los papeles y
+> el martillero que los firma) le da permiso a la forma para ser audaz.

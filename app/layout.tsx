@@ -18,10 +18,22 @@ const fraunces = Fraunces({
   axes: ["SOFT", "opsz"],
 });
 
+/**
+ * El título y la descripción que hereda toda página que no traiga los suyos —
+ * o sea la pestaña del navegador, el resultado de Google y la vista previa de
+ * cualquier link que se comparta.
+ *
+ * Decía "Plataforma Inmobiliaria" y ofrecía "scoring transparente para
+ * compradores". Las tres cosas eran del portal agregador del upstream: esto
+ * no es una plataforma sino la web de una inmobiliaria, el visitante no es
+ * "un comprador" de un catálogo ajeno sino alguien mirando nuestras
+ * propiedades, y el scoring dejó de mostrarse en público en la Fase 29 — o
+ * sea que era una promesa que la página ya no cumplía.
+ */
 export const metadata: Metadata = {
-  title: "Jotaeme — Plataforma Inmobiliaria",
+  title: "Jotaeme — Inmobiliaria en Zona Sur",
   description:
-    "Información verificada y scoring transparente para compradores de propiedades en Zona Sur GBA.",
+    "Propiedades en venta y alquiler en Lanús, Banfield, Lomas de Zamora y Temperley. Publicamos los papeles, no solo las fotos: cada propiedad sale con su partida y su parcela.",
 };
 
 /**
