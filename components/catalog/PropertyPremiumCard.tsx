@@ -104,9 +104,20 @@ export function PropertyPremiumCard({
         aria-label={`Ver ${heading}`}
         className="grid md:grid-cols-2 items-stretch focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-3xl"
       >
-        {/* Photo — order flips on desktop; always on top on mobile. */}
+        {/* Photo — order flips on desktop; always on top on mobile.
+
+            `self-start` on mobile is load-bearing. The link is a grid with
+            `items-stretch`, and on a phone that grid is one column, so the
+            photo is a stretched item in a row of its own whose only child is
+            absolutely positioned. Chrome sizes that row from the aspect
+            ratio; iOS Safari treats a stretched item as having a definite
+            height, ignores the aspect ratio, and the row comes out 0px tall
+            — the catalog rendered every cover as nothing while the landing
+            and /edificios, which do not stretch, showed theirs. Reported by
+            Tomy from his phone, 3-sep. `min-h` is the floor in case some
+            other engine finds a third reading. */}
         <div
-          className={`relative order-1 aspect-[4/3] md:aspect-auto md:min-h-[20rem] overflow-hidden bg-muted ${
+          className={`relative order-1 self-start md:self-stretch aspect-[4/3] min-h-[14rem] md:aspect-auto md:min-h-[20rem] overflow-hidden bg-muted ${
             flip ? "md:order-2" : "md:order-1"
           }`}
         >
