@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (3-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **406 tests passing** (+7 skipped a propósito),
+auto-deploy desde `main`. **415 tests passing** (+7 skipped a propósito),
 `npm run build` verde, **33 rutas**.
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
@@ -313,6 +313,7 @@ visual.
 | Fase 36 — Los alquileres existen y se diferencian | El enum, el validador y el cargador **siempre** aceptaron `alquiler`. Lo que no existía era la **diferencia**: aguas abajo un alquiler se mostraba, se puntuaba y se matcheaba como una venta, y las cuatro fallas devuelven un número creíble. (1) **El precio dice de qué precio habla** — `lib/property/price.ts` es el único lugar que convierte un precio en texto; seis superficies lo imprimían inline. (2) **El Quality Score deja de comparar un alquiler contra ventas**, y la causa raíz no era la query: `PropertyForScoring` **no tenía `operation_type`**, así que el scorer no podía ver la diferencia porque la diferencia no estaba modelada. (3) **El match pregunta la operación, y una operación distinta es un portón, no un criterio** — un promedio ponderado no puede expresar "descalificante": aun con el peso más alto de la tabla, a quien busca alquilar una venta le daría 75%. (4) **La moneda es consecuencia, no preferencia**. (5) **El copy sale del catálogo** en vez de estar escrito a mano. | `47fa961` |
 | Fase 35 — La segunda foto, y dos trampas de CSS | El recuadro detrás de la foto destacada **nunca fue un adorno: era el hueco de una segunda foto**. Se leía como una imagen que no cargó porque lo era. Ahora `photos[1]` va ahí, en el lugar exacto del recuadro, con la principal encima. Y dos trampas que costaron una ronda cada una: **un keyframe que escribe `transform` pisa las clases `skew`/`rotate` del elemento** (el brillo del CTA se veía horizontal aunque la clase dijera 28°, porque la inclinación desaparecía justo durante la animación); y **el JSX que se pasa como prop de un Server Component a uno de cliente necesita `key` explícita**, porque cruza serializado y React lo reconcilia en posición de lista — ese era el warning de consola que arrastraba desde antes. | `c6b02a4` `69ce764` `00a7f83` |
 | Fase 40 — Etiquetas, y MercadoPago se va del todo | **Etiquetas del corredor** en las publicaciones: `apto_comercial`, `oferta`, `a_estrenar`. Migración 00017: `tags text[]` con **vocabulario cerrado por CHECK** y owner-only, espejo de `lib/property/tags.ts` — texto libre dejaría que "oferta", "Oferta" y "OFERTA" fueran tres chips y que un typo se publicara en silencio. `PropertyTagChips` las pinta en la card, la portada, el hero de la ficha, el PDF y el listado de admin; "Oferta" es la única con acento dorado porque es la única que habla del precio y no del lugar. Toggles de 44px en el editor; `tags` en el JSON del cargador, donde un valor desconocido es error y no descarte. De paso **MercadoPago se fue del todo**: la dependencia de npm, `.env.example`, la lista de scrub de Sentry y `docs/TESTING_BLOCK_7.md`. | `4959832` `4417dc1` |
+| Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
 **Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
 fase 9 → 275 tras las fases 10-15 → 300 tras la 16 → 316 tras la 18 → 319
@@ -323,7 +324,8 @@ por operación, el portón del match y la carga de un alquiler por CLI—,
 → 422 con el desglose de superficie, y → **393** tras la 39: los 29 que faltan
 son los del webhook, el catálogo de servicios, la geometría del PDF pago y el
 mail de entrega, que se fueron con el código que probaban; → **406** tras la
-40, con el módulo de etiquetas, el schema y el cargador CLI). Los 7 saltados son las bandas de
+40, con el módulo de etiquetas, el schema y el cargador CLI; → **415** tras la 41, con
+el lookup por `cca`, el validador de nomenclatura y el JSON de PH). Los 7 saltados son las bandas de
 coherencia ARBA: quedan como spec de vuelta, ver **El dato de ARBA es de la
 parcela** más abajo.
 
@@ -348,7 +350,7 @@ una contra el build: no falta ninguna — están las 41, con `/icon.svg` y
 
 | Qué | Cuánto |
 |---|---|
-| Propiedades propias publicadas | **6** — Belgrano 1287 (1°A, 1°B, 2°A, 2°B) + Talcahuano 258 (el primer alquiler) + **Alsina 1639 4°Y** (3-sep, la primera de un edificio en propiedad horizontal — ver *Las partidas de PH no están en ARBA*) |
+| Propiedades propias publicadas | **6** — Belgrano 1287 (1°A, 1°B, 2°A, 2°B) + Talcahuano 258 (el primer alquiler) + **Alsina 1639 4°Y** (3-sep, la primera unidad de un edificio en propiedad horizontal; anclada al lote por nomenclatura) |
 | Scrapeadas | **567** · 439 activas · 392 geolocalizadas |
 | `property_history` | 291 eventos |
 | Total en la tabla | **575** (5 publicadas + 3 borradores + 567 scrapeadas) |
@@ -844,31 +846,40 @@ subdividido. Tomy dio la partida de los papeles, **063-252296**, y
   sus atributos son sólo `cca`, `ara1` y `sag` — **no tiene `pda`** — y
   en la manzana de Alsina 1639 devuelve cero, o sea que ni siquiera cubre
   este edificio.
-- **Consecuencia directa:** para una unidad de PH el flujo actual no puede
-  traer nomenclatura ni superficie de parcela, así que la unidad **no dibuja
-  polígono y no agrupa en `/edificios`** (`buildingKey` es la
-  nomenclatura, que queda nula). El diseño de `lib/buildings` ya había
-  anticipado que la partida no sirve para agrupar un PH — y eligió la
-  nomenclatura por eso — pero daba por sentado que la nomenclatura llegaría
-  por la partida, y para una UF no llega.
-- **Lo que sí se puede hacer:** consultar la parcela madre por **`cca`**
-  (la nomenclatura), que es lo que los papeles del PH traen (Circ. – Secc. –
-  Manz. – Parc. – UF). El WFS filtra por `cca` sin problema. Falta un
-  `getParcelByNomenclatura` y una entrada en el cargador; la partida de la
-  unidad se guarda igual, porque es la verdadera.
+- **Lo que los papeles sí traen es la nomenclatura del lote** (Circ. · Secc.
+  · Manz. · Parc. — y la UF, que es la unidad). El WFS filtra por `cca` sin
+  problema, y el lote es lo que el mapa dibuja y lo que `lib/buildings`
+  agrupa. Así que ahora hay **una tercera vía de lookup por atributo**,
+  `by_nomenclatura` (8e6cbb3, migración 00018):
+  `getParcelByNomenclatura` en `wfs.ts` y
+  `ensurePropertyCadastralByNomenclatura` en el bridge, que escribe
+  nomenclatura, superficie de parcela, tipo y posición **y no pisa la partida
+  de la fila**: sigue siendo la de la unidad, la verdadera. La partida del
+  lote queda en `arba_lookups`, donde describe al lote.
+- **En el cargador CLI**: `"nomenclatura_catastral"` en el JSON, junto a la
+  partida de la unidad (`docs/ejemplo-unidad-ph.json`). Se valida como la
+  partida —42 caracteres y prefijo de partido, `validateNomenclatura`— y
+  cuando está, se usa esa vía. **El editor web todavía no tiene el campo**:
+  hoy una unidad de PH se carga por CLI.
 
-Lo que se sabe de la manzana (Circ. II, Secc. A, Manz. 68, del lado oeste de
-Av. Alsina, parcelas 1 a 9 de norte a sur): la parcela **3** (239 m²) figura
-**sin partida** en la capa, que es la marca de un lote ya afectado a PH; la
-**4A** (063000434, 332,6 m²) es la que `buscar-partida` eligió por
-cercanía, a 22 m de un pin de Nominatim interpolado sobre la calle. No hay
-forma de decidir entre ellas desde acá: **la resuelve la nomenclatura de los
-papeles.**
+**Lo que el diseño de `lib/buildings` había previsto, y lo que no.** Eligió
+la nomenclatura como clave justamente porque la partida se rompe con la PH;
+lo que no previó es que la nomenclatura no llegaría *por* la partida. Con la
+vía nueva la premisa se cumple: dos unidades cargadas con la misma
+nomenclatura del lote se agrupan, aunque cada una tenga la suya.
 
-**Estado de la unidad:** publicada el 3-sep con la partida de los papeles y
-**sin datos de parcela** — es honesto, la ficha muestra la partida y nada que
-no se haya verificado. Pendiente: nomenclatura (Tomy) → lookup por `cca` →
-polígono, superficie de parcela y agrupación del edificio.
+**Cómo se leyó la manzana, para la próxima vez** (Circ. II, Secc. A, Manz. 68,
+vereda oeste de Av. Alsina, parcelas 1 a 9 de norte a sur): la `cca` de un
+lote termina en manzana (4 dígitos) + parcela (7) + subparcela (3):
+`…0068 0000005 000` es la parcela 5, `…0068 0000004 00A` la 4A. Un pin de
+Nominatim para un número de puerta cae **sobre la calle**, así que
+`buscar-partida` por cercanía había elegido la 4A: la nomenclatura de los
+papeles dijo **5**. La UF 38 no tiene lugar propio en la fila; la parcela 5
+(476,49 m²) es la del edificio y es lo que se guarda.
+
+**Estado de la unidad:** publicada el 3-sep con su partida y, desde la vía
+nueva, con la parcela 5 de nomenclatura, polígono y superficie. Agrupa en
+`/edificios` como "Alsina 1639 4°Y" hasta que llegue la segunda unidad.
 
 ### El descubierto se deriva, no se guarda
 
@@ -1241,7 +1252,8 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   Necesario para cachear: unstable_cache no tiene
 │   │                             #   request del cual leer cookies)
 │   ├── services/
-│   │   ├── arba/                 # WFS client + getParcelByPartida + bridge
+│   │   ├── arba/                 # WFS client + getParcelByPartida + getParcelByNomenclatura
+│   │   │                         #   (unidades de PH: su partida no está en la capa) + bridge
 │   │   │                         #   + geometry.ts (centro de parcela)
 │   │   ├── scrapers/             # Zonaprop + Trezza (alimentan inteligencia de mercado)
 │   │   ├── geocoding/            # Nominatim wrapper
@@ -1307,7 +1319,7 @@ Management API (config de auth, settings de proyecto). Reglas:
 │                                 #   la base. Sin esto la funcion corre en Washington
 │                                 #   y cada consulta cruza el continente (~375ms)
 ├── supabase/
-│   ├── migrations/               # 00001..00017 + 00015b (00011+ son del fork).
+│   ├── migrations/               # 00001..00018 + 00015b (00011+ son del fork).
 │   │                             #   00015b es compañera de 00015: indexa
 │   │                             #   arba_lookups por partida, que es la clave de
 │   │                             #   las propias. La tabla solo tenía (lat, lng)
@@ -1320,6 +1332,8 @@ Management API (config de auth, settings de proyecto). Reglas:
 │                                 #   y no fuente de verdad, y avisa cuando el match
 │                                 #   fue por cercania y no por interseccion)
 ├── docs/                         # PLAN_MAESTRO, PLAYBOOK_PROMPTS, ARCHITECTURE,
+│                                 #   ejemplo-unidad-ph.json (unidad de propiedad horizontal:
+│                                 #   partida propia + nomenclatura_catastral del lote),
 │                                 #   ejemplo-alquiler.json (plantilla de alquiler:
 │                                 #   mismo formato, cambian operation_type y moneda,
 │                                 #   y el precio se escribe mensual y pelado),
@@ -1457,6 +1471,7 @@ servicios pagos el 2-sep.)
 40. **Fase 38 — La guarda fallaba abierta otra vez** ✅ 2-sep
 41. **Fase 39 — Se van los servicios pagos, y la voz del portal** ✅ 2-sep
 42. **Fase 40 — Etiquetas en las publicaciones, y MercadoPago se va del todo** ✅ 3-sep
+43. **Fase 41 — La unidad de PH se ancla al lote por nomenclatura** ✅ 3-sep
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -1544,16 +1559,21 @@ lateral: la ficha individual también trae la antigüedad.
 techo. Conviene gastar primero el presupuesto en las páginas de listado (que
 es lo que mantiene el catálogo al día) y usar lo que sobre para las fichas.
 
-**4b. Alsina 1639 — dos cosas que sólo puede hacer Tomy**
+**4b. Alsina 1639 — la foto del frente** ← tarea de Tomy
 
-- **Foto del frente.** La única que existe es la de Trezza, 670px con el logo
-  y los carteles "Trezza VENDE" en cada balcón; no se subió. Hasta que haya
-  una propia, `/edificios` va a mostrar el living de la 4°Y como portada del
-  edificio (cuando agrupe). Va en `lib/buildings/photos.ts`, por parcela.
-- **La nomenclatura de los papeles** (Circ. – Secc. – Manz. – Parc.), para
-  anclar la unidad a su parcela madre — ver *Las partidas de propiedad
-  horizontal no están en la capa pública de ARBA*. Con eso se construye el
-  lookup por `cca` y la unidad pasa a agrupar y a dibujar el polígono.
+La única que existe es la de Trezza, 670px con el logo y los carteles "Trezza
+VENDE" en cada balcón; no se subió. Hasta que haya una propia, `/edificios`
+muestra el living de la 4°Y como portada del edificio. Va en
+`lib/buildings/photos.ts`, bajo la parcela
+`063020A00000000000000000000000680000005000`. *(La nomenclatura ya llegó y
+la vía por `cca` ya está — ver la sección de PH.)*
+
+**4c. El campo de nomenclatura en el editor web** ← cuando haga falta
+
+Hoy una unidad de PH sólo se carga por CLI, porque la sección ARBA del editor
+consulta por partida y nada más. Sumar un segundo campo "Nomenclatura del
+lote" que dispare `ensurePropertyCadastralByNomenclatura` es una Server
+Action más. Se pospone hasta que Tomy cargue algo desde el navegador.
 
 **5. Los 44px que faltan** ← ya casi cerrado
 
@@ -1868,6 +1888,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.22 | Sep 3, 2026 | **La primera unidad de propiedad horizontal, y lo que ARBA no sabe.** Alsina 1639 4°Y se cargó desde un aviso de Trezza con la partida de los papeles y ARBA contestó `partida_not_found`. No era un typo: **la capa pública sólo conoce la partida del lote**, y la de subparcelas no tiene partida. Se publicó igual —partida verdadera, sin parcela, que es honesto— y se cerró el hueco con una tercera vía de lookup, por **nomenclatura del lote**, que es lo que los papeles del PH traen (Circ. II · Secc. A · Manz. 68 · Parc. 5, UF 38). La unidad conserva su partida, dibuja la parcela y agrupa en `/edificios`: la premisa de `lib/buildings` se cumple por primera vez en un PH real. De paso quedó escrito cómo se lee una `cca` (manzana + parcela + subparcela al final) y por qué `buscar-partida` había elegido la parcela vecina: el pin de Nominatim cae sobre la calle. Queda de Tomy la foto del frente. **406 → 415 tests.** |
 | 2.21 | Sep 3, 2026 | **Etiquetas, y el último resto de MercadoPago.** (1) Las publicaciones tienen **etiquetas** —"Apto comercial", "Oferta", "A estrenar"— pedidas por Tomy. Son afirmaciones que el corredor decide hacer, no datos que el catálogo derive, así que van en una columna propia (`tags text[]`, migración 00017) con **vocabulario cerrado en dos lugares que tienen que coincidir**: la lista de `lib/property/tags.ts` y el CHECK de la base. Texto libre dejaría tres chips para la misma palabra y un typo publicado en silencio; el precio de sumar una etiqueta es una entrada más una migración, y es el precio buscado. Un valor fuera de la lista es **error, no descarte**, en el schema y en el cargador CLI. Un solo componente las pinta en las cinco superficies; "Oferta" es la única con acento dorado. (2) **MercadoPago se fue del todo**: quedaban la dependencia de npm, el bloque de `.env.example`, la clave en el scrub de Sentry y una guía de testing de un checkout inexistente. (3) Numeritos: **393 → 406 tests**, y el build lista **33 rutas**, no 34 — otra cifra de este documento que no sobrevivió a contarla. Verificado en el dev server: home, `/propiedades`, una ficha y su PDF responden sin errores; **lo visual de los chips lo mira Tomy**, porque ninguna publicada tiene etiquetas todavía y la única forma de verlos era escribir una en producción. |
 | 2.20 | Sep 2, 2026 | **Se va lo que quedaba del portal viejo.** (1) El chip **"Propiedad verificada"** sale de las tres superficies: si todas van a estar verificadas no distingue nada —mismo motivo por el que se fue el Quality Score— y de paso cierra el fail-open que encontró la auditoría, porque se encendía con la partida **tipeada a mano** mientras el comentario de arriba decía que medía la confirmación del catastro. (2) **Los servicios pagos se borran enteros**, no se esconden: MercadoPago, el informe ARBA en PDF, el fulfillment, el bucket, el mail de entrega, dos rutas y el flag. **3.012 líneas, 41 → 34 rutas.** La ficha pública en PDF sobrevive intacta. (3) Dos restos de **voz** en los dos peores lugares: el metadata raíz —lo que ve Google y toda pestaña— ofrecía *"scoring transparente para compradores"* de una *"Plataforma Inmobiliaria"*, y el **`DIRECCION_DE_ARTE.md`**, que es de lectura obligatoria antes de tocar nada visual, seguía describiendo *"una plataforma que trabaja para el comprador"* con *"un score de calidad por propiedad"*. Es el mismo problema que el Framer Motion de la v2.18 y en el mismo archivo: un documento obligatorio que describe un producto que ya no existe manda construir para el sitio equivocado. También quedó la **auditoría de fail-open** completa, con lo que está sano y los que siguen abiertos. **422 → 393 tests** (bajan porque se fueron los tests del código borrado). |
 | 2.19 | Sep 2, 2026 | **Los alquileres existen; la operación va en la etiqueta; y la guarda fallaba abierta por tercera vez.** (1) Cargar un alquiler siempre se pudo, pero **aguas abajo se mostraba, se puntuaba y se matcheaba como una venta**: el precio se imprimía plano en seis superficies, el Quality Score comparaba contra ventas —y la causa raíz no era la query, era que `PropertyForScoring` **no tenía `operation_type`**, o sea que el scorer no podía ver la diferencia porque la diferencia no estaba modelada—, el match no preguntaba la operación, y la moneda estaba fija en USD. La operación entró como **portón y no como criterio**, porque un promedio ponderado no puede expresar "descalificante". (2) A pedido de Tomy, **la operación se dice en la etiqueta del tipo** ("Casa en alquiler") y el precio queda limpio: la etiqueta lo dice antes de que el lector decida qué significa el número. El período quedó opt-in, con la regla **nunca mostrar un alquiler que nada marque como alquiler**. (3) **Tercera desactivación masiva** (380 bajas con ~25 vistos), otra vez descubierta verificando este documento, otra vez el mismo error con distinto disfraz: `countActiveListings` terminaba en `count ?? 0`, y 0 desarma la cobertura — el arreglo del 1-sep hizo que los scrapers empezaran en `null`, pero esta función nunca les entregaba un `null` que conservar. Reparado con backup y en transacción; las activas volvieron **exactas** a 434. Se publicó **el primer alquiler** (Talcahuano 258) y quedó `npm run buscar-partida`. **375 → 420 tests**. *(Nota: la v2.19 se publicó primero con este archivo corrompido —triplicado a 2879 líneas— por un bug de la herramienta de edición: `String.replace` interpreta `$` + backtick como "todo el texto anterior", y el texto de esta entrada contenía esa secuencia. Reconstruido desde la v2.18. Los archivos de código quedaron intactos, verificado por tamaño, `tsc`, tests y build.)* |
