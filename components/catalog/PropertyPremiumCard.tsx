@@ -7,6 +7,7 @@ import { formatPrice, labelWithOperation } from "@/lib/property/price";
 import { PropertyTagChips } from "@/components/property/PropertyTagChips";
 import { propertyTypeLabel } from "@/lib/property/types";
 import { extrasSpecWords, readExtras } from "@/lib/property/extras";
+import { getMatchBand } from "@/lib/matching/bands";
 
 /**
  * Premium editorial card for the public home catalog (Block 5 del
@@ -53,12 +54,18 @@ export function PropertyPremiumCard({
   property,
   flip = false,
   building,
+  matchScore = null,
 }: {
   property: PremiumCardProperty;
   /** When true, the photo sits on the right (desktop). Alternates per row. */
   flip?: boolean;
   /** Set when this property shares its parcel with other published units. */
   building?: BuildingSummary;
+  /**
+   * The visitor's match for this listing, when the catalog is ordered by it.
+   * Null or absent draws nothing: a number about nothing is not shown.
+   */
+  matchScore?: number | null;
 }) {
   const cover = property.photos?.[0] ?? null;
   // One formatter for every price on the card, so a rental cannot lose its
@@ -154,6 +161,19 @@ export function PropertyPremiumCard({
               is a claim about the number right under it, and "Apto comercial"
               qualifies the type right above. */}
           <PropertyTagChips tags={property.tags} className="mt-2.5" />
+
+          {/* Why this card is where it is. Same bands and colours as the
+              header meter, so the number reads as the same number. */}
+          {matchScore !== null && (
+            <p
+              className="mt-2.5 text-xs font-semibold tabular-nums"
+              style={{
+                color: matchScore >= 100 ? "var(--match-perfect)" : getMatchBand(matchScore).hex,
+              }}
+            >
+              Tu match · {matchScore} de 100
+            </p>
+          )}
 
           {priceText ? (
             <p className="mt-2 text-2xl sm:text-3xl font-bold tabular-nums leading-none">

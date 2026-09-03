@@ -1,9 +1,7 @@
 import { Reveal } from "@/components/shared/Reveal";
-import { buildingKey, type BuildingSummary } from "@/lib/buildings";
-import {
-  PropertyPremiumCard,
-  type PremiumCardProperty,
-} from "@/components/catalog/PropertyPremiumCard";
+import type { BuildingSummary } from "@/lib/buildings";
+import type { CatalogProperty } from "@/lib/catalog/filters";
+import { PropertyCatalogList } from "@/components/catalog/PropertyCatalogList";
 
 /**
  * The published catalog: large premium cards, one per row, the photo side
@@ -16,7 +14,8 @@ import {
  * landing argues and the catalog lists. The protagonista stays on the home:
  * it is a showpiece, not a listing.
  *
- * Scroll-reveal per card via the shared Reveal island.
+ * Scroll-reveal per card via the shared Reveal island. Filtering and the
+ * match order live in PropertyCatalogList, on the client.
  */
 export function PropertyCatalog({
   properties,
@@ -26,7 +25,7 @@ export function PropertyCatalog({
   eyebrow,
   intro,
 }: {
-  properties: PremiumCardProperty[];
+  properties: CatalogProperty[];
   /** Total published count — drives the header copy, not the rendered slice. */
   totalProperties: number;
   /**
@@ -35,7 +34,7 @@ export function PropertyCatalog({
    * — without it, four listings on the same parcel read as four unrelated
    * properties, or as a duplicate.
    */
-  buildings?: Map<string, BuildingSummary>;
+  buildings?: Record<string, BuildingSummary>;
   /** Overridable so the page and any future embed can title it in context. */
   eyebrow?: string;
   heading?: string;
@@ -77,26 +76,11 @@ export function PropertyCatalog({
             Todavía no hay propiedades publicadas. Volvé pronto.
           </div>
         ) : (
-          <div className="space-y-8 sm:space-y-12">
-            {properties.map((p, i) => {
-              const flip = i % 2 === 1;
-              return (
-                // Each card swings in from its photo side (flip → from the
-                // right, else from the left) with a small per-card stagger,
-                // so scrolling the catalog has rhythm instead of a flat fade
-                // (§2.4). Each card re-triggers on its own scroll position.
-                <Reveal key={p.id} delayMs={60} direction={flip ? "right" : "left"}>
-                  <PropertyPremiumCard
-                    property={p}
-                    flip={flip}
-                    building={buildings?.get(buildingKey(p) ?? "")}
-                  />
-                </Reveal>
-              );
-            })}
-          </div>
+          // The list itself is a client island: it is filtered by the bar it
+          // draws and ordered by the visitor's match, which only exists in
+          // the browser.
+          <PropertyCatalogList properties={properties} buildings={buildings ?? {}} />
         )}
-
       </div>
     </section>
   );

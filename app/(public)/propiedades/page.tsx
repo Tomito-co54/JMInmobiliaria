@@ -5,7 +5,7 @@ import { WhatsAppFloat } from "@/components/home/WhatsAppFloat";
 import { summariseBuildings } from "@/lib/buildings";
 import { getPropertiesByProximity, ZONA_SUR_CENTER } from "@/lib/db/properties";
 import { catalogOperationLabel } from "@/lib/property/price";
-import type { PremiumCardProperty } from "@/components/catalog/PropertyPremiumCard";
+import type { CatalogProperty } from "@/lib/catalog/filters";
 
 /**
  * The catalog, on its own page.
@@ -35,8 +35,9 @@ export default async function PropiedadesPage() {
   const proximity = await getPropertiesByProximity(ZONA_SUR_CENTER, {
     limit: Number.MAX_SAFE_INTEGER,
   });
-  const properties = proximity.data as unknown as PremiumCardProperty[];
-  const buildings = summariseBuildings(properties);
+  const properties = proximity.data as unknown as CatalogProperty[];
+  // A plain object, not a Map: it crosses into the client list.
+  const buildings = Object.fromEntries(summariseBuildings(properties));
 
   // The heading used to read "Propiedades en venta", which was true for as
   // long as a sale was the only thing loadable. Asked of the catalog instead,
