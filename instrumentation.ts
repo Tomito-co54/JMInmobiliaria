@@ -54,7 +54,6 @@ function scrubSensitiveData(
     "authorization",
     "cookie",
     "dni",
-    "mercadopago_access_token",
     "card",
     "card_number",
     "cvv",

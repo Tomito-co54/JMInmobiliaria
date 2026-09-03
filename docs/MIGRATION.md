@@ -154,11 +154,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ... (público)
 SUPABASE_SERVICE_ROLE_KEY=eyJ... (sensible)
 DATABASE_URL=postgresql://postgres.cjnaxxidigdylnwlpyab:<PASSWORD>@aws-1-sa-east-1.pooler.supabase.com:6543/postgres
 
-# Mercado Pago
-MERCADOPAGO_PUBLIC_KEY=
-MERCADOPAGO_ACCESS_TOKEN=
-MERCADOPAGO_WEBHOOK_SECRET=
-
 # Resend
 RESEND_API_KEY=
 
