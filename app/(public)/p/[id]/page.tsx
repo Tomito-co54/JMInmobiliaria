@@ -142,11 +142,6 @@ export default async function PublicPropertyPage({ params }: PageProps) {
     : "Propiedad";
   const opLabel = operationLabel(property.operation_type);
 
-  // Verified = we matched the parcel against the cadastral service. The chip
-  // it drives no longer names the agency; the check is the same one.
-  const arbaVerified =
-    !!property.partida || arbaLookup?.match_strategy === "intersects" ||
-    arbaLookup?.match_strategy === "dwithin";
 
   return (
     <main className="min-h-screen bg-background pb-24 lg:pb-0">
@@ -186,7 +181,6 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               partido={property.partido}
               typeLabel={typeLabel}
               opLabel={opLabel}
-              arbaVerified={arbaVerified}
             />
 
             {/* On mobile the data panel comes right after the hero, before

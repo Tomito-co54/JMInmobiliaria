@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ImageIcon, ShieldCheck, Expand } from "lucide-react";
+import { ImageIcon, Expand } from "lucide-react";
 import { usePrefersReducedMotion } from "@/hooks/use-in-view";
 import { cn } from "@/lib/utils";
 import { PropertyGallery, PropertyThumbnails } from "./PropertyGallery";
@@ -33,7 +33,6 @@ interface PropertyHeroProps {
   partido: string | null;
   typeLabel: string;
   opLabel: string | null;
-  arbaVerified: boolean;
 }
 
 export function PropertyHero({
@@ -43,7 +42,6 @@ export function PropertyHero({
   partido,
   typeLabel,
   opLabel,
-  arbaVerified,
 }: PropertyHeroProps) {
   const reduced = usePrefersReducedMotion();
   const [openAt, setOpenAt] = useState<number | null>(null);
@@ -139,26 +137,14 @@ export function PropertyHero({
           decides what gets published, not a claim to make to a buyer about
           what he is looking at. It still orders the catalog and runs /admin. */}
 
-      {/* Verification chip — bottom-right, the second credibility anchor on
-          the photo. It still fires off the cadastral lookup; it just no longer
-          names the bureau, because what earns trust here is that somebody
-          checked, not which office answered. */}
-      {arbaVerified && (
-        <div
-          className={cn(
-            "absolute -bottom-4 right-4 lg:right-6 inline-flex items-center gap-1.5 rounded-full border bg-background/95 backdrop-blur px-3 py-1.5 text-xs font-medium shadow-lg",
-            !reduced &&
-              "motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-700 motion-safe:[animation-delay:550ms] motion-safe:fill-mode-backwards",
-          )}
-          style={{
-            color: "var(--brand-gold)",
-            borderColor: "color-mix(in srgb, var(--brand-gold) 35%, transparent)",
-          }}
-        >
-          <ShieldCheck className="size-3.5" />
-          Propiedad verificada
-        </div>
-      )}
+      {/* El chip "Propiedad verificada" vivía acá. Se fue el 2-sep: si TODAS
+          las publicadas están verificadas —y lo están, porque verificar es lo
+          que se hace antes de publicar— entonces el chip no distingue nada.
+          Es el mismo motivo por el que se fue el Quality Score: un dato que
+          nunca varía no informa, sólo decora. Y de paso cierra un fail-open,
+          porque la condición se encendía con la partida tipeada a mano y no
+          con la confirmación del catastro. Los datos siguen enteros en
+          "Datos oficiales", que los muestra uno por uno. */}
       </div>
 
       {/* Below the photo, clearing the medallion that overlaps its corner. */}

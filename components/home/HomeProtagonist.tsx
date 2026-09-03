@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { FeaturedPropertyRow } from "@/lib/db/properties";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -127,20 +127,6 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
           )}
 
           {/* Verification chip — the credibility anchor in copy form. */}
-          {p.partida && (
-            <span
-              className="mt-5 inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium"
-              style={{
-                color: "var(--brand-gold)",
-                borderColor: "color-mix(in srgb, var(--brand-gold) 35%, transparent)",
-                backgroundColor: "color-mix(in srgb, var(--brand-gold) 8%, transparent)",
-              }}
-            >
-              <ShieldCheck className="size-3.5" />
-              Propiedad verificada
-            </span>
-          )}
-
           {/* La acción principal de la portada: es lo que se hace con la
               propiedad que la página eligió mostrar. Medía 35px; sube a 48
               como el CTA del hero, con el mismo hundido al tocar. Sin el

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { NavPending } from "@/components/shared/NavPending";
 import Link from "next/link";
-import { MapPin, ShieldCheck, ArrowRight, ImageIcon } from "lucide-react";
+import { MapPin, ArrowRight, ImageIcon } from "lucide-react";
 import type { BuildingSummary } from "@/lib/buildings";
 import { formatPrice, labelWithOperation } from "@/lib/property/price";
 
@@ -195,22 +195,6 @@ export function PropertyPremiumCard({
               listing, which is a question the catalog answers by what it
               chooses to publish, not one to put on each card. The score still
               ranks the catalog and drives /admin. */}
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            {property.partida && (
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
-                style={{
-                  color: "var(--brand-gold)",
-                  borderColor: "color-mix(in srgb, var(--brand-gold) 35%, transparent)",
-                  backgroundColor: "color-mix(in srgb, var(--brand-gold) 8%, transparent)",
-                }}
-              >
-                <ShieldCheck className="size-3.5" />
-                Verificada
-              </span>
-            )}
-          </div>
-
           {/* The whole card is the link; this is where the eye is when the
               tap lands, so it is where the acknowledgement belongs. */}
           <span
