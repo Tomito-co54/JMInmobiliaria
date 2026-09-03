@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (3-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **415 tests passing** (+7 skipped a propósito),
+auto-deploy desde `main`. **432 tests passing** (+7 skipped a propósito),
 `npm run build` verde, **33 rutas**.
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
@@ -313,6 +313,7 @@ visual.
 | Fase 36 — Los alquileres existen y se diferencian | El enum, el validador y el cargador **siempre** aceptaron `alquiler`. Lo que no existía era la **diferencia**: aguas abajo un alquiler se mostraba, se puntuaba y se matcheaba como una venta, y las cuatro fallas devuelven un número creíble. (1) **El precio dice de qué precio habla** — `lib/property/price.ts` es el único lugar que convierte un precio en texto; seis superficies lo imprimían inline. (2) **El Quality Score deja de comparar un alquiler contra ventas**, y la causa raíz no era la query: `PropertyForScoring` **no tenía `operation_type`**, así que el scorer no podía ver la diferencia porque la diferencia no estaba modelada. (3) **El match pregunta la operación, y una operación distinta es un portón, no un criterio** — un promedio ponderado no puede expresar "descalificante": aun con el peso más alto de la tabla, a quien busca alquilar una venta le daría 75%. (4) **La moneda es consecuencia, no preferencia**. (5) **El copy sale del catálogo** en vez de estar escrito a mano. | `47fa961` |
 | Fase 35 — La segunda foto, y dos trampas de CSS | El recuadro detrás de la foto destacada **nunca fue un adorno: era el hueco de una segunda foto**. Se leía como una imagen que no cargó porque lo era. Ahora `photos[1]` va ahí, en el lugar exacto del recuadro, con la principal encima. Y dos trampas que costaron una ronda cada una: **un keyframe que escribe `transform` pisa las clases `skew`/`rotate` del elemento** (el brillo del CTA se veía horizontal aunque la clase dijera 28°, porque la inclinación desaparecía justo durante la animación); y **el JSX que se pasa como prop de un Server Component a uno de cliente necesita `key` explícita**, porque cruza serializado y React lo reconcilia en posición de lista — ese era el warning de consola que arrastraba desde antes. | `c6b02a4` `69ce764` `00a7f83` |
 | Fase 40 — Etiquetas, y MercadoPago se va del todo | **Etiquetas del corredor** en las publicaciones: `apto_comercial`, `oferta`, `a_estrenar`. Migración 00017: `tags text[]` con **vocabulario cerrado por CHECK** y owner-only, espejo de `lib/property/tags.ts` — texto libre dejaría que "oferta", "Oferta" y "OFERTA" fueran tres chips y que un typo se publicara en silencio. `PropertyTagChips` las pinta en la card, la portada, el hero de la ficha, el PDF y el listado de admin; "Oferta" es la única con acento dorado porque es la única que habla del precio y no del lugar. Toggles de 44px en el editor; `tags` en el JSON del cargador, donde un valor desconocido es error y no descarte. De paso **MercadoPago se fue del todo**: la dependencia de npm, `.env.example`, la lista de scrub de Sentry y `docs/TESTING_BLOCK_7.md`. | `4959832` `4417dc1` |
+| Fase 42 — Los extras, y el tipo cochera | Cochera / patio / terraza como **botón**: chip fijo si viene con la unidad, **toggle de 44px** si se elige, y el precio de la ficha suma el delta en el mismo frame (la barra mobile lee el mismo store). `properties.extras` jsonb con CHECK por función SQL (00020); `price_amount` sigue siendo el piso. Tipo `cochera` (00019) y `lib/property/types.ts` como única lista de tipos. Cargados: 4°Y (cochera + terraza incluidas), Belgrano 1°A/1°B (+8.000), 2°A/2°B (+9.000, terraza incluida). | `aa040cf` |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
 **Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
@@ -325,7 +326,8 @@ por operación, el portón del match y la carga de un alquiler por CLI—,
 son los del webhook, el catálogo de servicios, la geometría del PDF pago y el
 mail de entrega, que se fueron con el código que probaban; → **406** tras la
 40, con el módulo de etiquetas, el schema y el cargador CLI; → **415** tras la 41, con
-el lookup por `cca`, el validador de nomenclatura y el JSON de PH). Los 7 saltados son las bandas de
+el lookup por `cca`, el validador de nomenclatura y el JSON de PH; → **432** tras la
+42, con el módulo de extras y su schema). Los 7 saltados son las bandas de
 coherencia ARBA: quedan como spec de vuelta, ver **El dato de ARBA es de la
 parcela** más abajo.
 
@@ -881,6 +883,60 @@ papeles dijo **5**. La UF 38 no tiene lugar propio en la fila; la parcela 5
 nueva, con la parcela 5 de nomenclatura, polígono y superficie. Agrupa en
 `/edificios` como "Alsina 1639 4°Y" hasta que llegue la segunda unidad.
 
+### Los extras: cochera, patio y terraza, incluidos u opcionales (3-sep)
+
+Tomy pidió que la cochera, el patio y la terraza figuren **como un botón** —
+"como lo era Propiedad verificada"— seleccionable donde se pueda elegir y
+**fijo** donde la unidad se vende sí o sí con eso (Alsina 1639 4°Y: cochera
+00-15 + terraza 05-02). Es el punto 7 del Build map, resuelto a medias y a
+propósito: el suplemento de cochera sí, la financiación todavía no.
+
+- **`properties.extras`** (migración 00020): jsonb, lista de
+  `{ kind, mode, detail, price_delta }`. `kind` es `cochera | patio |
+  terraza`, `mode` es `incluida | opcional`, `detail` es texto corto
+  ("00-15", "40 m²", "cubierta") y `price_delta` es lo que una **opcional**
+  suma al precio (null = a consultar). Una incluida nunca lleva delta: ya está
+  en el precio. Un extra por tipo — dos cocheras son una entrada cuyo detalle
+  nombra a las dos. Todo eso lo exige un CHECK sobre una función SQL inmutable
+  (`property_extras_valid`), espejo de `lib/property/extras.ts`, y owner-only
+  como las etiquetas.
+- **`price_amount` sigue siendo contado sin extras.** Es lo que leen el
+  Quality Score, los comparables y el centro de datos, y tiene que seguir
+  siendo el piso — exactamente la advertencia del punto 7.
+- **En la ficha**, `PropertyPriceExtras` (isla de cliente) muestra el precio
+  con los extras: los incluidos son un chip fijo con tilde dorado, el lugar y
+  la forma del chip de verificación que se fue; los opcionales son **toggles
+  de 44px** que suman su delta al número de arriba en el mismo frame y dejan
+  una leyenda ("con cochera"). La barra sticky de mobile lee **el mismo
+  store** (`lib/property/extras-selection.ts`, `useSyncExternalStore` a
+  nivel de módulo), así que no puede decir 80.000 mientras el panel dice
+  88.000. En memoria y por visita: es una elección sobre esta ficha, no una
+  preferencia.
+- **En la card y la portada** van como palabras de la línea de specs:
+  "cochera opcional", "terraza 40 m²". **En el PDF**, dos líneas: "Incluye:"
+  y "Opcional: … (+ USD 8.000)".
+- **Editor**: sección "Extras", tres filas (una por tipo) con modo, detalle y,
+  si es opcional, cuánto suma. **CLI**: `"extras": [...]` en el JSON; una
+  clave mal escrita adentro es error (`strictObject`), no descarte.
+
+**Cargado el 3-sep:** 4°Y con cochera 00-15 y terraza 05-02 incluidas;
+Belgrano 1°A/1°B con cochera opcional +8.000; 2°A/2°B con cochera opcional
++9.000 y terraza propia de 40 m² incluida. Los deltas salen del listado que
+Tomy dictó ese día y que él mismo marcó como provisorio — si corrige, se
+tocan desde el editor.
+
+**Y un tipo nuevo: `cochera`** (migración 00019), para las unidades
+complementarias que se venden solas (Castro Barros 225, Pellegrini 321). No
+es la cochera que viene con un departamento — esa es un extra. De paso las
+etiquetas de tipo dejaron de vivir copiadas en once archivos:
+`lib/property/types.ts` es la lista y `propertyTypeLabel()` el nombre;
+las surfaces públicas, el PDF, el editor y los filtros de admin leen de ahí.
+Las páginas legacy de `(app)/` y el centro de datos conservan su copia —
+imprimirían "cochera" en minúscula para ese tipo, nada peor.
+
+**Lo que NO se resolvió del punto 7:** la financiación (anticipo + cuotas en
+dólares sobre el valor financiado). Es otra estructura y otra conversación.
+
 ### El descubierto se deriva, no se guarda
 
 Talcahuano 258 es la primera propiedad con un desglose real de superficie:
@@ -1214,6 +1270,9 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   PropertyMapSection, BuildingUnits, etc.
 │   │                             #   PropertyTagChips: las etiquetas del corredor, UN
 │   │                             #   componente para las cinco superficies que las pintan
+│   │                             #   PropertyPriceExtras: el precio con sus extras — chip
+│   │                             #   fijo si incluida, toggle si opcional — y la variante
+│   │                             #   de la barra mobile, que lee el mismo store
 │   ├── scoring/                  # QualityScoreRing + Card + Sheet
 │   ├── matching/                 # ← MatchPreferencesForm (las 6 preguntas, compartidas
 │   │                             #   por home, header y ficha), MatchMeter (medidor:
@@ -1281,6 +1340,13 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   tags.ts: el vocabulario cerrado de etiquetas, espejo
 │   │                             #   del CHECK de la migración 00017. Sumar una es tocar
 │   │                             #   los dos lugares
+│   │                             #   extras.ts: cochera/patio/terraza, incluida u opcional,
+│   │                             #   y priceWithExtras(); espejo del CHECK de la 00020.
+│   │                             #   extras-selection.ts: qué opcionales prendió el
+│   │                             #   visitante, store de módulo compartido por las dos
+│   │                             #   islas que muestran el precio.
+│   │                             #   types.ts: LA lista de tipos y su etiqueta — antes
+│   │                             #   copiada en once archivos
 │   ├── matching/                 # match.ts + preferences.ts (perfil anónimo, puro)
 │   │                             #   + best-match.ts: el mejor match del catálogo,
 │   │                             #   compartido por la home y el header para que los
@@ -1319,7 +1385,7 @@ Management API (config de auth, settings de proyecto). Reglas:
 │                                 #   la base. Sin esto la funcion corre en Washington
 │                                 #   y cada consulta cruza el continente (~375ms)
 ├── supabase/
-│   ├── migrations/               # 00001..00018 + 00015b (00011+ son del fork).
+│   ├── migrations/               # 00001..00020 + 00015b (00011+ son del fork).
 │   │                             #   00015b es compañera de 00015: indexa
 │   │                             #   arba_lookups por partida, que es la clave de
 │   │                             #   las propias. La tabla solo tenía (lat, lng)
@@ -1361,12 +1427,13 @@ Columnas clave:
 | `nomenclatura_catastral` | text | Desde ARBA |
 | `address` | text | Dirección (obligatoria para publicar) |
 | `lat`, `lng` | numeric | Geocoded (solo scrapeadas, mías no geocodean — entran por partida) |
-| `property_type` | enum | casa / departamento / ph / lote / local |
+| `property_type` | enum | casa / departamento / ph / lote / local / **cochera** (00019: la unidad complementaria que se vende sola) |
 | `operation_type` | enum | venta / alquiler |
 | `price_amount`, `price_currency` | numeric / enum | |
 | `surface_total`, `surface_covered`, `surface_arba` | numeric | Declaradas + ARBA real |
 | `tpa` | text | Urbano / Rural (desde ARBA WFS) |
 | `year_built` | integer | **NEW** (00016): año de construcción. **No** es la antigüedad del aviso — para eso está `first_seen_at`. Nulo en casi todas las scrapeadas: la fuente lo publica en la ficha individual, fuera del techo de pedidos |
+| `extras` | jsonb | **NEW** (00020): `[{ kind, mode, detail, price_delta }]` — cochera / patio / terraza, `incluida` (fija, ya en el precio) u `opcional` (toggle; `price_delta` es lo que suma). CHECK vía `property_extras_valid()`, espejo de `lib/property/extras.ts`. Solo propias. `price_amount` sigue siendo contado sin extras |
 | `tags` | text[] | **NEW** (00017): etiquetas del corredor — `apto_comercial` / `oferta` / `a_estrenar`. Vocabulario cerrado por CHECK, espejo de `lib/property/tags.ts`. Solo propias (CHECK owner-only); `'{}'` en las scrapeadas |
 | `rooms`, `bedrooms`, `bathrooms`, `garages` | integer | |
 | `description`, `photos` | text / jsonb | `photos` = array de URLs (primera = portada) |
@@ -1472,6 +1539,7 @@ servicios pagos el 2-sep.)
 41. **Fase 39 — Se van los servicios pagos, y la voz del portal** ✅ 2-sep
 42. **Fase 40 — Etiquetas en las publicaciones, y MercadoPago se va del todo** ✅ 3-sep
 43. **Fase 41 — La unidad de PH se ancla al lote por nomenclatura** ✅ 3-sep
+44. **Fase 42 — Los extras (cochera / patio / terraza) y el tipo cochera** ✅ 3-sep
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -1588,7 +1656,7 @@ El público es una capa fina encima: cambian de dónde salen los puntos y
 qué hace la selección. Esperando inventario — con 2 fichas no se puede
 evaluar si está bien resuelto.
 
-**7. Configurador de precio en la ficha** ← ideas de Tomy, 28-ago
+**7. Configurador de precio en la ficha** ← la cochera ya está (Fase 42); falta la financiación
 
 Una unidad no tiene un precio, tiene una tabla. Belgrano 1287 la muestra
 cruda: contado o financiado, con cochera o sin. El sitio tiene **un** campo
@@ -1888,6 +1956,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.23 | Sep 3, 2026 | **Los extras, y la cartera anotada.** Tomy dictó la cartera familiar completa (Belgrano, Alsina 1639, Cabrera 205, Drago, La Costa…) para ir publicando; **vive en la memoria local de Claude y no en el repo**, porque nombra a terceros, y está marcada como provisoria hasta que él corrija. De ahí salieron tres pedidos: (1) **cochera / patio / terraza como botón** — fijo si la unidad se vende con eso, seleccionable si es opcional, y el precio de la ficha suma el delta en el acto. `properties.extras` jsonb con CHECK por función SQL; `price_amount` sigue siendo el piso que leen el score y el mercado. Es el punto 7 del Build map sin la financiación. (2) **Tipo `cochera`** para las unidades complementarias que se venden solas, y una sola lista de tipos en `lib/property/types.ts` en vez de once copias. (3) Las propiedades **fuera de Zona Sur** (CABA, La Costa, Chapadmalal) quedan separadas, sin cargar. **415 → 432 tests.** |
 | 2.22 | Sep 3, 2026 | **La primera unidad de propiedad horizontal, y lo que ARBA no sabe.** Alsina 1639 4°Y se cargó desde un aviso de Trezza con la partida de los papeles y ARBA contestó `partida_not_found`. No era un typo: **la capa pública sólo conoce la partida del lote**, y la de subparcelas no tiene partida. Se publicó igual —partida verdadera, sin parcela, que es honesto— y se cerró el hueco con una tercera vía de lookup, por **nomenclatura del lote**, que es lo que los papeles del PH traen (Circ. II · Secc. A · Manz. 68 · Parc. 5, UF 38). La unidad conserva su partida, dibuja la parcela y agrupa en `/edificios`: la premisa de `lib/buildings` se cumple por primera vez en un PH real. De paso quedó escrito cómo se lee una `cca` (manzana + parcela + subparcela al final) y por qué `buscar-partida` había elegido la parcela vecina: el pin de Nominatim cae sobre la calle. Queda de Tomy la foto del frente. **406 → 415 tests.** |
 | 2.21 | Sep 3, 2026 | **Etiquetas, y el último resto de MercadoPago.** (1) Las publicaciones tienen **etiquetas** —"Apto comercial", "Oferta", "A estrenar"— pedidas por Tomy. Son afirmaciones que el corredor decide hacer, no datos que el catálogo derive, así que van en una columna propia (`tags text[]`, migración 00017) con **vocabulario cerrado en dos lugares que tienen que coincidir**: la lista de `lib/property/tags.ts` y el CHECK de la base. Texto libre dejaría tres chips para la misma palabra y un typo publicado en silencio; el precio de sumar una etiqueta es una entrada más una migración, y es el precio buscado. Un valor fuera de la lista es **error, no descarte**, en el schema y en el cargador CLI. Un solo componente las pinta en las cinco superficies; "Oferta" es la única con acento dorado. (2) **MercadoPago se fue del todo**: quedaban la dependencia de npm, el bloque de `.env.example`, la clave en el scrub de Sentry y una guía de testing de un checkout inexistente. (3) Numeritos: **393 → 406 tests**, y el build lista **33 rutas**, no 34 — otra cifra de este documento que no sobrevivió a contarla. Verificado en el dev server: home, `/propiedades`, una ficha y su PDF responden sin errores; **lo visual de los chips lo mira Tomy**, porque ninguna publicada tiene etiquetas todavía y la única forma de verlos era escribir una en producción. |
 | 2.20 | Sep 2, 2026 | **Se va lo que quedaba del portal viejo.** (1) El chip **"Propiedad verificada"** sale de las tres superficies: si todas van a estar verificadas no distingue nada —mismo motivo por el que se fue el Quality Score— y de paso cierra el fail-open que encontró la auditoría, porque se encendía con la partida **tipeada a mano** mientras el comentario de arriba decía que medía la confirmación del catastro. (2) **Los servicios pagos se borran enteros**, no se esconden: MercadoPago, el informe ARBA en PDF, el fulfillment, el bucket, el mail de entrega, dos rutas y el flag. **3.012 líneas, 41 → 34 rutas.** La ficha pública en PDF sobrevive intacta. (3) Dos restos de **voz** en los dos peores lugares: el metadata raíz —lo que ve Google y toda pestaña— ofrecía *"scoring transparente para compradores"* de una *"Plataforma Inmobiliaria"*, y el **`DIRECCION_DE_ARTE.md`**, que es de lectura obligatoria antes de tocar nada visual, seguía describiendo *"una plataforma que trabaja para el comprador"* con *"un score de calidad por propiedad"*. Es el mismo problema que el Framer Motion de la v2.18 y en el mismo archivo: un documento obligatorio que describe un producto que ya no existe manda construir para el sitio equivocado. También quedó la **auditoría de fail-open** completa, con lo que está sano y los que siguen abiertos. **422 → 393 tests** (bajan porque se fueron los tests del código borrado). |
