@@ -9,6 +9,7 @@ import { isFavorited } from "@/lib/db/favorites";
 import { PreviewBanner } from "./preview-banner";
 import { PropertyTopBar } from "@/components/property/PropertyTopBar";
 import { PropertyHero } from "@/components/property/PropertyHero";
+import { propertyTypeLabel } from "@/lib/property/types";
 import { PropertyDataPanel } from "@/components/property/PropertyDataPanel";
 import { PropertyMobileBar } from "@/components/property/PropertyMobileBar";
 import { EditorialSection } from "@/components/property/EditorialSection";
@@ -130,16 +131,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
     allowDrafts && property.listing_status !== "publicada";
 
   // Derived display data for the hero + panel.
-  const TYPE_LABELS: Record<string, string> = {
-    casa: "Casa",
-    departamento: "Departamento",
-    ph: "PH",
-    lote: "Lote",
-    local: "Local",
-  };
-  const typeLabel = property.property_type
-    ? TYPE_LABELS[property.property_type] ?? property.property_type
-    : "Propiedad";
+  const typeLabel = propertyTypeLabel(property.property_type) ?? "Propiedad";
   const opLabel = operationLabel(property.operation_type);
 
 
@@ -198,6 +190,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
                 bedrooms={property.bedrooms}
                 bathrooms={property.bathrooms}
                 garages={property.garages}
+                extras={property.extras}
                 surfaceTotal={property.surface_total}
                 surfaceCovered={property.surface_covered}
                 surfaceArba={property.surface_arba}
@@ -277,6 +270,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               bedrooms={property.bedrooms}
               bathrooms={property.bathrooms}
               garages={property.garages}
+              extras={property.extras}
               surfaceTotal={property.surface_total}
               surfaceCovered={property.surface_covered}
               surfaceArba={property.surface_arba}
@@ -298,6 +292,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
         priceAmount={property.price_amount}
         priceCurrency={property.price_currency}
         operationType={property.operation_type}
+        extras={property.extras}
         isFavorited={favorited}
         signedOut={!userId}
       />

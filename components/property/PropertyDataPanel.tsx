@@ -5,7 +5,7 @@ import { FavoriteButton } from "./FavoriteButton";
 import { PropertyMatchPanel } from "./PropertyMatchPanel";
 import { WhatsAppButton } from "./WhatsAppButton";
 import type { PropertyForMatching } from "@/lib/matching";
-import { formatPrice } from "@/lib/property/price";
+import { PropertyPriceExtras } from "./PropertyPriceExtras";
 import { buildingAgeYears } from "@/lib/matching/match";
 
 /**
@@ -47,6 +47,8 @@ interface PropertyDataPanelProps {
   surfaceCovered: number | null;
   surfaceArba: number | null;
   yearBuilt: number | null;
+  /** Cochera / patio / terraza — jsonb from the row (lib/property/extras). */
+  extras: unknown;
   /** Fields the client-side matcher scores against. */
   propertyForMatching: PropertyForMatching;
   source: string;
@@ -69,6 +71,7 @@ export function PropertyDataPanel({
   surfaceCovered,
   surfaceArba,
   yearBuilt,
+  extras,
   propertyForMatching,
   source,
   sourceUrl,
@@ -133,16 +136,16 @@ export function PropertyDataPanel({
 
   return (
     <div className="rounded-3xl border bg-card p-5 sm:p-6 lg:p-7 space-y-6">
-      {/* Price — Fraunces, the personality moment */}
-      <div>
-        {formatPrice(priceAmount, priceCurrency, operationType) ? (
-          <p className="font-heading text-3xl sm:text-4xl font-medium tracking-tight tabular-nums">
-            {formatPrice(priceAmount, priceCurrency, operationType)}
-          </p>
-        ) : (
-          <p className="text-2xl font-bold text-muted-foreground">Consultar precio</p>
-        )}
-      </div>
+      {/* Price — Fraunces, the personality moment — together with the
+          extras that can move it. A client island: an optional cochera is a
+          toggle, and the number has to answer it in the same frame. */}
+      <PropertyPriceExtras
+        propertyId={propertyId}
+        baseAmount={priceAmount}
+        currency={priceCurrency}
+        operation={operationType}
+        extras={extras}
+      />
 
       {/* Specs strip */}
       {specs.length > 0 && (

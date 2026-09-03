@@ -1,6 +1,6 @@
 import { FavoriteButton } from "./FavoriteButton";
 import { WhatsAppButton } from "./WhatsAppButton";
-import { formatPrice } from "@/lib/property/price";
+import { PropertyBarPrice } from "./PropertyPriceExtras";
 
 /**
  * Sticky bottom action bar — MOBILE ONLY (hidden lg:+). Keeps price + Save +
@@ -14,6 +14,7 @@ export function PropertyMobileBar({
   priceAmount,
   priceCurrency,
   operationType,
+  extras,
   propertyId,
   isFavorited,
   signedOut,
@@ -23,20 +24,23 @@ export function PropertyMobileBar({
   priceAmount: number | null;
   priceCurrency: "USD" | "ARS" | null;
   operationType: "venta" | "alquiler" | null;
+  extras: unknown;
   isFavorited: boolean;
   signedOut: boolean;
 }) {
   return (
     <div className="lg:hidden fixed inset-x-0 bottom-0 z-30 border-t bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="flex items-center gap-3 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        {/* Same store as the panel's toggles, so the bar cannot show
+            80.000 while the panel says 88.000 con cochera. */}
         <div className="min-w-0 flex-1">
-          {formatPrice(priceAmount, priceCurrency, operationType) ? (
-            <p className="font-heading text-lg font-medium tabular-nums leading-none truncate">
-              {formatPrice(priceAmount, priceCurrency, operationType)}
-            </p>
-          ) : (
-            <p className="text-sm font-semibold text-muted-foreground">Consultar precio</p>
-          )}
+          <PropertyBarPrice
+            propertyId={propertyId}
+            baseAmount={priceAmount}
+            currency={priceCurrency}
+            operation={operationType}
+            extras={extras}
+          />
         </div>
         <FavoriteButton
           propertyId={propertyId}

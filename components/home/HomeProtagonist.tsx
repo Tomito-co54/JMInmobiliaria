@@ -7,6 +7,8 @@ import { Reveal } from "@/components/shared/Reveal";
 import { HomeProtagonistShowpiece } from "@/components/home/HomeProtagonistShowpiece";
 import { formatPrice, labelWithOperation } from "@/lib/property/price";
 import { PropertyTagChips } from "@/components/property/PropertyTagChips";
+import { propertyTypeLabel } from "@/lib/property/types";
+import { extrasSpecWords, readExtras } from "@/lib/property/extras";
 
 /**
  * The home protagonista — Jotaeme's brand-signature gesture (Block 3 del
@@ -47,14 +49,6 @@ import { PropertyTagChips } from "@/components/property/PropertyTagChips";
  *      solapado no es de plantilla.
  */
 
-const TYPE_LABELS: Record<string, string> = {
-  casa: "Casa",
-  departamento: "Departamento",
-  ph: "PH",
-  lote: "Lote",
-  local: "Local",
-};
-
 
 
 export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | null }) {
@@ -67,9 +61,7 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
   const cover = p.photos?.[0] ?? null;
   // La segunda foto va detrás de la primera. Null si sólo hay una.
   const behind = p.photos?.[1] ?? null;
-  const typeLabel = p.property_type
-    ? TYPE_LABELS[p.property_type] ?? p.property_type
-    : null;
+  const typeLabel = propertyTypeLabel(p.property_type);
   // La declarada, NUNCA la de la parcela. `surface_arba` es el lote: para un
   // departamento, el del edificio entero. Esto mostraba 239,23 m² en la
   // propiedad más visible del sitio — un 2 ambientes de 80 — que es el mismo
@@ -85,6 +77,7 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
     p.rooms !== null ? `${p.rooms} amb` : null,
     p.bedrooms !== null ? `${p.bedrooms} dorm` : null,
     surface !== null ? `${surface} m²` : null,
+    ...extrasSpecWords(readExtras(p.extras)),
   ].filter(Boolean);
 
   return (

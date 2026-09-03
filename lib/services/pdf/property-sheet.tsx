@@ -4,6 +4,8 @@ import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/render
 import { theme } from "./theme";
 import { labelWithOperation } from "@/lib/property/price";
 import { readTags, tagLabel } from "@/lib/property/tags";
+import { propertyTypeLabel } from "@/lib/property/types";
+import { extraTitle, includedExtras, optionalExtras, readExtras } from "@/lib/property/extras";
 
 /**
  * Ficha de propiedad — the one-pager a buyer downloads and shares.
@@ -122,6 +124,8 @@ export interface PropertySheetInput {
     description: string | null;
     /** Broker labels, raw from the row (see lib/property/tags). */
     tags: string[];
+    /** Cochera / patio / terraza, raw from the row (see lib/property/extras). */
+    extras: unknown;
     /** Absolute URL. Omitted when the listing has no photo or it failed. */
     coverUrl: string | null;
   };
@@ -160,13 +164,20 @@ export function PropertySheetDocument({ data }: { data: PropertySheetInput }) {
   // has to carry the operation now that the price does not.
   const typeLine =
     labelWithOperation(
-      p.property_type ? p.property_type[0].toUpperCase() + p.property_type.slice(1) : null,
+      propertyTypeLabel(p.property_type),
       p.operation_type as "venta" | "alquiler" | null,
     ) ?? "";
   const description = trim(p.description);
   // The sheet travels without the page, so the labels travel with it: a
   // buyer forwarding an "Oferta" should forward the word too.
   const tagsLine = readTags(p.tags).map(tagLabel).join("  ·  ");
+  // The sheet carries the base price; these two lines say what it includes
+  // and what it can add, so a forwarded PDF does not lose the garage.
+  const extras = readExtras(p.extras);
+  const included = includedExtras(extras).map(extraTitle).join(" · ");
+  const optional = optionalExtras(extras)
+    .map((e) => `${extraTitle(e)} (${e.price_delta !== null ? "+ " + money(e.price_delta, p.price_currency) : "a consultar"})`)
+    .join(" · ");
 
   return (
     <Document
@@ -203,6 +214,13 @@ export function PropertySheetDocument({ data }: { data: PropertySheetInput }) {
             </View>
           ))}
         </View>
+
+        {(included || optional) && (
+          <View style={{ marginTop: -2, marginBottom: 12 }}>
+            {included ? <Text style={s.note}>Incluye: {included}</Text> : null}
+            {optional ? <Text style={s.note}>Opcional: {optional}</Text> : null}
+          </View>
+        )}
 
         {(p.partida || p.nomenclatura_catastral || p.surface_arba !== null) && (
           <>

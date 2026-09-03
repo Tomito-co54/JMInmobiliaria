@@ -24,6 +24,15 @@ import {
 import { canPublishProperty } from "@/lib/validators/property";
 import { PROPERTY_TAGS, readTags, tagLabel, type PropertyTag } from "@/lib/property/tags";
 import {
+  EXTRA_KINDS,
+  extraKindLabel,
+  readExtras,
+  type ExtraKind,
+  type ExtraMode,
+  type PropertyExtra,
+} from "@/lib/property/extras";
+import { PROPERTY_TYPE_OPTIONS } from "@/lib/property/types";
+import {
   changeListingStatusAction,
   clearArbaDataAction,
   deleteOwnerPropertyAction,
@@ -67,6 +76,8 @@ export function PropertyEditor({ initial }: { initial: PropertyRowFromDb }) {
       <PublicacionSection row={row} onPatch={applyRowPatch} />
 
       <EtiquetasSection row={row} onPatch={applyRowPatch} />
+
+      <ExtrasSection row={row} onPatch={applyRowPatch} />
 
       <TecnicosSection row={row} onPatch={applyRowPatch} />
 
@@ -519,14 +530,7 @@ function PublicacionSection({
             label="Tipo"
             value={propertyType}
             onChange={setPropertyType}
-            options={[
-              { value: "", label: "—" },
-              { value: "casa", label: "Casa" },
-              { value: "departamento", label: "Departamento" },
-              { value: "ph", label: "PH" },
-              { value: "lote", label: "Lote" },
-              { value: "local", label: "Local" },
-            ]}
+            options={[{ value: "", label: "—" }, ...PROPERTY_TYPE_OPTIONS]}
           />
           <FieldSelect
             id="operation_type"
@@ -643,6 +647,107 @@ function EtiquetasSection({
             );
           })}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ===========================================================================
+// Section 2c — Extras: cochera / patio / terraza (autosaved)
+// ===========================================================================
+
+/**
+ * What comes with the unit and what can be added. "Incluida" is a fact and
+ * shows as a fixed chip; "Opcional" is a toggle on the listing, and the
+ * surcharge is what it adds to the base price. The base price stays contado
+ * sin extras — the scorer and the market dashboard read it and must keep
+ * reading the floor.
+ */
+function ExtrasSection({
+  row,
+  onPatch,
+}: {
+  row: PropertyRowFromDb;
+  onPatch: (patch: Partial<PropertyRowFromDb>) => void;
+}) {
+  const [extras, setExtras] = useState<PropertyExtra[]>(() => readExtras(row.extras));
+
+  const values = useMemo(() => ({ extras }), [extras]);
+
+  const { status, lastError } = useAutoSave(values, async () => {
+    const result = await updateOwnerPropertyAction(row.id, { extras });
+    if (!result.ok) throw new Error(result.error);
+    onPatch({ extras });
+  });
+
+  // Kept in canonical order without readExtras(), which trims the detail
+  // and would eat the space the broker is about to type after "00-15".
+  function setExtra(kind: ExtraKind, patch: Partial<PropertyExtra> | null) {
+    setExtras((prev) => {
+      const rest = prev.filter((e) => e.kind !== kind);
+      if (patch === null) return rest;
+      const current: PropertyExtra =
+        prev.find((e) => e.kind === kind) ?? { kind, mode: "incluida", detail: null, price_delta: null };
+      const next = { ...current, ...patch };
+      if (next.mode === "incluida") next.price_delta = null;
+      return [...rest, next].sort(
+        (a, b) => EXTRA_KINDS.indexOf(a.kind) - EXTRA_KINDS.indexOf(b.kind),
+      );
+    });
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base">Extras</CardTitle>
+          <SectionSaveIndicator status={status} lastError={lastError} />
+        </div>
+        <CardDescription>
+          Incluida: viene con la unidad, se muestra fija. Opcional: el comprador la
+          elige en la ficha y el precio suma lo que pongas acá. El precio de la
+          publicación sigue siendo sin extras.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {EXTRA_KINDS.map((kind) => {
+          const e = extras.find((x) => x.kind === kind) ?? null;
+          return (
+            <div key={kind} className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+              <FieldSelect
+                id={`extra_${kind}_mode`}
+                label={extraKindLabel(kind)}
+                value={e?.mode ?? ""}
+                onChange={(v) => setExtra(kind, v === "" ? null : { mode: v as ExtraMode })}
+                options={[
+                  { value: "", label: "No tiene" },
+                  { value: "incluida", label: "Incluida" },
+                  { value: "opcional", label: "Opcional" },
+                ]}
+              />
+              {e && (
+                <div className="space-y-1.5">
+                  <Label htmlFor={`extra_${kind}_detail`}>Detalle</Label>
+                  <Input
+                    id={`extra_${kind}_detail`}
+                    value={e.detail ?? ""}
+                    onChange={(ev) => setExtra(kind, { detail: ev.target.value || null })}
+                    placeholder="00-15 · 40 m² · cubierta"
+                    maxLength={60}
+                  />
+                </div>
+              )}
+              {e?.mode === "opcional" && (
+                <NumberField
+                  id={`extra_${kind}_delta`}
+                  label="Suma al precio"
+                  value={e.price_delta !== null ? String(e.price_delta) : ""}
+                  onChange={(v) => setExtra(kind, { price_delta: v ? parseFloat(v) : null })}
+                />
+              )}
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );

@@ -24,5 +24,10 @@
 
   "tags": ["a_estrenar"],
 
+  "extras": [
+    { "kind": "cochera", "mode": "incluida", "detail": "00-15", "price_delta": null },
+    { "kind": "terraza", "mode": "incluida", "detail": "05-02", "price_delta": null }
+  ],
+
   "is_featured": false
 }

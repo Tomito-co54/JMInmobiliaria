@@ -14,7 +14,7 @@ interface PropertiesFiltersProps {
  *
  *   buscar           free-text against address/partido (debounced)
  *   partido          one of the known Zona Sur partidos
- *   tipo             casa / departamento / ph / lote / local
+ *   tipo             casa / departamento / ph / lote / local / cochera
  *   origen           mías / scrapeadas (or all)
  *   mercado          is_active (active / inactive)         — relevant to scrapeadas
  *   gestión          listing_status (borrador / publicada / vendida) — relevant to mías
@@ -106,6 +106,7 @@ export function PropertiesFilters({ partidos }: PropertiesFiltersProps) {
           <option value="ph">PH</option>
           <option value="lote">Lote</option>
           <option value="local">Local</option>
+          <option value="cochera">Cochera</option>
         </select>
       </div>
 

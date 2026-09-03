@@ -57,6 +57,7 @@ export async function GET(
         nomenclatura_catastral: p.nomenclatura_catastral,
         description: p.description,
         tags: p.tags,
+        extras: p.extras,
         coverUrl: p.photos?.[0] ?? null,
       },
     });
@@ -87,6 +88,7 @@ export async function GET(
           nomenclatura_catastral: p.nomenclatura_catastral,
           description: p.description,
         tags: p.tags,
+        extras: p.extras,
             coverUrl: null,
         },
       });

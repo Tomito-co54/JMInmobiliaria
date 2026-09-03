@@ -5,6 +5,8 @@ import { MapPin, ArrowRight, ImageIcon } from "lucide-react";
 import type { BuildingSummary } from "@/lib/buildings";
 import { formatPrice, labelWithOperation } from "@/lib/property/price";
 import { PropertyTagChips } from "@/components/property/PropertyTagChips";
+import { propertyTypeLabel } from "@/lib/property/types";
+import { extrasSpecWords, readExtras } from "@/lib/property/extras";
 
 /**
  * Premium editorial card for the public home catalog (Block 5 del
@@ -27,14 +29,6 @@ import { PropertyTagChips } from "@/components/property/PropertyTagChips";
  *          la verificación es el ancla seria.
  */
 
-const TYPE_LABELS: Record<string, string> = {
-  casa: "Casa",
-  departamento: "Departamento",
-  ph: "PH",
-  lote: "Lote",
-  local: "Local",
-};
-
 export interface PremiumCardProperty {
   id: string;
   nomenclatura_catastral?: string | null;
@@ -52,6 +46,7 @@ export interface PremiumCardProperty {
   partida: string | null;
   photos: string[];
   tags?: string[] | null;
+  extras?: unknown;
 }
 
 export function PropertyPremiumCard({
@@ -83,9 +78,7 @@ export function PropertyPremiumCard({
         period: true,
       })
     : null;
-  const typeLabel = property.property_type
-    ? TYPE_LABELS[property.property_type] ?? property.property_type
-    : null;
+  const typeLabel = propertyTypeLabel(property.property_type);
   // Declared first. surface_arba is the PARCEL — for a flat it is the whole
   // building's lot, so leading with it printed "239 m²" on a 40 m² unit.
   // Same mistake as Fase 12, on the card nobody re-checked.
@@ -99,6 +92,9 @@ export function PropertyPremiumCard({
       ? `${property.bathrooms} ${property.bathrooms === 1 ? "baño" : "baños"}`
       : null,
     surface !== null ? `${surface} m²` : null,
+    // What comes with the unit, and what can: "cochera opcional" on a card
+    // is the difference between 80.000 and 88.000 said before the click.
+    ...extrasSpecWords(readExtras(property.extras)),
   ].filter(Boolean);
 
   return (

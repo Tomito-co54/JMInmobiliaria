@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { PARTIDOS_ZONA_SUR } from "@/lib/zona-sur/partidos";
 import { PROPERTY_TAGS, orderTags } from "@/lib/property/tags";
+import { PROPERTY_TYPES } from "@/lib/property/types";
+import { EXTRA_KINDS, EXTRA_MODES } from "@/lib/property/extras";
 
 /**
  * Zod schemas for the admin property loader.
@@ -24,7 +26,6 @@ import { PROPERTY_TAGS, orderTags } from "@/lib/property/tags";
  * union turned out to be brittle in this combination.
  */
 
-const PROPERTY_TYPES = ["casa", "departamento", "ph", "lote", "local"] as const;
 const OPERATION_TYPES = ["venta", "alquiler"] as const;
 const CURRENCIES = ["USD", "ARS"] as const;
 const LISTING_STATUSES = ["borrador", "publicada", "vendida"] as const;
@@ -65,6 +66,28 @@ function toTagList(value: unknown): unknown {
     return orderTags(value.map((v) => v.trim()));
   }
   return value;
+}
+
+/**
+ * Empty → `[]`; each entry is rebuilt with its fields coerced (detail
+ * trimmed, delta parsed) but its unknown keys KEPT, so the strict object
+ * below can refuse a misspelled one instead of losing it. An included extra
+ * never keeps a delta — it is already in the price.
+ */
+function toExtrasList(value: unknown): unknown {
+  if (value === null || value === undefined || value === "") return [];
+  if (!Array.isArray(value)) return value;
+  return value.map((raw) => {
+    if (typeof raw !== "object" || raw === null) return raw;
+    const e = raw as Record<string, unknown>;
+    return {
+      ...e,
+      kind: e.kind,
+      mode: e.mode,
+      detail: toNullableString(e.detail),
+      price_delta: e.mode === "incluida" ? null : toNullablePositiveNumber(e.price_delta),
+    };
+  });
 }
 
 const nullableString = (max?: number) =>
@@ -134,6 +157,30 @@ export const ownerPropertyDraftSchema = z.object({
         error: () => `Etiqueta desconocida. Las válidas son: ${PROPERTY_TAGS.join(", ")}.`,
       }),
     ),
+  ),
+
+  // Cochera / patio / terraza, each included (fixed) or optional (a toggle
+  // with a surcharge). Closed lists mirrored by the CHECK in migration 00020.
+  // One per kind: two garages are one entry whose detail names both.
+  extras: z.preprocess(
+    toExtrasList,
+    z
+      .array(
+        z.strictObject({
+          kind: z.enum(EXTRA_KINDS, {
+            error: () => `Extra desconocido. Los válidos son: ${EXTRA_KINDS.join(", ")}.`,
+          }),
+          mode: z.enum(EXTRA_MODES, {
+            error: () => `El modo de un extra es ${EXTRA_MODES.join(" u ")}.`,
+          }),
+          detail: z.string().max(60, "El detalle de un extra es corto: hasta 60 caracteres.").nullable(),
+          price_delta: z.number().positive().nullable(),
+        }),
+      )
+      .refine(
+        (list) => new Set(list.map((e) => e.kind)).size === list.length,
+        "Un extra por tipo: si hay dos cocheras, nombralas en el detalle.",
+      ),
   ),
 
   partido: z.preprocess(

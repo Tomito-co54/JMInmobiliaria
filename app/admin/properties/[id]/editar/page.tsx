@@ -45,6 +45,7 @@ export default async function EditPropertyPage({ params }: PageProps) {
         "tpa",
         "address",
         "tags",
+        "extras",
         "photos",
         "created_at",
         "updated_at",
@@ -106,6 +107,7 @@ export interface PropertyRowFromDb {
   tpa: string | null;
   address: string | null;
   tags: string[] | null;
+  extras: unknown;
   photos: string[] | null;
   created_at: string;
   updated_at: string;

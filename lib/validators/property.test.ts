@@ -141,6 +141,58 @@ describe("ownerPropertyDraftSchema", () => {
       expect(result.success).toBe(false);
     });
   });
+
+  describe("extras", () => {
+    it("defaults to none", () => {
+      const result = ownerPropertyDraftSchema.safeParse({});
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.extras).toEqual([]);
+    });
+
+    it("keeps an optional extra's surcharge and coerces it from text", () => {
+      const result = ownerPropertyDraftSchema.safeParse({
+        extras: [{ kind: "cochera", mode: "opcional", detail: " 00-15 ", price_delta: "8000" }],
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.extras).toEqual([
+          { kind: "cochera", mode: "opcional", detail: "00-15", price_delta: 8000 },
+        ]);
+      }
+    });
+
+    it("strips the surcharge off an included extra: it is already in the price", () => {
+      const result = ownerPropertyDraftSchema.safeParse({
+        extras: [{ kind: "terraza", mode: "incluida", price_delta: 5000 }],
+      });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.extras[0].price_delta).toBeNull();
+    });
+
+    it("refuses a kind outside the list", () => {
+      const result = ownerPropertyDraftSchema.safeParse({
+        extras: [{ kind: "pileta", mode: "incluida" }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("refuses a misspelled field instead of dropping it", () => {
+      const result = ownerPropertyDraftSchema.safeParse({
+        extras: [{ kind: "cochera", mode: "opcional", precio: 8000 }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("refuses two entries of the same kind", () => {
+      const result = ownerPropertyDraftSchema.safeParse({
+        extras: [
+          { kind: "cochera", mode: "opcional", price_delta: 8000 },
+          { kind: "cochera", mode: "incluida" },
+        ],
+      });
+      expect(result.success).toBe(false);
+    });
+  });
 });
 
 describe("ownerPropertyPublishSchema", () => {

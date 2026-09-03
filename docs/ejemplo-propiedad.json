@@ -25,5 +25,10 @@
 
   "tags": ["oferta"],
 
+  "extras": [
+    { "kind": "cochera", "mode": "opcional", "detail": "cubierta", "price_delta": 8000 },
+    { "kind": "patio", "mode": "incluida", "detail": "22 m²", "price_delta": null }
+  ],
+
   "is_featured": false
 }

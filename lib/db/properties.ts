@@ -72,6 +72,8 @@ export interface PublicPropertyRow {
   year_built: number | null;
   /** Broker labels — see lib/property/tags. Always [] for scraped rows. */
   tags: string[];
+  /** Cochera / patio / terraza, jsonb — see lib/property/extras. */
+  extras: unknown;
   photos: string[];
   first_seen_at: string | null;
   last_seen_at: string | null;
@@ -117,6 +119,7 @@ const PUBLIC_PROPERTY_COLS = [
   "description",
   "year_built",
   "tags",
+  "extras",
   "photos",
   "first_seen_at",
   "last_seen_at",
@@ -355,6 +358,7 @@ export interface FeaturedPropertyRow {
   surface_total: number | null;
   surface_arba: number | null;
   tags: string[];
+  extras: unknown;
   photos: string[];
   partida: string | null;
   quality_score_breakdown: QualityBreakdown | null;
@@ -374,6 +378,7 @@ const FEATURED_PROPERTY_COLS = [
   "surface_total",
   "surface_arba",
   "tags",
+  "extras",
   "photos",
   "partida",
   "quality_score_breakdown",
