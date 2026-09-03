@@ -348,7 +348,7 @@ una contra el build: no falta ninguna — están las 41, con `/icon.svg` y
 
 | Qué | Cuánto |
 |---|---|
-| Propiedades propias publicadas | **5** — Belgrano 1287 (1°A, 1°B, 2°A, 2°B) + **Talcahuano 258, el primer alquiler** |
+| Propiedades propias publicadas | **6** — Belgrano 1287 (1°A, 1°B, 2°A, 2°B) + Talcahuano 258 (el primer alquiler) + **Alsina 1639 4°Y** (3-sep, la primera de un edificio en propiedad horizontal — ver *Las partidas de PH no están en ARBA*) |
 | Scrapeadas | **567** · 439 activas · 392 geolocalizadas |
 | `property_history` | 291 eventos |
 | Total en la tabla | **575** (5 publicadas + 3 borradores + 567 scrapeadas) |
@@ -830,6 +830,45 @@ Se cargan desde el editor (sección "Etiquetas", toggles de 44px con autosave)
 o con `"tags": ["oferta"]` en el JSON del cargador. **Ninguna publicada tiene
 etiquetas todavía**, así que lo visual de los chips no se pudo verificar sin
 escribir una en producción: lo mira Tomy.
+
+### Las partidas de propiedad horizontal no están en la capa pública de ARBA (3-sep)
+
+Apareció al cargar **Alsina 1639 4°Y**, la primera unidad de un edificio ya
+subdividido. Tomy dio la partida de los papeles, **063-252296**, y
+`getParcelByPartida` devolvió `partida_not_found`. No es un typo:
+
+- **La capa `idera:Parcela` sólo tiene parcelas madre.** Su `pda` es la
+  partida del lote. Cuando un edificio se afecta a propiedad horizontal cada
+  unidad recibe su propia partida, y esas **no figuran en ninguna capa
+  consultable por número**: `idera:Subparcela` existe (68.391 features) pero
+  sus atributos son sólo `cca`, `ara1` y `sag` — **no tiene `pda`** — y
+  en la manzana de Alsina 1639 devuelve cero, o sea que ni siquiera cubre
+  este edificio.
+- **Consecuencia directa:** para una unidad de PH el flujo actual no puede
+  traer nomenclatura ni superficie de parcela, así que la unidad **no dibuja
+  polígono y no agrupa en `/edificios`** (`buildingKey` es la
+  nomenclatura, que queda nula). El diseño de `lib/buildings` ya había
+  anticipado que la partida no sirve para agrupar un PH — y eligió la
+  nomenclatura por eso — pero daba por sentado que la nomenclatura llegaría
+  por la partida, y para una UF no llega.
+- **Lo que sí se puede hacer:** consultar la parcela madre por **`cca`**
+  (la nomenclatura), que es lo que los papeles del PH traen (Circ. – Secc. –
+  Manz. – Parc. – UF). El WFS filtra por `cca` sin problema. Falta un
+  `getParcelByNomenclatura` y una entrada en el cargador; la partida de la
+  unidad se guarda igual, porque es la verdadera.
+
+Lo que se sabe de la manzana (Circ. II, Secc. A, Manz. 68, del lado oeste de
+Av. Alsina, parcelas 1 a 9 de norte a sur): la parcela **3** (239 m²) figura
+**sin partida** en la capa, que es la marca de un lote ya afectado a PH; la
+**4A** (063000434, 332,6 m²) es la que `buscar-partida` eligió por
+cercanía, a 22 m de un pin de Nominatim interpolado sobre la calle. No hay
+forma de decidir entre ellas desde acá: **la resuelve la nomenclatura de los
+papeles.**
+
+**Estado de la unidad:** publicada el 3-sep con la partida de los papeles y
+**sin datos de parcela** — es honesto, la ficha muestra la partida y nada que
+no se haya verificado. Pendiente: nomenclatura (Tomy) → lookup por `cca` →
+polígono, superficie de parcela y agrupación del edificio.
 
 ### El descubierto se deriva, no se guarda
 
@@ -1504,6 +1543,17 @@ lateral: la ficha individual también trae la antigüedad.
 **Ojo con el orden:** esto suma pedidos a una corrida que ya vive contra un
 techo. Conviene gastar primero el presupuesto en las páginas de listado (que
 es lo que mantiene el catálogo al día) y usar lo que sobre para las fichas.
+
+**4b. Alsina 1639 — dos cosas que sólo puede hacer Tomy**
+
+- **Foto del frente.** La única que existe es la de Trezza, 670px con el logo
+  y los carteles "Trezza VENDE" en cada balcón; no se subió. Hasta que haya
+  una propia, `/edificios` va a mostrar el living de la 4°Y como portada del
+  edificio (cuando agrupe). Va en `lib/buildings/photos.ts`, por parcela.
+- **La nomenclatura de los papeles** (Circ. – Secc. – Manz. – Parc.), para
+  anclar la unidad a su parcela madre — ver *Las partidas de propiedad
+  horizontal no están en la capa pública de ARBA*. Con eso se construye el
+  lookup por `cca` y la unidad pasa a agrupar y a dibujar el polígono.
 
 **5. Los 44px que faltan** ← ya casi cerrado
 
