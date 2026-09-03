@@ -57,12 +57,13 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status (2-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **393 tests passing** (+7 skipped a propósito),
-`npm run build` verde, **34 rutas**.
+**Status (3-sep-2026):** Deployado y funcionando en producción, con
+auto-deploy desde `main`. **406 tests passing** (+7 skipped a propósito),
+`npm run build` verde, **33 rutas**.
 
-*(Los tres números de arriba se verificaron contra el build y la base al cierre
-del 2-sep, no se copiaron del párrafo anterior. Este encabezado decía "1-sep,
+*(Los tres números de arriba se verificaron contra el build y los tests el
+3-sep, no se copiaron del párrafo anterior. El build lista 33 rutas contadas
+una por una; este documento decía 34 desde el 2-sep. Este encabezado decía "1-sep,
 375 tests, 41 rutas" y los tres habían quedado viejos el mismo día.)*
 
 La cara pública se reordenó entera. El catálogo dejó de ser la última sección
@@ -311,8 +312,9 @@ visual.
 | Fase 37 — La operación va en la etiqueta | Donde decía "Casa" ahora dice **"Casa en alquiler"**, y el precio pierde el "/mes". El razonamiento es de Tomy y es mejor: la etiqueta lo dice **antes** de que el lector decida qué significa el número, así que "por mes" pegado al precio es el mismo dato dos veces y hace que el precio se lea como una unidad de medida. El período pasó a ser opt-in y queda sólo donde no hay etiqueta al lado: el "desde" de un edificio. De paso, **"Otras unidades en este edificio"** ganó la etiqueta que no tenía — mostraba precios sin tipo, y una unidad hermana puede ser de otra operación que la que estás leyendo. | `32a179c` |
 | Fase 36 — Los alquileres existen y se diferencian | El enum, el validador y el cargador **siempre** aceptaron `alquiler`. Lo que no existía era la **diferencia**: aguas abajo un alquiler se mostraba, se puntuaba y se matcheaba como una venta, y las cuatro fallas devuelven un número creíble. (1) **El precio dice de qué precio habla** — `lib/property/price.ts` es el único lugar que convierte un precio en texto; seis superficies lo imprimían inline. (2) **El Quality Score deja de comparar un alquiler contra ventas**, y la causa raíz no era la query: `PropertyForScoring` **no tenía `operation_type`**, así que el scorer no podía ver la diferencia porque la diferencia no estaba modelada. (3) **El match pregunta la operación, y una operación distinta es un portón, no un criterio** — un promedio ponderado no puede expresar "descalificante": aun con el peso más alto de la tabla, a quien busca alquilar una venta le daría 75%. (4) **La moneda es consecuencia, no preferencia**. (5) **El copy sale del catálogo** en vez de estar escrito a mano. | `47fa961` |
 | Fase 35 — La segunda foto, y dos trampas de CSS | El recuadro detrás de la foto destacada **nunca fue un adorno: era el hueco de una segunda foto**. Se leía como una imagen que no cargó porque lo era. Ahora `photos[1]` va ahí, en el lugar exacto del recuadro, con la principal encima. Y dos trampas que costaron una ronda cada una: **un keyframe que escribe `transform` pisa las clases `skew`/`rotate` del elemento** (el brillo del CTA se veía horizontal aunque la clase dijera 28°, porque la inclinación desaparecía justo durante la animación); y **el JSX que se pasa como prop de un Server Component a uno de cliente necesita `key` explícita**, porque cruza serializado y React lo reconcilia en posición de lista — ese era el warning de consola que arrastraba desde antes. | `c6b02a4` `69ce764` `00a7f83` |
+| Fase 40 — Etiquetas, y MercadoPago se va del todo | **Etiquetas del corredor** en las publicaciones: `apto_comercial`, `oferta`, `a_estrenar`. Migración 00017: `tags text[]` con **vocabulario cerrado por CHECK** y owner-only, espejo de `lib/property/tags.ts` — texto libre dejaría que "oferta", "Oferta" y "OFERTA" fueran tres chips y que un typo se publicara en silencio. `PropertyTagChips` las pinta en la card, la portada, el hero de la ficha, el PDF y el listado de admin; "Oferta" es la única con acento dorado porque es la única que habla del precio y no del lugar. Toggles de 44px en el editor; `tags` en el JSON del cargador, donde un valor desconocido es error y no descarte. De paso **MercadoPago se fue del todo**: la dependencia de npm, `.env.example`, la lista de scrub de Sentry y `docs/TESTING_BLOCK_7.md`. | `4959832` `4417dc1` |
 
-**Tests:** 420 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
+**Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
 fase 9 → 275 tras las fases 10-15 → 300 tras la 16 → 316 tras la 18 → 319
 tras la 20 → 360 tras las fases 21-24 → 367 tras la 26, que sumó los de
 `bestMatch`, → 372 tras la 31, que cubrió el contacto, → 375 tras la 32,
@@ -320,12 +322,14 @@ tras la 20 → 360 tras las fases 21-24 → 367 tras la 26, que sumó los de
 por operación, el portón del match y la carga de un alquiler por CLI—,
 → 422 con el desglose de superficie, y → **393** tras la 39: los 29 que faltan
 son los del webhook, el catálogo de servicios, la geometría del PDF pago y el
-mail de entrega, que se fueron con el código que probaban). Los 7 saltados son las bandas de
+mail de entrega, que se fueron con el código que probaban; → **406** tras la
+40, con el módulo de etiquetas, el schema y el cargador CLI). Los 7 saltados son las bandas de
 coherencia ARBA: quedan como spec de vuelta, ver **El dato de ARBA es de la
 parcela** más abajo.
 
-**Build:** `npm run build` verde. **34 rutas** (eran 41 hasta que se borraron
-los servicios pagos), First Load JS shared 183 kB.
+**Build:** `npm run build` verde. **33 rutas** en el listado del build, contadas
+una por una el 3-sep (eran 41 hasta que se borraron los servicios pagos; este
+documento decía 34 desde entonces), First Load JS shared 183 kB.
 3 warnings menores de `@typescript-eslint/no-unused-vars` que no bloquean.
 
 *(El documento venía diciendo 42 desde el 31-ago y son 41. Se contaron una por
@@ -782,6 +786,51 @@ perfil que busca alquilar mientras las cuatro ventas quedan en cero.
 `docs/ejemplo-alquiler.json` es la plantilla: cambian `operation_type` y
 `price_currency`, y **el precio se escribe mensual y pelado**.
 
+### Las etiquetas son un vocabulario cerrado (3-sep)
+
+Tomy pidió etiquetas para las publicaciones: **"apto comercial"**, **"oferta"**,
+**"a estrenar"**. Son afirmaciones que el corredor decide hacer, no datos que
+el catálogo derive —la operación sale de `operation_type`, la antigüedad de
+`year_built`—, así que van en una columna propia: `tags text[]`, migración
+00017.
+
+Lo que conviene saber antes de tocarlo:
+
+- **La lista está cerrada en dos lugares que tienen que coincidir**:
+  `PROPERTY_TAGS` en `lib/property/tags.ts` y el CHECK
+  `properties_tags_known` en la base. Texto libre dejaría que "oferta",
+  "Oferta" y "OFERTA" fueran tres chips distintos, y que un typo se publicara
+  en silencio — la clase de falla que este repo viene coleccionando. **Sumar
+  una etiqueta es una entrada en esa lista más una migración que redefine el
+  CHECK.** Es el precio buscado, no una omisión.
+- **Un valor fuera de la lista es error, nunca descarte.** En el schema de
+  Zod y en el cargador CLI: un JSON que dice `"remate"` está afirmando algo,
+  y tirarlo sería el mismo fallo silencioso que un campo mal escrito.
+  `orderTags()` conserva lo desconocido justamente para que el schema lo
+  rechace en voz alta; `readTags()` es el lado de lectura y filtra, porque
+  una fila que el CHECK ya aceptó no puede traer nada raro.
+- **Solo propias** (CHECK owner-only, como `listing_status` e
+  `is_featured`). Las scrapeadas quedan en `'{}'`: son inteligencia de
+  mercado, no algo sobre lo que hacemos afirmaciones.
+- **Un solo componente las pinta** — `PropertyTagChips` — en la card, la
+  portada, el hero de la ficha, el PDF y el listado de admin, para que la
+  misma etiqueta no parezca dos afirmaciones distintas en dos lugares.
+  **"Oferta" es la única con acento dorado**: es la única que habla del
+  precio y no del lugar, y dos chips fuertes se anulan. Va justo antes del
+  precio en todas las superficies, que es el orden en que se lee la
+  afirmación.
+- **"A estrenar" convive con la antigüedad derivada.** El panel de la ficha
+  ya imprime "a estrenar" cuando `year_built` es el año en curso. Son dos
+  cosas: una es un hecho del edificio, la otra una etiqueta que el corredor
+  elige poner. Si una unidad tiene las dos, se ve dos veces, y no se
+  unificaron a propósito — la etiqueta no debería inventar un año ni el año
+  una etiqueta.
+
+Se cargan desde el editor (sección "Etiquetas", toggles de 44px con autosave)
+o con `"tags": ["oferta"]` en el JSON del cargador. **Ninguna publicada tiene
+etiquetas todavía**, así que lo visual de los chips no se pudo verificar sin
+escribir una en producción: lo mira Tomy.
+
 ### El descubierto se deriva, no se guarda
 
 Talcahuano 258 es la primera propiedad con un desglose real de superficie:
@@ -931,9 +980,11 @@ comparten. `/p/[id]/ficha.pdf` sigue andando.
 `service_orders` y el bucket `service-deliverables` siguen en la base, ahora
 sin ningún código que los lea. Dropearlos es una migración aparte.
 
-**Y quedan las KEY de MercadoPago en las env** (`MERCADOPAGO_PUBLIC_KEY`,
-`MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`) — Tomy las borra a
-mano de Vercel y de `.env.local`. Ya no las lee nadie.
+**Los restos se fueron el 3-sep** (`4417dc1`): la dependencia `mercadopago` de
+`package.json`, el bloque de `.env.example`, la clave en la lista de scrub de
+Sentry y `docs/TESTING_BLOCK_7.md`. **Quedan solo las KEY en Vercel y en
+`.env.local`** (`MERCADOPAGO_PUBLIC_KEY`, `MERCADOPAGO_ACCESS_TOKEN`,
+`MERCADOPAGO_WEBHOOK_SECRET`), que Tomy borra a mano. Ya no las lee nadie.
 
 ### El basemap tiene dueño (y contesta 200 cuando dice que no)
 
@@ -984,7 +1035,6 @@ Same as upstream — no se cambia stack sin confirmación explícita.
 - **Tipografía:** Inter (body) + Fraunces (headings vía `font-heading`)
 
 ### Services
-- **Payments:** Mercado Pago (legacy del upstream — servicios pagos)
 - **Email:** Resend (SMTP de Supabase Auth + emails transaccionales)
 - **Maps:** Leaflet (`/p/[id]`, mapa de mercado) + aritmética de tiles propia
   (`lib/map/tiles.ts`, bloque de la home). Las tiles las sirve **MapTiler**
@@ -1072,13 +1122,14 @@ Management API (config de auth, settings de proyecto). Reglas:
 /
 ├── app/
 │   ├── (auth)/                   # login, forgot-password, reset-password, verify-email
-│   ├── (public)/                 # /p/[id], /p/[id]/servicios, /guia-de-compra
+│   ├── (public)/                 # /p/[id], /p/[id]/ficha.pdf, /guia-de-compra
 │   │   ├── template.tsx          # ← entrada de página. Template y NO layout: un
 │   │   │                         #   layout persiste entre navegaciones, un template
 │   │   │                         #   se vuelve a montar, que es lo que da la entrada
 │   │   ├── propiedades/          # ← el catálogo (salió de la landing)
 │   │   └── edificios/            # ← agrupado por parcela catastral
-│   ├── (app)/                    # legacy del upstream — buscar, busquedas, favoritos, dashboard, perfil, alertas, mis-servicios
+│   ├── (app)/                    # legacy del upstream — buscar, busquedas, favoritos, dashboard, perfil
+│   │                             #   (alertas/ tiene solo actions.ts, no es ruta)
 │   ├── admin/                    # ← panel principal de operación
 │   │   ├── template.tsx          # ← misma idea, más quieta: 200ms, sin escala y sin
 │   │   │                         #   reveals. Es una herramienta, no una vidriera
@@ -1090,10 +1141,9 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │   │   └── mapa/             #     mapa con selección por área
 │   │   ├── groups/               # dedup viewer (admin tool)
 │   │   └── users/                # legacy
-│   ├── api/                      # webhooks (MercadoPago, Sentry), admin fulfillment
+│   ├── api/                      # sentry-test y nada más: los webhooks se fueron con MP
 │   ├── auth/callback/            # OAuth + email confirmation handler
 │   ├── onboarding/               # legacy del upstream (search profiles)
-│   ├── pago/                     # /exito, /pendiente, /error (MP returns)
 │   ├── icon.svg                  # ← favicon (Next lo cablea solo). Isotipo
 │   │                             #   completo, SIN fondo, al 96% del ancho.
 │   │                             #   SVG y no PNG para poder llevar adentro un
@@ -1112,6 +1162,8 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   ├── property/                 # PropertyHero, PropertyGallery, PropertyDataPanel,
 │   │                             #   PropertyMobileBar, WhatsAppButton, ShareButton,
 │   │                             #   PropertyMapSection, BuildingUnits, etc.
+│   │                             #   PropertyTagChips: las etiquetas del corredor, UN
+│   │                             #   componente para las cinco superficies que las pintan
 │   ├── scoring/                  # QualityScoreRing + Card + Sheet
 │   ├── matching/                 # ← MatchPreferencesForm (las 6 preguntas, compartidas
 │   │                             #   por home, header y ficha), MatchMeter (medidor:
@@ -1138,11 +1190,6 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   NavPending (acuse del click), theme-toggle
 │   │                             #   (el barrido circular del tema), etc.
 │   ├── education/                # BuyingProcessAdvisor (legacy)
-│   ├── payment/                  # PaymentReturnLayout — el marco compartido por las
-│   │                             #   tres vueltas de MercadoPago (/pago/exito,
-│   │                             #   /pendiente, /error)
-│   ├── services/                 # ServiceCard — servicios pagos. Sin entrada pública
-│   │                             #   hoy: PAID_SERVICES_PUBLIC está en false
 │   └── search-profile/           # SearchProfileForm (legacy). El nombre importa: este
 │                                 #   documento decía `components/search/` hasta la
 │                                 #   v2.18, y esa carpeta estaba vacía
@@ -1180,6 +1227,9 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   período es opt-in: la regla no es "nunca mostrar
 │   │                             #   por mes", es NUNCA MOSTRAR UN ALQUILER QUE NADA
 │   │                             #   MARQUE COMO ALQUILER
+│   │                             #   tags.ts: el vocabulario cerrado de etiquetas, espejo
+│   │                             #   del CHECK de la migración 00017. Sumar una es tocar
+│   │                             #   los dos lugares
 │   ├── matching/                 # match.ts + preferences.ts (perfil anónimo, puro)
 │   │                             #   + best-match.ts: el mejor match del catálogo,
 │   │                             #   compartido por la home y el header para que los
@@ -1218,7 +1268,7 @@ Management API (config de auth, settings de proyecto). Reglas:
 │                                 #   la base. Sin esto la funcion corre en Washington
 │                                 #   y cada consulta cruza el continente (~375ms)
 ├── supabase/
-│   ├── migrations/               # 00001..00016 + 00015b (00011+ son del fork).
+│   ├── migrations/               # 00001..00017 + 00015b (00011+ son del fork).
 │   │                             #   00015b es compañera de 00015: indexa
 │   │                             #   arba_lookups por partida, que es la clave de
 │   │                             #   las propias. La tabla solo tenía (lat, lng)
@@ -1234,7 +1284,7 @@ Management API (config de auth, settings de proyecto). Reglas:
 │                                 #   ejemplo-alquiler.json (plantilla de alquiler:
 │                                 #   mismo formato, cambian operation_type y moneda,
 │                                 #   y el precio se escribe mensual y pelado),
-│                                 #   TESTING_BLOCK_7, MIGRATION,
+│                                 #   MIGRATION,
 │                                 #   ejemplo-propiedad.json (plantilla del cargador CLI)
 └── CLAUDE.md
 ```
@@ -1264,6 +1314,7 @@ Columnas clave:
 | `surface_total`, `surface_covered`, `surface_arba` | numeric | Declaradas + ARBA real |
 | `tpa` | text | Urbano / Rural (desde ARBA WFS) |
 | `year_built` | integer | **NEW** (00016): año de construcción. **No** es la antigüedad del aviso — para eso está `first_seen_at`. Nulo en casi todas las scrapeadas: la fuente lo publica en la ficha individual, fuera del techo de pedidos |
+| `tags` | text[] | **NEW** (00017): etiquetas del corredor — `apto_comercial` / `oferta` / `a_estrenar`. Vocabulario cerrado por CHECK, espejo de `lib/property/tags.ts`. Solo propias (CHECK owner-only); `'{}'` en las scrapeadas |
 | `rooms`, `bedrooms`, `bathrooms`, `garages` | integer | |
 | `description`, `photos` | text / jsonb | `photos` = array de URLs (primera = portada) |
 | `first_seen_at`, `last_seen_at`, `is_active` | timestamps / bool | **Estado de mercado** — solo relevante a scrapeadas |
@@ -1366,6 +1417,7 @@ servicios pagos el 2-sep.)
 39. **Fase 37 — La operación va en la etiqueta del tipo** ✅ 2-sep
 40. **Fase 38 — La guarda fallaba abierta otra vez** ✅ 2-sep
 41. **Fase 39 — Se van los servicios pagos, y la voz del portal** ✅ 2-sep
+42. **Fase 40 — Etiquetas en las publicaciones, y MercadoPago se va del todo** ✅ 3-sep
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -1716,11 +1768,6 @@ DATABASE_URL=                        # transaction pooler — migrations (db-run
                                      # rechazó la clave: es la password, no la URL.
 SUPABASE_MANAGEMENT_TOKEN=           # NEVER cat/echo — solo shell substitution
 
-# Mercado Pago (legacy del upstream, sigue activo)
-MERCADOPAGO_PUBLIC_KEY=
-MERCADOPAGO_ACCESS_TOKEN=
-MERCADOPAGO_WEBHOOK_SECRET=
-
 # Resend
 RESEND_API_KEY=
 RESEND_FROM=                         # ej: 'Jotaeme <onboarding@resend.dev>'
@@ -1771,6 +1818,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.21 | Sep 3, 2026 | **Etiquetas, y el último resto de MercadoPago.** (1) Las publicaciones tienen **etiquetas** —"Apto comercial", "Oferta", "A estrenar"— pedidas por Tomy. Son afirmaciones que el corredor decide hacer, no datos que el catálogo derive, así que van en una columna propia (`tags text[]`, migración 00017) con **vocabulario cerrado en dos lugares que tienen que coincidir**: la lista de `lib/property/tags.ts` y el CHECK de la base. Texto libre dejaría tres chips para la misma palabra y un typo publicado en silencio; el precio de sumar una etiqueta es una entrada más una migración, y es el precio buscado. Un valor fuera de la lista es **error, no descarte**, en el schema y en el cargador CLI. Un solo componente las pinta en las cinco superficies; "Oferta" es la única con acento dorado. (2) **MercadoPago se fue del todo**: quedaban la dependencia de npm, el bloque de `.env.example`, la clave en el scrub de Sentry y una guía de testing de un checkout inexistente. (3) Numeritos: **393 → 406 tests**, y el build lista **33 rutas**, no 34 — otra cifra de este documento que no sobrevivió a contarla. Verificado en el dev server: home, `/propiedades`, una ficha y su PDF responden sin errores; **lo visual de los chips lo mira Tomy**, porque ninguna publicada tiene etiquetas todavía y la única forma de verlos era escribir una en producción. |
 | 2.20 | Sep 2, 2026 | **Se va lo que quedaba del portal viejo.** (1) El chip **"Propiedad verificada"** sale de las tres superficies: si todas van a estar verificadas no distingue nada —mismo motivo por el que se fue el Quality Score— y de paso cierra el fail-open que encontró la auditoría, porque se encendía con la partida **tipeada a mano** mientras el comentario de arriba decía que medía la confirmación del catastro. (2) **Los servicios pagos se borran enteros**, no se esconden: MercadoPago, el informe ARBA en PDF, el fulfillment, el bucket, el mail de entrega, dos rutas y el flag. **3.012 líneas, 41 → 34 rutas.** La ficha pública en PDF sobrevive intacta. (3) Dos restos de **voz** en los dos peores lugares: el metadata raíz —lo que ve Google y toda pestaña— ofrecía *"scoring transparente para compradores"* de una *"Plataforma Inmobiliaria"*, y el **`DIRECCION_DE_ARTE.md`**, que es de lectura obligatoria antes de tocar nada visual, seguía describiendo *"una plataforma que trabaja para el comprador"* con *"un score de calidad por propiedad"*. Es el mismo problema que el Framer Motion de la v2.18 y en el mismo archivo: un documento obligatorio que describe un producto que ya no existe manda construir para el sitio equivocado. También quedó la **auditoría de fail-open** completa, con lo que está sano y los que siguen abiertos. **422 → 393 tests** (bajan porque se fueron los tests del código borrado). |
 | 2.19 | Sep 2, 2026 | **Los alquileres existen; la operación va en la etiqueta; y la guarda fallaba abierta por tercera vez.** (1) Cargar un alquiler siempre se pudo, pero **aguas abajo se mostraba, se puntuaba y se matcheaba como una venta**: el precio se imprimía plano en seis superficies, el Quality Score comparaba contra ventas —y la causa raíz no era la query, era que `PropertyForScoring` **no tenía `operation_type`**, o sea que el scorer no podía ver la diferencia porque la diferencia no estaba modelada—, el match no preguntaba la operación, y la moneda estaba fija en USD. La operación entró como **portón y no como criterio**, porque un promedio ponderado no puede expresar "descalificante". (2) A pedido de Tomy, **la operación se dice en la etiqueta del tipo** ("Casa en alquiler") y el precio queda limpio: la etiqueta lo dice antes de que el lector decida qué significa el número. El período quedó opt-in, con la regla **nunca mostrar un alquiler que nada marque como alquiler**. (3) **Tercera desactivación masiva** (380 bajas con ~25 vistos), otra vez descubierta verificando este documento, otra vez el mismo error con distinto disfraz: `countActiveListings` terminaba en `count ?? 0`, y 0 desarma la cobertura — el arreglo del 1-sep hizo que los scrapers empezaran en `null`, pero esta función nunca les entregaba un `null` que conservar. Reparado con backup y en transacción; las activas volvieron **exactas** a 434. Se publicó **el primer alquiler** (Talcahuano 258) y quedó `npm run buscar-partida`. **375 → 420 tests**. *(Nota: la v2.19 se publicó primero con este archivo corrompido —triplicado a 2879 líneas— por un bug de la herramienta de edición: `String.replace` interpreta `$` + backtick como "todo el texto anterior", y el texto de esta entrada contenía esa secuencia. Reconstruido desde la v2.18. Los archivos de código quedaron intactos, verificado por tamaño, `tsc`, tests y build.)* |
 | 2.18 | Sep 2, 2026 | **El mapa del repo y el doc de arte dejan de contradecir al repo.** Dos correcciones de documentación, las dos del mismo tipo que este archivo viene coleccionando: afirmaciones plausibles que nadie volvió a chequear. **(1) El Project Structure tenía huecos y un puntero roto.** Decía `components/search/ — SearchProfileForm` y esa carpeta **estaba vacía**: el form vive en `components/search-profile/`. Faltaban además `components/payment/`, `components/services/`, `lib/property/` (el `verified-data.ts` que decide no nombrar a ARBA y no hablar como auditor — o sea el módulo donde viven dos decisiones que el propio doc explica largo) y `lib/services/storage/`, que es el bucket de informes pagos y **no** es `lib/storage/`, el de fotos. `lib/matching/` figuraba **dos veces**, con dos descripciones distintas. Y faltaba la migración **00015b**, que indexa `arba_lookups` por partida: sin ella la lectura de las propiedades propias no tiene índice, así que omitirla del mapa es omitir justo la que sostiene la vía por partida. Se borraron las dos carpetas vacías (`components/search/` y `lib/services/resend/`, las dos con un `.gitkeep` y nada más — los wrappers de Resend están en `lib/services/email/`). **(2) `DIRECCION_DE_ARTE.md` §5 mandaba usar Framer Motion**, listada bajo "Stack disponible (ya en el proyecto)", cuando **no está instalada** y todo el movimiento sale de CSS + `use-in-view.ts` + View Transitions. La contradicción no era teórica: el doc de arte es de lectura obligatoria antes de tocar cualquier cosa visual, así que la regla dura mandaba leer un archivo que pedía sumar una librería contra la que el §3 del mismo archivo decide ("gana mobile") y que costaría el presupuesto de peso que hoy está en 262 kB de 500. Ahora §5 dice que no hay librería, por qué, y remite al vocabulario ya construido en *Cómo se mueve el sitio*. Sin cambios de código: 375 tests, 41 rutas. |
