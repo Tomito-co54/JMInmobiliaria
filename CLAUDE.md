@@ -138,6 +138,26 @@ de una pelea por su ancho), así que está en el Build map y no se tocó de
 prendido. Los de 19px son texto inline con tooltip, no botones, y valen menos
 que los otros.
 
+### Las portadas de /propiedades no se veían en el celular (3-sep)
+
+Reportado por Tomy desde el teléfono: en `/propiedades` ninguna card mostraba
+la foto; en la landing y en `/edificios` sí. **En Chromium a 375px se veían**,
+así que la medición del panel no lo habría encontrado nunca — es de Safari.
+
+La card es un `<Link>` con `grid items-stretch`. En el celular esa grilla es de
+una columna, la foto queda como **ítem estirado en una fila propia**, y su
+único hijo es la imagen en `position: absolute`. Chrome dimensiona esa fila
+desde el `aspect-ratio` 4/3; **iOS Safari trata al ítem estirado como si
+tuviera alto definido, ignora el aspect-ratio, y la fila sale de 0px**. La
+landing y `/edificios` no estiran (`items-center`, o alto fijo) y por eso no
+les pasaba. Arreglo (`fca808d`): `self-start md:self-stretch` — en el
+celular manda el aspect-ratio, en desktop vuelve a llenar la fila.
+
+**La regla que deja:** un `aspect-ratio` sobre un ítem de grilla o flex
+**estirado** y sin contenido en flujo no es confiable en WebKit. O no se
+estira, o se le da alto explícito. Y la de siempre: lo que el panel mide en
+Chromium no prueba nada sobre el teléfono de Tomy.
+
 ### La lentitud era geografía (auditoría del 1-sep)
 
 Tomy reportaba que cambiar de pestaña y abrir una propiedad tardaban. **No era
