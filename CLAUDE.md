@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (3-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **446 tests passing** (+7 skipped a propósito),
+auto-deploy desde `main`. **450 tests passing** (+7 skipped a propósito),
 `npm run build` verde, **33 rutas**.
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
@@ -333,6 +333,7 @@ visual.
 | Fase 36 — Los alquileres existen y se diferencian | El enum, el validador y el cargador **siempre** aceptaron `alquiler`. Lo que no existía era la **diferencia**: aguas abajo un alquiler se mostraba, se puntuaba y se matcheaba como una venta, y las cuatro fallas devuelven un número creíble. (1) **El precio dice de qué precio habla** — `lib/property/price.ts` es el único lugar que convierte un precio en texto; seis superficies lo imprimían inline. (2) **El Quality Score deja de comparar un alquiler contra ventas**, y la causa raíz no era la query: `PropertyForScoring` **no tenía `operation_type`**, así que el scorer no podía ver la diferencia porque la diferencia no estaba modelada. (3) **El match pregunta la operación, y una operación distinta es un portón, no un criterio** — un promedio ponderado no puede expresar "descalificante": aun con el peso más alto de la tabla, a quien busca alquilar una venta le daría 75%. (4) **La moneda es consecuencia, no preferencia**. (5) **El copy sale del catálogo** en vez de estar escrito a mano. | `47fa961` |
 | Fase 35 — La segunda foto, y dos trampas de CSS | El recuadro detrás de la foto destacada **nunca fue un adorno: era el hueco de una segunda foto**. Se leía como una imagen que no cargó porque lo era. Ahora `photos[1]` va ahí, en el lugar exacto del recuadro, con la principal encima. Y dos trampas que costaron una ronda cada una: **un keyframe que escribe `transform` pisa las clases `skew`/`rotate` del elemento** (el brillo del CTA se veía horizontal aunque la clase dijera 28°, porque la inclinación desaparecía justo durante la animación); y **el JSX que se pasa como prop de un Server Component a uno de cliente necesita `key` explícita**, porque cruza serializado y React lo reconcilia en posición de lista — ese era el warning de consola que arrastraba desde antes. | `c6b02a4` `69ce764` `00a7f83` |
 | Fase 40 — Etiquetas, y MercadoPago se va del todo | **Etiquetas del corredor** en las publicaciones: `apto_comercial`, `oferta`, `a_estrenar`. Migración 00017: `tags text[]` con **vocabulario cerrado por CHECK** y owner-only, espejo de `lib/property/tags.ts` — texto libre dejaría que "oferta", "Oferta" y "OFERTA" fueran tres chips y que un typo se publicara en silencio. `PropertyTagChips` las pinta en la card, la portada, el hero de la ficha, el PDF y el listado de admin; "Oferta" es la única con acento dorado porque es la única que habla del precio y no del lugar. Toggles de 44px en el editor; `tags` en el JSON del cargador, donde un valor desconocido es error y no descarte. De paso **MercadoPago se fue del todo**: la dependencia de npm, `.env.example`, la lista de scrub de Sentry y `docs/TESTING_BLOCK_7.md`. | `4959832` `4417dc1` |
+| Fase 44 — Buscar por área en el mapa | La capa pública sobre `AreaMap` que el punto 6 preveía: en `/propiedades` el mapa es un filtro más (`?mapa=1`, `?area=…`), con "Dibujar un área" en desktop y **"Buscar en esta zona"** en el celular; pins en color de match, los de afuera del área atenuados, Leaflet sólo al abrirlo. En la landing, `HomeMapTeaser`: pins sobre tiles reales sin Leaflet, link al mapa. | `187768e` |
 | Fase 43 — El catálogo se filtra y se ordena por el match | `/propiedades` con búsqueda escrita, selectores de ubicación / operación / tipo (cada uno aparece sólo con más de una posición) y, con el match armado, **orden por match** con "Tu match · N de 100" en cada card. Filtros en la URL, orden no. `lib/catalog/filters.ts` puro; la lista es isla de cliente. `useSearchParams` descartado: su Suspense no hidrataba en dev. | `5549729` |
 | Fase 42 — Los extras, y el tipo cochera | Cochera / patio / terraza como **botón**: chip fijo si viene con la unidad, **toggle de 44px** si se elige, y el precio de la ficha suma el delta en el mismo frame (la barra mobile lee el mismo store). `properties.extras` jsonb con CHECK por función SQL (00020); `price_amount` sigue siendo el piso. Tipo `cochera` (00019) y `lib/property/types.ts` como única lista de tipos. Cargados: 4°Y (cochera + terraza incluidas), Belgrano 1°A/1°B (+8.000), 2°A/2°B (+9.000, terraza incluida). | `aa040cf` |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
@@ -349,7 +350,7 @@ mail de entrega, que se fueron con el código que probaban; → **406** tras la
 40, con el módulo de etiquetas, el schema y el cargador CLI; → **415** tras la 41, con
 el lookup por `cca`, el validador de nomenclatura y el JSON de PH; → **432** tras la
 42, con el módulo de extras y su schema; → **446** tras la 43, con los filtros y el
-orden del catálogo). Los 7 saltados son las bandas de
+orden del catálogo; → **450** tras la 44, con el área del mapa en los filtros). Los 7 saltados son las bandas de
 coherencia ARBA: quedan como spec de vuelta, ver **El dato de ARBA es de la
 parcela** más abajo.
 
@@ -996,6 +997,46 @@ escrita (5549729).
   montar. Vale como regla: si un island se ve y no responde, antes de buscar
   el bug en el handler, mirar si tiene `__reactFiber`.
 
+### Buscar por área en el mapa (3-sep)
+
+Tomy preguntó si se podía buscar por área en un mapa, "como Google Maps". Se
+podía: `AreaMap` ya existía para `/admin/mercado/mapa`, probado con 324
+puntos, y las seis publicadas tienen coordenadas del centro de su parcela.
+La versión pública fue la capa fina que el punto 6 del Build map preveía
+(187768e).
+
+- **En `/propiedades` el mapa es un filtro más.** "Ver en mapa" en la barra
+  lo abre (`?mapa=1`, así un link llega con el mapa abierto) y el área
+  elegida se suma a los otros filtros y al orden por match, en la URL como
+  `?area=sur,oeste,norte,este`. Cerrar el mapa suelta el área: un
+  rectángulo invisible seguiría filtrando sin nada en pantalla que lo
+  explique.
+- **Dos formas de elegir el área**, porque un teléfono y un escritorio no
+  comparten gesto. En desktop, "Dibujar un área" convierte el arrastre en
+  un rectángulo. En el celular arrastrar es mover el mapa, así que el área
+  es **el encuadre** y el botón es "Buscar en esta zona" — lo que hace la
+  app de mapas. `AreaMap` aprendió `onViewChange` para eso.
+- **Los pins son las propiedades que sobreviven a los OTROS filtros**; las
+  que quedan fuera del área se atenúan, no desaparecen, para que se vea qué
+  se deja afuera. Con el match armado toman el color de su banda. Tocar un
+  pin lleva a la card (`id="prop-<id>"` en cada Reveal).
+- **Leaflet llega sólo al abrir el mapa.** `AreaMap` ya lo importaba
+  dinámico; `/propiedades` no paga los ~45 kB hasta que alguien lo pide.
+- **Un mapa sin layout reporta un rectángulo sin ancho.** Pasó en el panel
+  oculto: "Buscar en esta zona" devolvió `oeste == este` y dejó la lista en
+  cero. El botón se deshabilita mientras los bounds sean degenerados.
+- **La landing tiene el recuadro** (`HomeMapTeaser`): las publicadas como
+  pins sobre tiles reales, **sin Leaflet** — la misma aritmética del bloque
+  de cobertura, y los pins proyectados con `projectToView`, la misma
+  función que los tiles, así que cada uno cae en su manzana. El recuadro
+  entero es un link a `/propiedades?mapa=1`: el primer toque abre el mapa
+  de verdad en vez de pelear con una imagen quieta por un gesto.
+  `getCatalogPins` comparte cache y tag con el catálogo matcheable, y el
+  recuadro devuelve null si ninguna publicada tiene posición.
+
+**Lo que no se hizo, a propósito:** polígonos a mano alzada. Con seis
+propiedades en dos barrios, un rectángulo o el encuadre alcanzan.
+
 ### El descubierto se deriva, no se guarda
 
 Talcahuano 258 es la primera propiedad con un desglose real de superficie:
@@ -1339,10 +1380,14 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   y son cosas distintas), MatchBreakdownSheet,
 │   │                             #   MatchQuickFilter (el desplegable del header)
 │   ├── home/                     # HomeHero, HomeProtagonist, HomeGuarantees(+Client),
+│   │                             #   HomeMapTeaser (los pins sobre tiles sin Leaflet, link
+│   │                             #   al mapa de /propiedades),
 │   │                             #   HomeMatchBuilder, WhatsAppFloat
 │   ├── catalog/                  # ← PropertyCatalog + PropertyPremiumCard + BuildingGroup
 │   │                             #   + PropertyCatalogList (isla de cliente: filtra y ordena
 │   │                             #   por match) + CatalogFilters (la barra: búsqueda + chips)
+│   │                             #   + CatalogMap (el área: dibujar en desktop, encuadrar
+│   │                             #   en el celular; Leaflet sólo al abrirlo)
 │   │                             #   + BuildingCover (la portada del edificio, que abre
 │   │                             #   el visor de /p/[id] con una sola foto).
 │   │                             #   Salieron de home/ cuando el catálogo dejó de vivir
@@ -1604,6 +1649,7 @@ servicios pagos el 2-sep.)
 43. **Fase 41 — La unidad de PH se ancla al lote por nomenclatura** ✅ 3-sep
 44. **Fase 42 — Los extras (cochera / patio / terraza) y el tipo cochera** ✅ 3-sep
 45. **Fase 43 — El catálogo se filtra y se ordena por el match** ✅ 3-sep
+46. **Fase 44 — Buscar por área en el mapa** ✅ 3-sep
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -1713,12 +1759,10 @@ Nav, CTA del hero y CTA de la protagonista pasaron a 44-46px el 1-sep. Queda
 sólo el **logo (24px)**, y para ese Tomy pidió otra cosa: acuse al toque, ya
 hecho. Se cierra cuando se decida si el logo también sube.
 
-**6. Mapa de búsqueda público**
+**6. Mapa de búsqueda público** ← hecho el 3-sep (Fase 44)
 
-`components/map/AreaMap` ya es agnóstico y está probado con 324 puntos.
-El público es una capa fina encima: cambian de dónde salen los puntos y
-qué hace la selección. Esperando inventario — con 2 fichas no se puede
-evaluar si está bien resuelto.
+Quedó como se preveía: una capa fina sobre `AreaMap`. Lo que falta evaluar
+con más inventario es si el rectángulo alcanza o hace falta polígono libre.
 
 **7. Configurador de precio en la ficha** ← la cochera ya está (Fase 42); falta la financiación
 
@@ -2020,6 +2064,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.25 | Sep 3, 2026 | **Buscar por área en el mapa.** La capa pública sobre `AreaMap` que el punto 6 esperaba: en `/propiedades` el mapa se abre desde la barra y el área es un filtro más, en la URL; "Dibujar un área" en desktop y "Buscar en esta zona" en el celular, porque un teléfono no puede arrastrar un rectángulo sin mover el mapa. Los pins llevan el color del match y los de afuera del área se atenúan. Leaflet sólo al abrirlo. La landing tiene su recuadro sin Leaflet, pins proyectados con la misma función que los tiles. Una trampa medida: un mapa en una pestaña oculta reporta bounds sin ancho, y "buscar en esta zona" vaciaba la lista — el botón se apaga mientras el rectángulo sea degenerado. **446 → 450 tests.** |
 | 2.24 | Sep 3, 2026 | **El catálogo se filtra y se ordena por el match.** Búsqueda escrita, selectores de ubicación / venta-alquiler / tipo, y con el match armado las propiedades se ordenan por match con el puntaje en cada card. La lista pasó a isla de cliente porque el match sólo existe en el navegador. Cada selector aparece sólo cuando tiene más de una posición, así que hoy Ubicación no se ve: todo es Lomas de Zamora. Y una trampa nueva para la colección: **`useSearchParams` dentro de Suspense no hidrató en dev** — la barra se dibujaba sin fiber de React y sin ningún error; se lee `window.location` al montar. También cerró **las portadas de /propiedades en Safari** (aspect-ratio sobre ítem estirado de grilla → 0px). **432 → 446 tests.** |
 | 2.23 | Sep 3, 2026 | **Los extras, y la cartera anotada.** Tomy dictó la cartera familiar completa (Belgrano, Alsina 1639, Cabrera 205, Drago, La Costa…) para ir publicando; **vive en la memoria local de Claude y no en el repo**, porque nombra a terceros, y está marcada como provisoria hasta que él corrija. De ahí salieron tres pedidos: (1) **cochera / patio / terraza como botón** — fijo si la unidad se vende con eso, seleccionable si es opcional, y el precio de la ficha suma el delta en el acto. `properties.extras` jsonb con CHECK por función SQL; `price_amount` sigue siendo el piso que leen el score y el mercado. Es el punto 7 del Build map sin la financiación. (2) **Tipo `cochera`** para las unidades complementarias que se venden solas, y una sola lista de tipos en `lib/property/types.ts` en vez de once copias. (3) Las propiedades **fuera de Zona Sur** (CABA, La Costa, Chapadmalal) quedan separadas, sin cargar. **415 → 432 tests.** |
 | 2.22 | Sep 3, 2026 | **La primera unidad de propiedad horizontal, y lo que ARBA no sabe.** Alsina 1639 4°Y se cargó desde un aviso de Trezza con la partida de los papeles y ARBA contestó `partida_not_found`. No era un typo: **la capa pública sólo conoce la partida del lote**, y la de subparcelas no tiene partida. Se publicó igual —partida verdadera, sin parcela, que es honesto— y se cerró el hueco con una tercera vía de lookup, por **nomenclatura del lote**, que es lo que los papeles del PH traen (Circ. II · Secc. A · Manz. 68 · Parc. 5, UF 38). La unidad conserva su partida, dibuja la parcela y agrupa en `/edificios`: la premisa de `lib/buildings` se cumple por primera vez en un PH real. De paso quedó escrito cómo se lee una `cca` (manzana + parcela + subparcela al final) y por qué `buscar-partida` había elegido la parcela vecina: el pin de Nominatim cae sobre la calle. Queda de Tomy la foto del frente. **406 → 415 tests.** |
