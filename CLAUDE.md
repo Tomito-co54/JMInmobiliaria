@@ -878,6 +878,32 @@ cache, y 0 metros es el valor **más** confiable que existe (significa que el
 punto cayó dentro del polígono). Hoy el dato es informativo y no decide nada,
 pero afirma más precisión de la que hay.
 
+### La ficha PDF nunca funcionó en producción (encontrado el 2-sep)
+
+`/p/[id]/ficha.pdf` devolvía **500 en Vercel y 200 en local**, desde el día que
+se lanzó en la Fase 20. El botón "Ficha PDF" de cada publicación estuvo roto
+todo ese tiempo.
+
+**El mecanismo.** `lib/services/pdf/fonts.ts` resuelve los `.woff` con
+`path.join(process.cwd(), "node_modules", ...)`, o sea una ruta armada
+concatenando strings. El tracer de Next **no puede seguir eso**, así que en el
+bundle serverless los archivos de fuente no viajan y el render muere con
+ENOENT. En local `node_modules` está entero, por eso anda siempre en la máquina
+donde se prueba.
+
+`next.config.ts` ya tenía `outputFileTracingIncludes` justamente para esto —
+pero sus **tres claves eran las tres rutas del subsistema pago**, y la ficha
+pública, agregada después, nunca tuvo la suya.
+
+**Cómo apareció:** borrar los servicios pagos dejó esas tres claves apuntando a
+rutas inexistentes, y verificar producción después del borrado fue lo que
+mostró el 500. O sea que se encontró por el efecto lateral de otra tarea, no
+porque algo lo señalara.
+
+**La regla que deja:** cualquier ruta nueva que genere un PDF necesita su
+entrada en `outputFileTracingIncludes`, y **probarla en producción**, porque
+esta clase de falla es invisible en local y no la ve el build.
+
 ### Los servicios pagos ya no existen (2-sep)
 
 Estuvieron escondidos detrás de `PAID_SERVICES_PUBLIC` desde la Fase 8. El
