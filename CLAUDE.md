@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (3-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **432 tests passing** (+7 skipped a propósito),
+auto-deploy desde `main`. **446 tests passing** (+7 skipped a propósito),
 `npm run build` verde, **33 rutas**.
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
@@ -333,6 +333,7 @@ visual.
 | Fase 36 — Los alquileres existen y se diferencian | El enum, el validador y el cargador **siempre** aceptaron `alquiler`. Lo que no existía era la **diferencia**: aguas abajo un alquiler se mostraba, se puntuaba y se matcheaba como una venta, y las cuatro fallas devuelven un número creíble. (1) **El precio dice de qué precio habla** — `lib/property/price.ts` es el único lugar que convierte un precio en texto; seis superficies lo imprimían inline. (2) **El Quality Score deja de comparar un alquiler contra ventas**, y la causa raíz no era la query: `PropertyForScoring` **no tenía `operation_type`**, así que el scorer no podía ver la diferencia porque la diferencia no estaba modelada. (3) **El match pregunta la operación, y una operación distinta es un portón, no un criterio** — un promedio ponderado no puede expresar "descalificante": aun con el peso más alto de la tabla, a quien busca alquilar una venta le daría 75%. (4) **La moneda es consecuencia, no preferencia**. (5) **El copy sale del catálogo** en vez de estar escrito a mano. | `47fa961` |
 | Fase 35 — La segunda foto, y dos trampas de CSS | El recuadro detrás de la foto destacada **nunca fue un adorno: era el hueco de una segunda foto**. Se leía como una imagen que no cargó porque lo era. Ahora `photos[1]` va ahí, en el lugar exacto del recuadro, con la principal encima. Y dos trampas que costaron una ronda cada una: **un keyframe que escribe `transform` pisa las clases `skew`/`rotate` del elemento** (el brillo del CTA se veía horizontal aunque la clase dijera 28°, porque la inclinación desaparecía justo durante la animación); y **el JSX que se pasa como prop de un Server Component a uno de cliente necesita `key` explícita**, porque cruza serializado y React lo reconcilia en posición de lista — ese era el warning de consola que arrastraba desde antes. | `c6b02a4` `69ce764` `00a7f83` |
 | Fase 40 — Etiquetas, y MercadoPago se va del todo | **Etiquetas del corredor** en las publicaciones: `apto_comercial`, `oferta`, `a_estrenar`. Migración 00017: `tags text[]` con **vocabulario cerrado por CHECK** y owner-only, espejo de `lib/property/tags.ts` — texto libre dejaría que "oferta", "Oferta" y "OFERTA" fueran tres chips y que un typo se publicara en silencio. `PropertyTagChips` las pinta en la card, la portada, el hero de la ficha, el PDF y el listado de admin; "Oferta" es la única con acento dorado porque es la única que habla del precio y no del lugar. Toggles de 44px en el editor; `tags` en el JSON del cargador, donde un valor desconocido es error y no descarte. De paso **MercadoPago se fue del todo**: la dependencia de npm, `.env.example`, la lista de scrub de Sentry y `docs/TESTING_BLOCK_7.md`. | `4959832` `4417dc1` |
+| Fase 43 — El catálogo se filtra y se ordena por el match | `/propiedades` con búsqueda escrita, selectores de ubicación / operación / tipo (cada uno aparece sólo con más de una posición) y, con el match armado, **orden por match** con "Tu match · N de 100" en cada card. Filtros en la URL, orden no. `lib/catalog/filters.ts` puro; la lista es isla de cliente. `useSearchParams` descartado: su Suspense no hidrataba en dev. | `5549729` |
 | Fase 42 — Los extras, y el tipo cochera | Cochera / patio / terraza como **botón**: chip fijo si viene con la unidad, **toggle de 44px** si se elige, y el precio de la ficha suma el delta en el mismo frame (la barra mobile lee el mismo store). `properties.extras` jsonb con CHECK por función SQL (00020); `price_amount` sigue siendo el piso. Tipo `cochera` (00019) y `lib/property/types.ts` como única lista de tipos. Cargados: 4°Y (cochera + terraza incluidas), Belgrano 1°A/1°B (+8.000), 2°A/2°B (+9.000, terraza incluida). | `aa040cf` |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
@@ -347,7 +348,8 @@ son los del webhook, el catálogo de servicios, la geometría del PDF pago y el
 mail de entrega, que se fueron con el código que probaban; → **406** tras la
 40, con el módulo de etiquetas, el schema y el cargador CLI; → **415** tras la 41, con
 el lookup por `cca`, el validador de nomenclatura y el JSON de PH; → **432** tras la
-42, con el módulo de extras y su schema). Los 7 saltados son las bandas de
+42, con el módulo de extras y su schema; → **446** tras la 43, con los filtros y el
+orden del catálogo). Los 7 saltados son las bandas de
 coherencia ARBA: quedan como spec de vuelta, ver **El dato de ARBA es de la
 parcela** más abajo.
 
@@ -957,6 +959,43 @@ imprimirían "cochera" en minúscula para ese tipo, nada peor.
 **Lo que NO se resolvió del punto 7:** la financiación (anticipo + cuotas en
 dólares sobre el valor financiado). Es otra estructura y otra conversación.
 
+### El catálogo se filtra y se ordena por el match (3-sep)
+
+Tomy pidió que `/propiedades`, con el match armado, ordene las propiedades
+por match; y filtros de ubicación, venta/alquiler y tipo, más búsqueda
+escrita (5549729).
+
+- **La lista es una isla de cliente** (`PropertyCatalogList`) porque el
+  match sólo puede calcularse ahí: las preferencias viven en
+  `sessionStorage` y no llegan al servidor. Y una vez que el orden se
+  decide en el navegador, los filtros también — la página ya manda el
+  catálogo entero.
+- **`lib/catalog/filters.ts`, puro y con tests.** La búsqueda escrita exige
+  que cada palabra aparezca en dirección, zona, tipo o descripción, sin
+  acentos ni mayúsculas ("lanus terraza" encuentra las de Lanús con terraza).
+  Los selectores son exactos y **sus opciones salen del catálogo**, y cada
+  uno **se dibuja sólo cuando tiene más de una posición** — la misma regla
+  que "Comprar / Alquilar" en el match. Por eso hoy **Ubicación no aparece**:
+  las seis publicadas son de Lomas de Zamora. Se enciende sola con la
+  primera de otro partido. (La columna es el partido; si algún día se quiere
+  filtrar por localidad —Banfield vs. Lomas— falta un dato, no un filtro.)
+- **Los filtros viajan en la query string** (`?q=&partido=&op=&tipo=`) vía
+  `history.replaceState`, así que un catálogo filtrado se puede mandar y
+  sobrevive al botón de volver. **El orden por match NO va en la URL**: es del
+  visitante, no de la página.
+- **Tres niveles de orden**: puntuadas (de mayor a menor), sin puntuar, y
+  últimas las del lado equivocado del portón de operación. El matcher sólo
+  convierte esa contradicción en 0 cuando tenía un puntaje que convertir;
+  quien dijo sólo "alquilar" recibe null para todo, y null solo habría
+  dejado las ventas donde estaban. Cada card dice **"Tu match · N de 100"** en
+  el color de su banda, para que el orden se explique solo.
+- **`useSearchParams` quedó afuera a propósito.** Exige un Suspense, y en el
+  dev server esa frontera **nunca hidrató**: la barra se dibujaba, los
+  elementos no tenían fiber de React y ningún chip contestaba, sin un solo
+  error en consola. Los filtros de la URL se leen de `window.location` al
+  montar. Vale como regla: si un island se ve y no responde, antes de buscar
+  el bug en el handler, mirar si tiene `__reactFiber`.
+
 ### El descubierto se deriva, no se guarda
 
 Talcahuano 258 es la primera propiedad con un desglose real de superficie:
@@ -1302,6 +1341,8 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   ├── home/                     # HomeHero, HomeProtagonist, HomeGuarantees(+Client),
 │   │                             #   HomeMatchBuilder, WhatsAppFloat
 │   ├── catalog/                  # ← PropertyCatalog + PropertyPremiumCard + BuildingGroup
+│   │                             #   + PropertyCatalogList (isla de cliente: filtra y ordena
+│   │                             #   por match) + CatalogFilters (la barra: búsqueda + chips)
 │   │                             #   + BuildingCover (la portada del edificio, que abre
 │   │                             #   el visor de /p/[id] con una sola foto).
 │   │                             #   Salieron de home/ cuando el catálogo dejó de vivir
@@ -1375,6 +1416,8 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   callback-errors.ts + password-reset-errors.ts
 │   ├── admin/                    # ← property-import.ts: parseo y validacion
 │   │                             #   del JSON del cargador CLI (puro, testeable)
+│   ├── catalog/                  # ← filters.ts: la búsqueda escrita, los selectores y el
+│   │                             #   orden por match de /propiedades. Puro, con tests.
 │   ├── buildings/                # ← agrupar unidades por parcela catastral.
 │   │                             #   buildingLabel() nombra el grupo (nombrar no es
 │   │                             #   agrupar: la membresía la decide la parcela).
@@ -1560,6 +1603,7 @@ servicios pagos el 2-sep.)
 42. **Fase 40 — Etiquetas en las publicaciones, y MercadoPago se va del todo** ✅ 3-sep
 43. **Fase 41 — La unidad de PH se ancla al lote por nomenclatura** ✅ 3-sep
 44. **Fase 42 — Los extras (cochera / patio / terraza) y el tipo cochera** ✅ 3-sep
+45. **Fase 43 — El catálogo se filtra y se ordena por el match** ✅ 3-sep
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -1976,6 +2020,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.24 | Sep 3, 2026 | **El catálogo se filtra y se ordena por el match.** Búsqueda escrita, selectores de ubicación / venta-alquiler / tipo, y con el match armado las propiedades se ordenan por match con el puntaje en cada card. La lista pasó a isla de cliente porque el match sólo existe en el navegador. Cada selector aparece sólo cuando tiene más de una posición, así que hoy Ubicación no se ve: todo es Lomas de Zamora. Y una trampa nueva para la colección: **`useSearchParams` dentro de Suspense no hidrató en dev** — la barra se dibujaba sin fiber de React y sin ningún error; se lee `window.location` al montar. También cerró **las portadas de /propiedades en Safari** (aspect-ratio sobre ítem estirado de grilla → 0px). **432 → 446 tests.** |
 | 2.23 | Sep 3, 2026 | **Los extras, y la cartera anotada.** Tomy dictó la cartera familiar completa (Belgrano, Alsina 1639, Cabrera 205, Drago, La Costa…) para ir publicando; **vive en la memoria local de Claude y no en el repo**, porque nombra a terceros, y está marcada como provisoria hasta que él corrija. De ahí salieron tres pedidos: (1) **cochera / patio / terraza como botón** — fijo si la unidad se vende con eso, seleccionable si es opcional, y el precio de la ficha suma el delta en el acto. `properties.extras` jsonb con CHECK por función SQL; `price_amount` sigue siendo el piso que leen el score y el mercado. Es el punto 7 del Build map sin la financiación. (2) **Tipo `cochera`** para las unidades complementarias que se venden solas, y una sola lista de tipos en `lib/property/types.ts` en vez de once copias. (3) Las propiedades **fuera de Zona Sur** (CABA, La Costa, Chapadmalal) quedan separadas, sin cargar. **415 → 432 tests.** |
 | 2.22 | Sep 3, 2026 | **La primera unidad de propiedad horizontal, y lo que ARBA no sabe.** Alsina 1639 4°Y se cargó desde un aviso de Trezza con la partida de los papeles y ARBA contestó `partida_not_found`. No era un typo: **la capa pública sólo conoce la partida del lote**, y la de subparcelas no tiene partida. Se publicó igual —partida verdadera, sin parcela, que es honesto— y se cerró el hueco con una tercera vía de lookup, por **nomenclatura del lote**, que es lo que los papeles del PH traen (Circ. II · Secc. A · Manz. 68 · Parc. 5, UF 38). La unidad conserva su partida, dibuja la parcela y agrupa en `/edificios`: la premisa de `lib/buildings` se cumple por primera vez en un PH real. De paso quedó escrito cómo se lee una `cca` (manzana + parcela + subparcela al final) y por qué `buscar-partida` había elegido la parcela vecina: el pin de Nominatim cae sobre la calle. Queda de Tomy la foto del frente. **406 → 415 tests.** |
 | 2.21 | Sep 3, 2026 | **Etiquetas, y el último resto de MercadoPago.** (1) Las publicaciones tienen **etiquetas** —"Apto comercial", "Oferta", "A estrenar"— pedidas por Tomy. Son afirmaciones que el corredor decide hacer, no datos que el catálogo derive, así que van en una columna propia (`tags text[]`, migración 00017) con **vocabulario cerrado en dos lugares que tienen que coincidir**: la lista de `lib/property/tags.ts` y el CHECK de la base. Texto libre dejaría tres chips para la misma palabra y un typo publicado en silencio; el precio de sumar una etiqueta es una entrada más una migración, y es el precio buscado. Un valor fuera de la lista es **error, no descarte**, en el schema y en el cargador CLI. Un solo componente las pinta en las cinco superficies; "Oferta" es la única con acento dorado. (2) **MercadoPago se fue del todo**: quedaban la dependencia de npm, el bloque de `.env.example`, la clave en el scrub de Sentry y una guía de testing de un checkout inexistente. (3) Numeritos: **393 → 406 tests**, y el build lista **33 rutas**, no 34 — otra cifra de este documento que no sobrevivió a contarla. Verificado en el dev server: home, `/propiedades`, una ficha y su PDF responden sin errores; **lo visual de los chips lo mira Tomy**, porque ninguna publicada tiene etiquetas todavía y la única forma de verlos era escribir una en producción. |
