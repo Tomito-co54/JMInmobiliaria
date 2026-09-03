@@ -16,7 +16,10 @@ import {
   type CatalogProperty,
 } from "@/lib/catalog/filters";
 import { CatalogFilters } from "./CatalogFilters";
+import { CatalogMap } from "./CatalogMap";
 import { PropertyPremiumCard } from "./PropertyPremiumCard";
+
+const MAP_PARAM = "mapa";
 
 /**
  * The catalog's list, in the browser: filtered by the bar above it and
@@ -49,24 +52,58 @@ export function PropertyCatalogList({
   buildings: Record<string, BuildingSummary>;
 }) {
   const [filters, setFilters] = useState<Filters>(EMPTY_CATALOG_FILTERS);
+  // `?mapa=1` opens the map. It travels with the filters so a link from the
+  // landing, or a shared one, lands with the map already open.
+  const [mapOpen, setMapOpen] = useState(false);
   useEffect(() => {
-    setFilters(filtersFromParams(new URLSearchParams(window.location.search)));
+    const params = new URLSearchParams(window.location.search);
+    setFilters(filtersFromParams(params));
+    setMapOpen(params.get(MAP_PARAM) === "1");
   }, []);
   const { preferences, ready } = useMatchPreferences();
 
-  const update = useCallback((next: Filters) => {
-    setFilters(next);
-    const qs = filtersToParams(next).toString();
+  const writeUrl = useCallback((next: Filters, open: boolean) => {
+    const params = filtersToParams(next);
+    if (open) params.set(MAP_PARAM, "1");
+    const qs = params.toString();
     window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
   }, []);
+  const update = useCallback(
+    (next: Filters) => {
+      setFilters(next);
+      writeUrl(next, mapOpen);
+    },
+    [mapOpen, writeUrl],
+  );
+  const toggleMap = useCallback(() => {
+    const open = !mapOpen;
+    setMapOpen(open);
+    // Closing the map takes its area with it: an invisible rectangle would
+    // keep narrowing a list with nothing on screen to explain why.
+    const next = open ? filters : { ...filters, area: null };
+    setFilters(next);
+    writeUrl(next, open);
+  }, [filters, mapOpen, writeUrl]);
 
   const options = useMemo(() => catalogOptions(properties), [properties]);
   const filtered = useMemo(() => applyFilters(properties, filters), [properties, filters]);
   const byMatch = ready && hasAnyPreference(preferences);
-  const ordered = useMemo(
-    () => (byMatch ? orderByMatch(filtered, preferences) : filtered.map((property) => ({ property, score: null }))),
-    [byMatch, filtered, preferences],
+  const order = useCallback(
+    (list: CatalogProperty[]) =>
+      byMatch ? orderByMatch(list, preferences) : list.map((property) => ({ property, score: null })),
+    [byMatch, preferences],
   );
+  const ordered = useMemo(() => order(filtered), [order, filtered]);
+  // The map shows everything the OTHER filters keep, so the visitor can see
+  // what an area leaves out; the area itself only dims, it does not remove.
+  const mapItems = useMemo(
+    () => (mapOpen ? order(applyFilters(properties, { ...filters, area: null })) : []),
+    [mapOpen, order, properties, filters],
+  );
+
+  const scrollToCard = useCallback((id: string) => {
+    document.getElementById(`prop-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
 
   return (
     <div className="space-y-8 sm:space-y-10">
@@ -76,7 +113,18 @@ export function PropertyCatalogList({
         onChange={update}
         shown={filtered.length}
         total={properties.length}
+        mapOpen={mapOpen}
+        onToggleMap={toggleMap}
       />
+
+      {mapOpen && (
+        <CatalogMap
+          items={mapItems}
+          selection={filters.area}
+          onSelectionChange={(area) => update({ ...filters, area })}
+          onPointClick={scrollToCard}
+        />
+      )}
 
       {byMatch && ordered.length > 0 && (
         <p className="text-sm text-muted-foreground" aria-live="polite">
@@ -90,7 +138,7 @@ export function PropertyCatalogList({
           Ninguna propiedad coincide con esos filtros.{" "}
           <button
             type="button"
-            onClick={() => update({ q: "", partido: null, operation: null, type: null })}
+            onClick={() => update(EMPTY_CATALOG_FILTERS)}
             className="font-medium text-foreground underline underline-offset-4"
           >
             Ver todas
@@ -106,7 +154,12 @@ export function PropertyCatalogList({
               // so scrolling the catalog has rhythm instead of a flat fade
               // (§2.4). Keyed by id, so reordering by match moves cards
               // rather than repainting them.
-              <Reveal key={property.id} delayMs={60} direction={flip ? "right" : "left"}>
+              <Reveal
+                key={property.id}
+                id={`prop-${property.id}`}
+                delayMs={60}
+                direction={flip ? "right" : "left"}
+              >
                 <PropertyPremiumCard
                   property={property}
                   flip={flip}

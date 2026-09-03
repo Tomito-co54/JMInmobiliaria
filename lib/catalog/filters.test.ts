@@ -77,8 +77,45 @@ describe("applyFilters", () => {
   });
 
   it("combines them", () => {
-    const out = applyFilters(all, { q: "belgrano", partido: "Lomas de Zamora", operation: "venta", type: "departamento" });
+    const out = applyFilters(all, {
+      q: "belgrano",
+      partido: "Lomas de Zamora",
+      operation: "venta",
+      type: "departamento",
+      area: null,
+    });
     expect(out.map((p) => p.id)).toEqual(["a"]);
+  });
+});
+
+describe("applyFilters — el área del mapa", () => {
+  const banfield = row({ id: "n", address: "Talcahuano 258", lat: -34.74196, lng: -58.39215 });
+  const lomas = row({ id: "s", address: "Alsina 1639", lat: -34.7557, lng: -58.3959 });
+  const nowhere = row({ id: "x", address: "Sin ubicación", lat: null, lng: null });
+  const AREA = { south: -34.75, west: -58.4, north: -34.73, east: -58.38 };
+
+  it("keeps what is inside the rectangle and nothing else", () => {
+    const out = applyFilters([banfield, lomas, nowhere], { ...EMPTY_CATALOG_FILTERS, area: AREA });
+    expect(out.map((p) => p.id)).toEqual(["n"]);
+  });
+
+  it("a listing with no position is never inside an area", () => {
+    const wide = { south: -90, west: -180, north: 90, east: 180 };
+    const out = applyFilters([nowhere, banfield], { ...EMPTY_CATALOG_FILTERS, area: wide });
+    expect(out.map((p) => p.id)).toEqual(["n"]);
+  });
+
+  it("round-trips through the URL at metre precision", () => {
+    const f = { ...EMPTY_CATALOG_FILTERS, area: AREA };
+    const params = filtersToParams(f);
+    expect(params.get("area")).toBe("-34.75000,-58.40000,-34.73000,-58.38000");
+    expect(filtersFromParams(params).area).toEqual(AREA);
+  });
+
+  it("refuses an area that is not four numbers in order", () => {
+    expect(filtersFromParams(new URLSearchParams("area=1,2,3")).area).toBeNull();
+    expect(filtersFromParams(new URLSearchParams("area=a,b,c,d")).area).toBeNull();
+    expect(filtersFromParams(new URLSearchParams("area=-34.73,-58.4,-34.75,-58.38")).area).toBeNull();
   });
 });
 
@@ -97,7 +134,7 @@ describe("catalogOptions", () => {
 
 describe("filters <-> URL", () => {
   it("round-trips, omitting what is empty", () => {
-    const f = { q: "belgrano", partido: null, operation: "venta" as const, type: null };
+    const f = { q: "belgrano", partido: null, operation: "venta" as const, type: null, area: null };
     const params = filtersToParams(f);
     expect(params.toString()).toBe("q=belgrano&op=venta");
     expect(filtersFromParams(params)).toEqual(f);

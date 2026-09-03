@@ -2,6 +2,7 @@ import { PublicHeader } from "@/components/shared/PublicHeader";
 import { getFeaturedProperty } from "@/lib/db/properties";
 import { HomeHero } from "@/components/home/HomeHero";
 import { HomeProtagonist } from "@/components/home/HomeProtagonist";
+import { HomeMapTeaser } from "@/components/home/HomeMapTeaser";
 import { HomeGuarantees } from "@/components/home/HomeGuarantees";
 import { WhatsAppFloat } from "@/components/home/WhatsAppFloat";
 
@@ -21,6 +22,11 @@ export default async function Home() {
           when there's a curated is_featured + publicada property; otherwise
           it returns null and the home flows straight into the guarantees. */}
       <HomeProtagonist property={featured} />
+
+      {/* The map as a still, with the pins on their parcels. One tap opens
+          the real map on /propiedades. Returns null while nothing published
+          has a position. */}
+      <HomeMapTeaser />
 
       {/* Garantías — explains the product (two tones). */}
       <HomeGuarantees />

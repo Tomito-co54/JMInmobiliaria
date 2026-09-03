@@ -562,3 +562,48 @@ export const getMatchableCatalog = cache(
     return loadMatchableCatalog();
   },
 );
+
+// ============================================================================
+// Catalog pins (landing map teaser)
+// ============================================================================
+
+/** A published listing with a position — what the landing's map still draws. */
+export interface CatalogPin {
+  id: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+}
+
+/**
+ * Every published listing that has a position, for the landing's map box.
+ * Same two-door filter and the same cache as the matchable catalog: it
+ * changes when a listing is published, and not otherwise. Positions come
+ * from the parcel centre the ARBA bridge wrote, not from a geocoder, so a
+ * pin lands on the lot.
+ */
+const loadCatalogPins = unstable_cache(
+  async function loadCatalogPins(): Promise<CatalogPin[]> {
+    try {
+      const supabase = createPublicClient();
+      const { data } = await supabase
+        .from("properties")
+        .select("id, address, lat, lng")
+        .eq("is_active", true)
+        .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+        .eq("listing_status", PUBLIC_LISTING_STATUS)
+        .not("lat", "is", null)
+        .not("lng", "is", null);
+      return (data ?? []) as unknown as CatalogPin[];
+    } catch {
+      // No pins, no box: the teaser returns null rather than an empty map.
+      return [];
+    }
+  },
+  ["catalog-pins"],
+  { tags: [PUBLIC_CATALOG_TAG], revalidate: 300 },
+);
+
+export const getCatalogPins = cache(async function getCatalogPins(): Promise<CatalogPin[]> {
+  return loadCatalogPins();
+});

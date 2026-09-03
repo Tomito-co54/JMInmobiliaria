@@ -3,6 +3,7 @@ import { computeMatchScore } from "@/lib/matching/match";
 import { hasAnyPreference, toSearchProfile, type MatchPreferences } from "@/lib/matching/preferences";
 import type { MatchableProperty } from "@/lib/matching/types";
 import { propertyTypeLabel } from "@/lib/property/types";
+import { isInside, type Bounds } from "@/lib/market/geo";
 
 /**
  * What /propiedades does with the catalog once it is in the browser: narrow
@@ -18,8 +19,12 @@ import { propertyTypeLabel } from "@/lib/property/types";
  * the kind of failure that looks like an empty catalog.
  */
 
-/** A catalog row: what the card paints plus what the matcher scores. */
-export type CatalogProperty = PremiumCardProperty & MatchableProperty;
+/**
+ * A catalog row: what the card paints, what the matcher scores, and where it
+ * is — the position the ARBA bridge wrote from the parcel centre.
+ */
+export type CatalogProperty = PremiumCardProperty &
+  MatchableProperty & { lat?: number | null; lng?: number | null };
 
 export type CatalogOperation = "venta" | "alquiler";
 
@@ -29,6 +34,8 @@ export interface CatalogFilters {
   partido: string | null;
   operation: CatalogOperation | null;
   type: string | null;
+  /** A rectangle on the map. Null = anywhere. */
+  area: Bounds | null;
 }
 
 export const EMPTY_CATALOG_FILTERS: CatalogFilters = {
@@ -36,10 +43,30 @@ export const EMPTY_CATALOG_FILTERS: CatalogFilters = {
   partido: null,
   operation: null,
   type: null,
+  area: null,
 };
 
 export function hasAnyFilter(f: CatalogFilters): boolean {
-  return f.q.trim() !== "" || f.partido !== null || f.operation !== null || f.type !== null;
+  return (
+    f.q.trim() !== "" || f.partido !== null || f.operation !== null || f.type !== null || f.area !== null
+  );
+}
+
+// --- the area, as text ------------------------------------------------------
+
+/** "south,west,north,east", five decimals — about a metre, plenty for a rectangle. */
+export function boundsToParam(b: Bounds): string {
+  return [b.south, b.west, b.north, b.east].map((n) => n.toFixed(5)).join(",");
+}
+
+/** The inverse. Anything that is not four finite numbers in order is no area. */
+export function boundsFromParam(raw: string | null): Bounds | null {
+  if (!raw) return null;
+  const n = raw.split(",").map(Number);
+  if (n.length !== 4 || n.some((x) => !Number.isFinite(x))) return null;
+  const [south, west, north, east] = n;
+  if (south > north || west > east) return null;
+  return { south, west, north, east };
 }
 
 /**
@@ -59,7 +86,7 @@ export function normalizeText(text: string): string {
 // catalog can be sent to someone and survives the back button. Empty values
 // are omitted: a clean URL for a clean catalog.
 
-const PARAM = { q: "q", partido: "partido", operation: "op", type: "tipo" } as const;
+const PARAM = { q: "q", partido: "partido", operation: "op", type: "tipo", area: "area" } as const;
 
 export function filtersFromParams(params: URLSearchParams): CatalogFilters {
   const op = params.get(PARAM.operation);
@@ -68,6 +95,7 @@ export function filtersFromParams(params: URLSearchParams): CatalogFilters {
     partido: params.get(PARAM.partido) || null,
     operation: op === "venta" || op === "alquiler" ? op : null,
     type: params.get(PARAM.type) || null,
+    area: boundsFromParam(params.get(PARAM.area)),
   };
 }
 
@@ -77,6 +105,7 @@ export function filtersToParams(f: CatalogFilters): URLSearchParams {
   if (f.partido) params.set(PARAM.partido, f.partido);
   if (f.operation) params.set(PARAM.operation, f.operation);
   if (f.type) params.set(PARAM.type, f.type);
+  if (f.area) params.set(PARAM.area, boundsToParam(f.area));
   return params;
 }
 
@@ -127,6 +156,13 @@ export function applyFilters<T extends CatalogProperty>(
     if (f.partido && p.partido !== f.partido) return false;
     if (f.operation && p.operation_type !== f.operation) return false;
     if (f.type && p.property_type !== f.type) return false;
+    // A listing with no position cannot be inside any area. It is left out
+    // rather than kept "just in case": the visitor drew a rectangle, and a
+    // pin that is not on the map is not in it.
+    if (f.area) {
+      if (typeof p.lat !== "number" || typeof p.lng !== "number") return false;
+      if (!isInside({ lat: p.lat, lng: p.lng }, f.area)) return false;
+    }
     if (words.length === 0) return true;
     const haystack = normalizeText(
       [p.address, p.partido, propertyTypeLabel(p.property_type), p.description]

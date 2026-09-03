@@ -1,9 +1,10 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { Map as MapIcon, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { propertyTypeLabel } from "@/lib/property/types";
 import {
+  EMPTY_CATALOG_FILTERS,
   hasAnyFilter,
   type CatalogFilters as Filters,
   type CatalogOperation,
@@ -30,6 +31,8 @@ export function CatalogFilters({
   onChange,
   shown,
   total,
+  mapOpen,
+  onToggleMap,
 }: {
   filters: Filters;
   options: CatalogOptions;
@@ -37,6 +40,9 @@ export function CatalogFilters({
   /** How many listings survive the filters, and how many there are. */
   shown: number;
   total: number;
+  /** Whether the map is open below the bar; the button here toggles it. */
+  mapOpen: boolean;
+  onToggleMap: () => void;
 }) {
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
   const active = hasAnyFilter(filters);
@@ -46,21 +52,40 @@ export function CatalogFilters({
 
   return (
     <div className="rounded-3xl border bg-card p-4 sm:p-5 space-y-4">
-      <label className="relative block">
-        <span className="sr-only">Buscar en el catálogo</span>
-        <Search
-          className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden
-        />
-        <input
-          type="search"
-          value={filters.q}
-          onChange={(e) => set({ q: e.target.value })}
-          placeholder="Buscar por dirección, zona o una palabra"
-          autoComplete="off"
-          className="h-11 w-full rounded-full border bg-background pl-11 pr-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        />
-      </label>
+      <div className="flex gap-2">
+        <label className="relative block min-w-0 flex-1">
+          <span className="sr-only">Buscar en el catálogo</span>
+          <Search
+            className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={filters.q}
+            onChange={(e) => set({ q: e.target.value })}
+            placeholder="Buscar por dirección, zona o una palabra"
+            autoComplete="off"
+            className="h-11 w-full rounded-full border bg-background pl-11 pr-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </label>
+        {/* The map is a filter too — an area — so its switch lives with the
+            others, not in a tab of its own. */}
+        <button
+          type="button"
+          aria-pressed={mapOpen}
+          onClick={onToggleMap}
+          className={cn(
+            "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors",
+            mapOpen
+              ? "border-transparent bg-primary text-primary-foreground"
+              : "bg-background text-foreground hover:border-primary/40",
+          )}
+        >
+          <MapIcon className="size-4" aria-hidden />
+          <span className="hidden sm:inline">{mapOpen ? "Ocultar mapa" : "Ver en mapa"}</span>
+          <span className="sm:hidden">Mapa</span>
+        </button>
+      </div>
 
       {(showOperation || showType || showPartido) && (
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-x-8">
@@ -127,11 +152,12 @@ export function CatalogFilters({
               ? `Las ${total} propiedades coinciden`
               : `${shown} de ${total} ${total === 1 ? "propiedad" : "propiedades"}`
             : `${total} ${total === 1 ? "propiedad" : "propiedades"}`}
+          {filters.area && " · dentro del área del mapa"}
         </p>
         {active && (
           <button
             type="button"
-            onClick={() => onChange({ q: "", partido: null, operation: null, type: null })}
+            onClick={() => onChange(EMPTY_CATALOG_FILTERS)}
             className="inline-flex min-h-11 items-center gap-1 rounded-full px-3 font-medium text-foreground hover:bg-muted"
           >
             <X className="size-4" aria-hidden />

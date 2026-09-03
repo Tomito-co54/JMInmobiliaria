@@ -37,6 +37,12 @@ interface AreaMapProps {
   /** While true, dragging draws a rectangle instead of panning. */
   selecting: boolean;
   onPointClick?: (id: string) => void;
+  /**
+   * The bounds the map currently shows, after every pan or zoom (and once
+   * after the opening fit). For "search this area" on a phone, where a drag
+   * is a pan and the viewport itself is the only rectangle a thumb can draw.
+   */
+  onViewChange?: (bounds: Bounds) => void;
   /** Shown when there is nothing to plot. */
   emptyMessage?: string;
 }
@@ -47,6 +53,7 @@ export function AreaMap({
   onSelectionChange,
   selecting,
   onPointClick,
+  onViewChange,
   emptyMessage = "Sin propiedades geolocalizadas para mostrar",
 }: AreaMapProps) {
   if (points.length === 0) {
@@ -65,6 +72,7 @@ export function AreaMap({
       onSelectionChange={onSelectionChange}
       selecting={selecting}
       onPointClick={onPointClick}
+      onViewChange={onViewChange}
     />
   );
 }

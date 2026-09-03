@@ -50,6 +50,7 @@ interface AreaMapInnerProps {
   onSelectionChange: (bounds: Bounds | null) => void;
   selecting: boolean;
   onPointClick?: (id: string) => void;
+  onViewChange?: (bounds: Bounds) => void;
 }
 
 /** Zona Sur, for the case where there is nothing to frame. */
@@ -87,6 +88,25 @@ function FitToPoints({ points }: { points: AreaMapPoint[] }) {
     map.fitBounds(toBoundsArray(b), { padding: [24, 24] });
   }, [map, points]);
 
+  return null;
+}
+
+/**
+ * Reports what the map shows, after the opening fit and after every move.
+ * `moveend` also fires for the fit and for zooms, so one event covers all.
+ */
+function ViewReporter({ onViewChange }: { onViewChange: (b: Bounds) => void }) {
+  const map = useMap();
+  const report = () => {
+    const b = map.getBounds();
+    onViewChange({ north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() });
+  };
+  useMapEvents({ moveend: report });
+  useEffect(() => {
+    report();
+    // Once, on mount: later changes arrive through moveend.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return null;
 }
 
@@ -161,6 +181,7 @@ export default function AreaMapInner({
   onSelectionChange,
   selecting,
   onPointClick,
+  onViewChange,
 }: AreaMapInnerProps) {
   const center = useMemo<[number, number]>(() => {
     const b = boundsOfPoints(points);
@@ -181,6 +202,7 @@ export default function AreaMapInner({
       <TileLayer attribution={BASEMAP_ATTRIBUTION} url={BASEMAP_URL} />
 
       <FitToPoints points={points} />
+      {onViewChange && <ViewReporter onViewChange={onViewChange} />}
       <SelectionLayer selecting={selecting} onSelectionChange={onSelectionChange} />
 
       {selection && (
