@@ -1,0 +1,28 @@
+{
+  "address": "Alsina 1639 4°Y",
+  "partido": "Lomas de Zamora",
+  "partida": "063-252296",
+  "nomenclatura_catastral": "063020A00000000000000000000000680000005000",
+
+  "property_type": "departamento",
+  "operation_type": "venta",
+  "price_amount": 72000,
+  "price_currency": "USD",
+
+  "surface_total": 42,
+  "surface_covered": 40,
+  "rooms": 2,
+  "bedrooms": 1,
+  "bathrooms": 1,
+  "year_built": 2026,
+
+  "description": "Dos ambientes a estrenar en el cuarto piso, al contrafrente y con balcón propio.",
+
+  "photos": [
+    "C:/Users/tomit/Pictures/alsina-1639-4y/living.jpg"
+  ],
+
+  "tags": ["a_estrenar"],
+
+  "is_featured": false
+}

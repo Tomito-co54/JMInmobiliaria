@@ -24,7 +24,7 @@ export interface LookupResult {
    * ParcelResult type from wfs.ts. At runtime lookupParcel() never returns
    * `by_partida`; keeping the union wide just avoids a cast.
    */
-  matchStrategy: "intersects" | "dwithin" | "by_partida";
+  matchStrategy: "intersects" | "dwithin" | "by_partida" | "by_nomenclatura";
   distanceMeters: number;
   source: "cache" | "arba";
 }

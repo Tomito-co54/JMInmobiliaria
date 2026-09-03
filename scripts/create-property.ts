@@ -26,8 +26,11 @@ import { basename, resolve } from "node:path";
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import { parseImportPayload, isRemotePhoto, mimeForPhoto } from "@/lib/admin/property-import";
-import { validatePartida } from "@/lib/zona-sur/partidos";
-import { ensurePropertyCadastralByPartida } from "@/lib/services/arba/properties";
+import { validateNomenclatura, validatePartida } from "@/lib/zona-sur/partidos";
+import {
+  ensurePropertyCadastralByNomenclatura,
+  ensurePropertyCadastralByPartida,
+} from "@/lib/services/arba/properties";
 import { uploadPropertyPhoto } from "@/lib/storage/property-photos";
 import { canPublishProperty } from "@/lib/validators/property";
 import { readTags, tagLabel } from "@/lib/property/tags";
@@ -86,7 +89,7 @@ async function main() {
     for (const e of parsed.errors) console.error(`  ✗ ${e}`);
     fail(`${parsed.errors.length} error(es) en el archivo. No se creó nada.`);
   }
-  const { row, partida, photos, isFeatured } = parsed.payload!;
+  const { row, partida, nomenclatura, photos, isFeatured } = parsed.payload!;
 
   // The partida's first three digits encode the partido; a mismatch means
   // one of the two is wrong, and it is cheaper to say so before writing.
@@ -100,10 +103,25 @@ async function main() {
     fail("Hay partida pero falta el partido: sin él no se puede validar el prefijo.");
   }
 
+  // A unit under propiedad horizontal: its partida is real but ARBA's public
+  // layer does not know it, so the lot is looked up by the nomenclature on the
+  // papers instead. The partida still goes on the row — it is the unit's.
+  let nomenclaturaNormalized: string | null = null;
+  if (nomenclatura && row.partido) {
+    const v = validateNomenclatura(row.partido as string, nomenclatura);
+    if (!v.ok) fail(v.message);
+    nomenclaturaNormalized = v.normalized;
+  } else if (nomenclatura) {
+    fail("Hay nomenclatura pero falta el partido: sin él no se puede validar el prefijo.");
+  }
+
   console.log("\n=== Propiedad a cargar ===");
   console.log(`  Dirección : ${row.address ?? "(sin dirección)"}`);
   console.log(`  Partido   : ${row.partido ?? "(sin partido)"}`);
   console.log(`  Partida   : ${partida ?? "(sin partida)"}`);
+  if (nomenclaturaNormalized) {
+    console.log(`  Parcela   : ${nomenclaturaNormalized} (por nomenclatura — unidad de PH)`);
+  }
   console.log(`  Tipo      : ${row.property_type ?? "?"} · ${row.operation_type}`);
   console.log(`  Precio    : ${row.price_amount ?? "?"} ${row.price_currency}`);
   console.log(`  Fotos     : ${photos.length}`);
@@ -153,9 +171,11 @@ async function main() {
   // ARBA is explicitly non-fatal. The provincial service goes down, and a
   // listing shouldn't be lost because of it — same call the form's
   // "Consultar ARBA" button makes, same tolerance.
-  if (partidaNormalized) {
+  if (nomenclaturaNormalized || partidaNormalized) {
     try {
-      const r = await ensurePropertyCadastralByPartida(id, partidaNormalized);
+      const r = nomenclaturaNormalized
+        ? await ensurePropertyCadastralByNomenclatura(id, nomenclaturaNormalized)
+        : await ensurePropertyCadastralByPartida(id, partidaNormalized!);
       if (r.ok) {
         console.log(`✓ ARBA: ${r.nomenclatura} · ${r.surfaceArba ?? "?"} m² · ${r.tipo ?? "?"}`);
       } else {

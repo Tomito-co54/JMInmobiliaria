@@ -4,6 +4,7 @@ import {
   getPartidoForArbaCode,
   PARTIDOS_ZONA_SUR,
   PARTIDOS_ZONA_SUR_ENTRIES,
+  validateNomenclatura,
   validatePartida,
 } from "./partidos";
 
@@ -116,5 +117,34 @@ describe("validatePartida", () => {
       expect(result.reason).toBe("prefix_mismatch");
       expect(result.message).not.toContain("corresponde a");
     }
+  });
+});
+
+describe("validateNomenclatura", () => {
+  const LOTE = "063020A00000000000000000000000680000005000";
+
+  it("accepts the 42-character form ARBA prints, whatever spacing a person typed", () => {
+    const r = validateNomenclatura("Lomas de Zamora", " 063 020A 0000000000000000000000068 0000005 000 ");
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.normalized).toBe(LOTE);
+  });
+
+  it("refuses a nomenclatura whose partido prefix disagrees with the partido", () => {
+    const r = validateNomenclatura("Lanús", LOTE);
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.reason).toBe("prefix_mismatch");
+      expect(r.message).toContain("Lomas de Zamora");
+    }
+  });
+
+  it("refuses the wrong length rather than guessing at padding", () => {
+    const r = validateNomenclatura("Lomas de Zamora", "063020A68005");
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toBe("format");
+  });
+
+  it("refuses an empty one", () => {
+    expect(validateNomenclatura("Lomas de Zamora", "  ").ok).toBe(false);
   });
 });

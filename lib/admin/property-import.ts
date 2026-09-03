@@ -45,13 +45,23 @@ export function isRemotePhoto(ref: PhotoRef): boolean {
   return /^https?:\/\//i.test(ref);
 }
 
-/** Fields the JSON may carry that are not part of the draft schema. */
-const EXTRA_KEYS = ["partida", "photos", "is_featured"] as const;
+/**
+ * Fields the JSON may carry that are not part of the draft schema.
+ *
+ * `nomenclatura_catastral` is here and not in the schema for the same
+ * reason `partida` is: the form never writes it directly, ARBA does. The
+ * file may name it because a unit under propiedad horizontal has a partida
+ * the public layer cannot resolve, and the lot's nomenclature — which the
+ * papers carry — is the key that can.
+ */
+const EXTRA_KEYS = ["partida", "nomenclatura_catastral", "photos", "is_featured"] as const;
 
 export interface ImportPayload {
   /** Column values, already coerced by the draft schema. */
   row: Record<string, unknown>;
   partida: string | null;
+  /** The lot's cadastral nomenclature, when the file gives it (PH units). */
+  nomenclatura: string | null;
   photos: PhotoRef[];
   isFeatured: boolean;
 }
@@ -153,6 +163,16 @@ export function parseImportPayload(raw: unknown): ImportParse {
     warnings.push("Sin partida: no se consulta ARBA y no se va a poder publicar.");
   }
 
+  const nomenclaturaRaw = input.nomenclatura_catastral;
+  let nomenclatura: string | null = null;
+  if (nomenclaturaRaw !== undefined && nomenclaturaRaw !== null && nomenclaturaRaw !== "") {
+    if (typeof nomenclaturaRaw !== "string") {
+      errors.push('"nomenclatura_catastral" tiene que ser texto.');
+    } else {
+      nomenclatura = nomenclaturaRaw.trim();
+    }
+  }
+
   const isFeatured = input.is_featured === true;
 
   if (errors.length > 0) return { ok: false, errors, warnings };
@@ -164,6 +184,7 @@ export function parseImportPayload(raw: unknown): ImportParse {
     payload: {
       row: parsed.success ? (parsed.data as Record<string, unknown>) : {},
       partida,
+      nomenclatura,
       photos,
       isFeatured,
     },

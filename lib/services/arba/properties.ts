@@ -1,7 +1,7 @@
 import { getAdminClient } from "./client";
 import { lookupParcel } from "./index";
 import { parcelCenter } from "./geometry";
-import { getParcelByPartida } from "./wfs";
+import { getParcelByNomenclatura, getParcelByPartida, type ParcelResult } from "./wfs";
 
 /**
  * Two bridges between ARBA's WFS and the `properties` table:
@@ -15,7 +15,11 @@ import { getParcelByPartida } from "./wfs";
  *     → direct attribute lookup. Used by the admin loader where the owner
  *       enters the partida from paper records. No geocoding involved.
  *
- * Both are idempotent — already-enriched properties short-circuit at the top.
+ *   ensurePropertyCadastralByNomenclatura(id, cca)
+ *     → same, keyed by the lot's nomenclature. For units under propiedad
+ *       horizontal, whose own partida the public layer does not know.
+ *
+ * All three are idempotent — already-enriched properties short-circuit at the top.
  */
 
 export type EnsureCadastralResult =
@@ -26,13 +30,13 @@ export type EnsureCadastralResult =
       nomenclatura: string;
       surfaceArba: number | null;
       tipo: string | null;
-      matchStrategy: "intersects" | "dwithin" | "by_partida" | "existing";
+      matchStrategy: "intersects" | "dwithin" | "by_partida" | "by_nomenclatura" | "existing";
       distanceMeters: number;
       source: "existing" | "cache" | "arba";
     }
   | {
       ok: false;
-      reason: "no_coords" | "not_found" | "partida_not_found";
+      reason: "no_coords" | "not_found" | "partida_not_found" | "nomenclatura_not_found";
     };
 
 interface PropertyRow {
@@ -161,10 +165,83 @@ export async function ensurePropertyCadastralByPartida(
     return { ok: false, reason: "partida_not_found" };
   }
 
+  return persistParcel(supabase, propertyId, parcel, "by_partida");
+}
+
+/**
+ * Same bridge, keyed by the lot's cadastral nomenclature instead of its
+ * partida. For units under propiedad horizontal: their own partida is not in
+ * ARBA's public layer (see getParcelByNomenclatura), but the papers carry the
+ * lot's nomenclature, and the lot is what the map draws and what
+ * lib/buildings groups by.
+ *
+ * The row's `partida` is deliberately NOT overwritten: it stays the unit's
+ * own, the one on the papers. The lot's partida lives in `arba_lookups`,
+ * where it describes the lot.
+ */
+export async function ensurePropertyCadastralByNomenclatura(
+  propertyId: string,
+  nomenclatura: string,
+): Promise<EnsureCadastralResult> {
+  const supabase = getAdminClient();
+
+  const { data, error } = await supabase
+    .from("properties")
+    .select("id, partida, nomenclatura_catastral, surface_arba, tpa")
+    .eq("id", propertyId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new Error(`Property not found: ${propertyId}`);
+
+  const property = data as unknown as {
+    partida: string | null;
+    nomenclatura_catastral: string | null;
+    surface_arba: number | null;
+    tpa: string | null;
+  };
+
+  if (property.nomenclatura_catastral) {
+    return {
+      ok: true,
+      partida: property.partida,
+      nomenclatura: property.nomenclatura_catastral,
+      surfaceArba: property.surface_arba,
+      tipo: property.tpa,
+      matchStrategy: "existing",
+      distanceMeters: 0,
+      source: "existing",
+    };
+  }
+
+  const parcel = await getParcelByNomenclatura(nomenclatura);
+  if (!parcel) {
+    return { ok: false, reason: "nomenclatura_not_found" };
+  }
+
+  return persistParcel(supabase, propertyId, parcel, "by_nomenclatura");
+}
+
+/**
+ * What both attribute lookups do once they have the parcel: cache its
+ * outline, write the cadastral columns, and give the property the parcel's
+ * centre as its position when it has none.
+ */
+async function persistParcel(
+  supabase: ReturnType<typeof getAdminClient>,
+  propertyId: string,
+  parcel: ParcelResult,
+  strategy: "by_partida" | "by_nomenclatura",
+): Promise<EnsureCadastralResult> {
   // The parcel outline used to be fetched and dropped on the floor. It is the
   // thing /p/[id] draws over the map, and without it a published property
   // shows a bare pin — no evidence of the cadastral check the site is built
   // on. Cache it keyed by the parcel's own centre.
+  //
+  // The cached partida is the LOT's, whatever the property's own is: two
+  // units of one building share this row, and it describes the lot. The
+  // public page still finds it — it falls back from the property's partida
+  // to its (lat, lng), which is this same centre.
   const center = parcelCenter(parcel.rawResponse);
   if (center) {
     const { error: cacheError } = await supabase
@@ -177,7 +254,7 @@ export async function ensurePropertyCadastralByPartida(
           nomenclatura: parcel.nomenclatura,
           surface_arba: parcel.surfaceM2,
           tipo: parcel.tipo,
-          match_strategy: "by_partida",
+          match_strategy: strategy,
           distance_meters: 0,
           raw_response: parcel.rawResponse,
         } as never,
@@ -185,16 +262,18 @@ export async function ensurePropertyCadastralByPartida(
       );
     // A cache miss is survivable — the property still gets its data below.
     if (cacheError) {
-      console.error("ARBA cache write failed for partida", partida, cacheError.message);
+      console.error("ARBA cache write failed for", strategy, parcel.nomenclatura, cacheError.message);
     }
   }
 
   const patch: Record<string, unknown> = {
-    partida: parcel.partida,
     nomenclatura_catastral: parcel.nomenclatura,
     surface_arba: parcel.surfaceM2,
     tpa: parcel.tipo,
   };
+  // By partida, the row's partida IS the parcel's (ARBA may normalise it).
+  // By nomenclatura it is not: the unit keeps the partida on its papers.
+  if (strategy === "by_partida") patch.partida = parcel.partida;
 
   // Owner properties are loaded by partida and never geocoded, so most arrive
   // with no position at all. The cadastre knows exactly where the parcel is,
@@ -226,7 +305,7 @@ export async function ensurePropertyCadastralByPartida(
     nomenclatura: parcel.nomenclatura,
     surfaceArba: parcel.surfaceM2,
     tipo: parcel.tipo,
-    matchStrategy: "by_partida",
+    matchStrategy: strategy,
     distanceMeters: 0,
     source: "arba",
   };

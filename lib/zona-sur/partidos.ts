@@ -189,3 +189,61 @@ export function validatePartida(
 
   return { ok: true, partido, arbaCode, normalized };
 }
+
+export type NomenclaturaValidation =
+  | { ok: true; normalized: string }
+  | {
+      ok: false;
+      reason: "empty" | "format" | "unknown_partido" | "prefix_mismatch";
+      message: string;
+    };
+
+/**
+ * Validates a cadastral nomenclature (ARBA's `cca`) the way validatePartida
+ * validates a partida: shape first, then that its partido prefix agrees with
+ * the partido the broker chose.
+ *
+ * Exists for units under propiedad horizontal, whose own partida is not in
+ * ARBA's public layer — the lot's nomenclature is what the papers carry and
+ * what the WFS answers to. Accepts the 42-character form as ARBA prints it,
+ * with any spaces or dashes a person typed in between.
+ */
+export function validateNomenclatura(
+  partido: string,
+  nomenclatura: string,
+): NomenclaturaValidation {
+  const normalized = nomenclatura.replace(/[\s-]/g, "").toUpperCase();
+  if (normalized.length === 0) {
+    return { ok: false, reason: "empty", message: "Ingresá la nomenclatura catastral." };
+  }
+  if (!/^\d{3}[0-9A-Z]{39}$/.test(normalized)) {
+    return {
+      ok: false,
+      reason: "format",
+      message:
+        "Formato inválido. La nomenclatura catastral son 42 caracteres tal como figura en ARBA (ej. 063020A00000000000000000000000680000005000).",
+    };
+  }
+
+  const arbaCode = getArbaCodeForPartido(partido);
+  if (arbaCode === null) {
+    return {
+      ok: false,
+      reason: "unknown_partido",
+      message: `El partido "${partido}" no está en nuestro mapa de Zona Sur.`,
+    };
+  }
+
+  const prefix = normalized.slice(0, 3);
+  if (prefix !== arbaCode) {
+    const correctPartido = getPartidoForArbaCode(prefix);
+    const hint = correctPartido ? ` Ese prefijo corresponde a ${correctPartido}.` : "";
+    return {
+      ok: false,
+      reason: "prefix_mismatch",
+      message: `La nomenclatura empieza con ${prefix}, pero ${partido} usa ${arbaCode}.${hint}`,
+    };
+  }
+
+  return { ok: true, normalized };
+}

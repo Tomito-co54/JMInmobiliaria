@@ -129,3 +129,27 @@ describe("parseImportPayload", () => {
     expect(parseImportPayload(null).ok).toBe(false);
   });
 });
+
+describe("parseImportPayload — unidad de propiedad horizontal", () => {
+  it("carries the lot nomenclature through, next to the unit's own partida", () => {
+    const r = parseImportPayload({
+      ...VALID,
+      partida: "063-252296",
+      nomenclatura_catastral: "063020A00000000000000000000000680000005000",
+    });
+    expect(r.ok).toBe(true);
+    expect(r.payload!.partida).toBe("063-252296");
+    expect(r.payload!.nomenclatura).toBe("063020A00000000000000000000000680000005000");
+  });
+
+  it("leaves it null when the file does not give one", () => {
+    const r = parseImportPayload(VALID);
+    expect(r.ok).toBe(true);
+    expect(r.payload!.nomenclatura).toBeNull();
+  });
+
+  it("refuses a nomenclatura that is not text", () => {
+    const r = parseImportPayload({ ...VALID, nomenclatura_catastral: 63020 });
+    expect(r.ok).toBe(false);
+  });
+});

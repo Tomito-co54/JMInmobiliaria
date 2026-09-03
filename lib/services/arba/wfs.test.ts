@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getParcelByPartida } from "./wfs";
+import { getParcelByNomenclatura, getParcelByPartida } from "./wfs";
 
 /**
  * Tests for the by-partida WFS lookup. Mocks global fetch — we never hit
@@ -95,5 +95,44 @@ describe("getParcelByPartida", () => {
     await getParcelByPartida("063'OR'1=1");
     expect(calls.length).toBe(1);
     expect(calls[0].params.get("CQL_FILTER")).toBe("pda='063''OR''1=1'");
+  });
+});
+
+describe("getParcelByNomenclatura", () => {
+  it("filters on cca, not pda, and reports the strategy honestly", async () => {
+    const calls: FetchCallSpy[] = [];
+    mockFetchOnce(
+      {
+        type: "FeatureCollection",
+        numberReturned: 1,
+        totalFeatures: 1,
+        features: [
+          {
+            type: "Feature",
+            properties: {
+              pda: "063069832",
+              cca: "063020A00000000000000000000000680000005000",
+              ara1: "476,49",
+              tpa: "Urbano",
+            },
+          },
+        ],
+      },
+      calls,
+    );
+    const result = await getParcelByNomenclatura("063020A00000000000000000000000680000005000");
+    expect(calls[0].params.get("CQL_FILTER")).toBe(
+      "cca='063020A00000000000000000000000680000005000'",
+    );
+    // The LOT's partida comes back with it — the caller decides whether the
+    // row keeps its own (a PH unit does).
+    expect(result?.partida).toBe("063069832");
+    expect(result?.surfaceM2).toBeCloseTo(476.49);
+    expect(result?.matchStrategy).toBe("by_nomenclatura");
+  });
+
+  it("returns null when the lot is not in the layer", async () => {
+    mockFetchOnce({ type: "FeatureCollection", features: [], numberReturned: 0, totalFeatures: 0 });
+    expect(await getParcelByNomenclatura("063020A00000000000000000000000680000009999")).toBeNull();
   });
 });

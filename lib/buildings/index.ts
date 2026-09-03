@@ -15,7 +15,10 @@
  *   - **The partida.** Works today only because the building is not
  *     subdivided yet. The day the propiedad horizontal is registered each
  *     unit gets its own partida, and the grouping breaks exactly when the
- *     building has the most units to group.
+ *     building has the most units to group. (Confirmed 3-sep-2026 with
+ *     Alsina 1639: the unit's partida is not even in ARBA's public layer,
+ *     so such a unit is loaded with the LOT's nomenclature from its papers
+ *     — see ensurePropertyCadastralByNomenclatura — and this key holds.)
  *   - **`property_groups`.** That table exists but means something else:
  *     "these listings are the SAME property in different portals" (dedup).
  *     Same building is a different relation, and folding it in would break

@@ -47,8 +47,11 @@ export interface ParcelResult {
    *   - by_partida: direct attribute filter on `pda = '...'`. No geometry
    *                 involved; exact match by tax ID. Used when the owner
    *                 enters the partida by hand from paper records.
+   *   - by_nomenclatura: direct attribute filter on `cca = '...'`. For a
+   *                 unit under propiedad horizontal, whose own partida is
+   *                 not in this layer — see getParcelByNomenclatura.
    */
-  matchStrategy: "intersects" | "dwithin" | "by_partida";
+  matchStrategy: "intersects" | "dwithin" | "by_partida" | "by_nomenclatura";
   /** Always 0 for by_partida (no geographic offset to report). */
   distanceMeters: number;
   rawResponse: WfsFeatureCollection;
@@ -173,7 +176,7 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
 
 function featureToResult(
   feature: WfsFeature,
-  matchStrategy: "intersects" | "dwithin" | "by_partida",
+  matchStrategy: ParcelResult["matchStrategy"],
   distanceMeters: number,
   rawResponse: WfsFeatureCollection,
 ): ParcelResult | null {
@@ -249,5 +252,25 @@ export async function getParcelByPartida(
   const result = await fetchWfs(filter, 1);
   if (result.numberReturned === 0 || result.features.length === 0) return null;
   return featureToResult(result.features[0], "by_partida", 0, result);
+}
+
+/**
+ * Looks up a parcel by its cadastral nomenclature (`cca`), for the case the
+ * partida cannot answer: a unit in a building under propiedad horizontal.
+ *
+ * Once a building is subdivided each unit gets its own partida, and those are
+ * in no public layer queryable by number — `Parcela` only carries the lot's
+ * `pda`, and `Subparcela` has geometry and `cca` but no `pda` at all
+ * (found the hard way with Alsina 1639 4°Y, 3-sep-2026). The unit's papers
+ * do carry the lot's nomenclature (Circ. · Secc. · Manz. · Parc.), so that is
+ * the key that works. Exact attribute match, no geometry involved.
+ */
+export async function getParcelByNomenclatura(
+  nomenclatura: string,
+): Promise<ParcelResult | null> {
+  const safe = nomenclatura.trim().replace(/'/g, "''");
+  const result = await fetchWfs(`cca='${safe}'`, 1);
+  if (result.numberReturned === 0 || result.features.length === 0) return null;
+  return featureToResult(result.features[0], "by_nomenclatura", 0, result);
 }
 
