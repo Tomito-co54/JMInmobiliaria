@@ -83,7 +83,7 @@ export async function getPropertiesAdmin(filters: AdminPropertyFilters = {}) {
     .select(
       // created_at is what dates an owner property: those are loaded by hand,
       // never crawled, so they have no first_seen_at to age them from.
-      "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, surface_total, is_active, listing_status, is_featured, quality_score, first_seen_at, last_seen_at, created_at, source",
+      "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, surface_total, is_active, listing_status, is_featured, tags, quality_score, first_seen_at, last_seen_at, created_at, source",
       { count: "exact" },
     )
     .order("last_seen_at", { ascending: false });

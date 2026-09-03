@@ -30,6 +30,7 @@ import { validatePartida } from "@/lib/zona-sur/partidos";
 import { ensurePropertyCadastralByPartida } from "@/lib/services/arba/properties";
 import { uploadPropertyPhoto } from "@/lib/storage/property-photos";
 import { canPublishProperty } from "@/lib/validators/property";
+import { readTags, tagLabel } from "@/lib/property/tags";
 import { ComparablesCache, recomputeQualityScore } from "@/lib/scoring";
 
 dotenv.config({ path: ".env.local", quiet: true });
@@ -106,6 +107,7 @@ async function main() {
   console.log(`  Tipo      : ${row.property_type ?? "?"} · ${row.operation_type}`);
   console.log(`  Precio    : ${row.price_amount ?? "?"} ${row.price_currency}`);
   console.log(`  Fotos     : ${photos.length}`);
+  console.log(`  Etiquetas : ${readTags(row.tags).map(tagLabel).join(", ") || "(ninguna)"}`);
   console.log(`  Destacada : ${isFeatured ? "sí" : "no"}`);
   console.log(`  Publicar  : ${publish ? "sí" : "no (queda en borrador)"}`);
 

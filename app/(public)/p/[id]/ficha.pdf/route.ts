@@ -56,6 +56,7 @@ export async function GET(
         partida: p.partida,
         nomenclatura_catastral: p.nomenclatura_catastral,
         description: p.description,
+        tags: p.tags,
         coverUrl: p.photos?.[0] ?? null,
       },
     });
@@ -85,6 +86,7 @@ export async function GET(
           partida: p.partida,
           nomenclatura_catastral: p.nomenclatura_catastral,
           description: p.description,
+        tags: p.tags,
             coverUrl: null,
         },
       });

@@ -22,6 +22,7 @@ import {
   validatePartida,
 } from "@/lib/zona-sur/partidos";
 import { canPublishProperty } from "@/lib/validators/property";
+import { PROPERTY_TAGS, readTags, tagLabel, type PropertyTag } from "@/lib/property/tags";
 import {
   changeListingStatusAction,
   clearArbaDataAction,
@@ -64,6 +65,8 @@ export function PropertyEditor({ initial }: { initial: PropertyRowFromDb }) {
       <ArbaSection row={row} onPatch={applyRowPatch} />
 
       <PublicacionSection row={row} onPatch={applyRowPatch} />
+
+      <EtiquetasSection row={row} onPatch={applyRowPatch} />
 
       <TecnicosSection row={row} onPatch={applyRowPatch} />
 
@@ -567,6 +570,78 @@ function PublicacionSection({
             className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="Detalle de la propiedad — descripción comercial…"
           />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ===========================================================================
+// Section 2b — Etiquetas (autosaved)
+// ===========================================================================
+
+/**
+ * The broker's labels: "Apto comercial", "Oferta", "A estrenar". Toggles
+ * rather than a text box because the vocabulary is closed (lib/property/tags,
+ * mirrored by the CHECK in migration 00017) — a free field would let a typo
+ * publish as a fourth chip. Each toggle is 44px tall (principle 1) even
+ * though this is the admin: it gets used from the phone too.
+ */
+function EtiquetasSection({
+  row,
+  onPatch,
+}: {
+  row: PropertyRowFromDb;
+  onPatch: (patch: Partial<PropertyRowFromDb>) => void;
+}) {
+  const [tags, setTags] = useState<PropertyTag[]>(() => readTags(row.tags));
+
+  const values = useMemo(() => ({ tags }), [tags]);
+
+  const { status, lastError } = useAutoSave(values, async () => {
+    const result = await updateOwnerPropertyAction(row.id, { tags });
+    if (!result.ok) throw new Error(result.error);
+    onPatch({ tags });
+  });
+
+  function toggle(tag: PropertyTag) {
+    setTags((prev) =>
+      readTags(prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]),
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base">Etiquetas</CardTitle>
+          <SectionSaveIndicator status={status} lastError={lastError} />
+        </div>
+        <CardDescription>
+          Se muestran en el catálogo, en la ficha y en el PDF. Tocá para prender o apagar.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-2">
+          {PROPERTY_TAGS.map((tag) => {
+            const on = tags.includes(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                aria-pressed={on}
+                onClick={() => toggle(tag)}
+                className={
+                  "inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-medium transition-colors " +
+                  (on
+                    ? "border-transparent bg-primary text-primary-foreground"
+                    : "border-border bg-transparent text-foreground hover:bg-muted")
+                }
+              >
+                {tagLabel(tag)}
+              </button>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

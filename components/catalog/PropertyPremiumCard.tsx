@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MapPin, ArrowRight, ImageIcon } from "lucide-react";
 import type { BuildingSummary } from "@/lib/buildings";
 import { formatPrice, labelWithOperation } from "@/lib/property/price";
+import { PropertyTagChips } from "@/components/property/PropertyTagChips";
 
 /**
  * Premium editorial card for the public home catalog (Block 5 del
@@ -50,6 +51,7 @@ export interface PremiumCardProperty {
   surface_arba: number | null;
   partida: string | null;
   photos: string[];
+  tags?: string[] | null;
 }
 
 export function PropertyPremiumCard({
@@ -140,6 +142,11 @@ export function PropertyPremiumCard({
                 .join(" · ")}
             </p>
           )}
+
+          {/* The broker's labels sit between the eyebrow and the price: "Oferta"
+              is a claim about the number right under it, and "Apto comercial"
+              qualifies the type right above. */}
+          <PropertyTagChips tags={property.tags} className="mt-2.5" />
 
           {priceText ? (
             <p className="mt-2 text-2xl sm:text-3xl font-bold tabular-nums leading-none">

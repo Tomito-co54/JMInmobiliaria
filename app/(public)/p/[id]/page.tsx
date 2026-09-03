@@ -181,6 +181,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               partido={property.partido}
               typeLabel={typeLabel}
               opLabel={opLabel}
+              tags={property.tags}
             />
 
             {/* On mobile the data panel comes right after the hero, before

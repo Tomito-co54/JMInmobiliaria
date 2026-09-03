@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Reveal } from "@/components/shared/Reveal";
 import { HomeProtagonistShowpiece } from "@/components/home/HomeProtagonistShowpiece";
 import { formatPrice, labelWithOperation } from "@/lib/property/price";
+import { PropertyTagChips } from "@/components/property/PropertyTagChips";
 
 /**
  * The home protagonista — Jotaeme's brand-signature gesture (Block 3 del
@@ -111,6 +112,9 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
           {p.partido && p.address && (
             <p className="mt-2 text-sm text-muted-foreground">{p.partido}</p>
           )}
+
+          {/* Same chips as the card, same spot: right before the price. */}
+          <PropertyTagChips tags={p.tags} className="mt-4" />
 
           {priceText ? (
             <p className="mt-5 text-2xl sm:text-3xl font-bold tabular-nums leading-none">

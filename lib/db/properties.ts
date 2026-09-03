@@ -70,6 +70,8 @@ export interface PublicPropertyRow {
   garages: number | null;
   description: string | null;
   year_built: number | null;
+  /** Broker labels — see lib/property/tags. Always [] for scraped rows. */
+  tags: string[];
   photos: string[];
   first_seen_at: string | null;
   last_seen_at: string | null;
@@ -114,6 +116,7 @@ const PUBLIC_PROPERTY_COLS = [
   "garages",
   "description",
   "year_built",
+  "tags",
   "photos",
   "first_seen_at",
   "last_seen_at",
@@ -351,6 +354,7 @@ export interface FeaturedPropertyRow {
   bathrooms: number | null;
   surface_total: number | null;
   surface_arba: number | null;
+  tags: string[];
   photos: string[];
   partida: string | null;
   quality_score_breakdown: QualityBreakdown | null;
@@ -369,6 +373,7 @@ const FEATURED_PROPERTY_COLS = [
   "bathrooms",
   "surface_total",
   "surface_arba",
+  "tags",
   "photos",
   "partida",
   "quality_score_breakdown",

@@ -106,6 +106,18 @@ describe("parseImportPayload", () => {
     expect(r.payload!.isFeatured).toBe(true);
   });
 
+  it("carries the broker's tags through, in canonical order", () => {
+    const r = parseImportPayload({ ...VALID, tags: ["a_estrenar", "oferta"] });
+    expect(r.ok).toBe(true);
+    expect(r.payload!.row.tags).toEqual(["oferta", "a_estrenar"]);
+  });
+
+  it("refuses a tag outside the vocabulary rather than dropping it", () => {
+    const r = parseImportPayload({ ...VALID, tags: ["remate"] });
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(" ")).toContain("tags");
+  });
+
   it("rejects a price that isn't a number", () => {
     const r = parseImportPayload({ ...VALID, price_amount: "ochenta mil" });
     expect(r.ok).toBe(false);

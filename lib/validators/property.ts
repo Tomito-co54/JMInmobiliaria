@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PARTIDOS_ZONA_SUR } from "@/lib/zona-sur/partidos";
+import { PROPERTY_TAGS, orderTags } from "@/lib/property/tags";
 
 /**
  * Zod schemas for the admin property loader.
@@ -50,6 +51,20 @@ function toNullablePositiveInt(value: unknown): number | null {
   const n =
     typeof value === "string" ? parseInt(value, 10) : Math.floor(Number(value));
   return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
+ * Empty → `[]`; a string → a one-element list; an array → trimmed and put in
+ * canonical order. Anything else is handed to Zod untouched so it can say no.
+ */
+function toTagList(value: unknown): unknown {
+  if (value === null || value === undefined || value === "") return [];
+  if (typeof value === "string") return orderTags([value.trim()]);
+  if (Array.isArray(value)) {
+    if (!value.every((v): v is string => typeof v === "string")) return value;
+    return orderTags(value.map((v) => v.trim()));
+  }
+  return value;
 }
 
 const nullableString = (max?: number) =>
@@ -105,6 +120,20 @@ export const ownerPropertyDraftSchema = z.object({
       .min(1800, "Año de construcción implausible")
       .max(2100, "Año de construcción implausible")
       .nullable(),
+  ),
+  // The broker's labels ("Oferta", "Apto comercial"…). A closed list,
+  // mirrored by the CHECK in migration 00017: anything outside it is an
+  // ERROR, never a silent drop — a file that says "remate" is stating
+  // something, and dropping it would publish a listing missing a claim its
+  // author made. A lone string is read as a one-element list because that is
+  // how a JSON typed by hand tends to arrive, and it is unambiguous.
+  tags: z.preprocess(
+    toTagList,
+    z.array(
+      z.enum(PROPERTY_TAGS, {
+        error: () => `Etiqueta desconocida. Las válidas son: ${PROPERTY_TAGS.join(", ")}.`,
+      }),
+    ),
   ),
 
   partido: z.preprocess(

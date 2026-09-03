@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { PropertiesFilters } from "./properties-filters";
 import { FeaturedToggle } from "./featured-toggle";
+import { PropertyTagChips } from "@/components/property/PropertyTagChips";
 import { Pagination } from "@/components/shared/pagination";
 
 export const metadata = {
@@ -173,6 +174,7 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
                       >
                         {row.address ?? "(sin dirección)"}
                       </Link>
+                      <PropertyTagChips tags={row.tags} className="mt-1" />
                     </td>
                     <td className="p-3 text-muted-foreground">
                       {row.partido ?? "—"}

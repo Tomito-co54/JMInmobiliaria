@@ -6,6 +6,7 @@ import { ImageIcon, Expand } from "lucide-react";
 import { usePrefersReducedMotion } from "@/hooks/use-in-view";
 import { cn } from "@/lib/utils";
 import { PropertyGallery, PropertyThumbnails } from "./PropertyGallery";
+import { PropertyTagChips } from "./PropertyTagChips";
 
 /**
  * Property detail hero (rediseño /p/[id]).
@@ -33,6 +34,7 @@ interface PropertyHeroProps {
   partido: string | null;
   typeLabel: string;
   opLabel: string | null;
+  tags: string[];
 }
 
 export function PropertyHero({
@@ -42,6 +44,7 @@ export function PropertyHero({
   partido,
   typeLabel,
   opLabel,
+  tags,
 }: PropertyHeroProps) {
   const reduced = usePrefersReducedMotion();
   const [openAt, setOpenAt] = useState<number | null>(null);
@@ -97,6 +100,10 @@ export function PropertyHero({
             bottom padding leaves the lower strip clear for the verified chip
             that overlaps below. */}
         <div className="absolute inset-x-0 bottom-0 p-4 pb-12 sm:p-6 sm:pb-14 lg:p-7 lg:pb-16">
+          {/* The broker's labels, over the photo and above the type line —
+              the one place on the page where "Oferta" is read before the
+              price, which is the order the claim is meant in. */}
+          <PropertyTagChips tags={tags} variant="overlay" className="mb-2.5" />
           <p className="text-[0.7rem] uppercase tracking-[0.2em] font-medium text-white/85">
             {[typeLabel, opLabel].filter(Boolean).join(" · ")}
           </p>

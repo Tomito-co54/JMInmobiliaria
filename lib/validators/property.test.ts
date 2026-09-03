@@ -106,6 +106,41 @@ describe("ownerPropertyDraftSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  describe("tags", () => {
+    it("defaults to an empty list", () => {
+      const result = ownerPropertyDraftSchema.safeParse({});
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.tags).toEqual([]);
+    });
+
+    it("orders and dedupes what the broker clicked", () => {
+      const result = ownerPropertyDraftSchema.safeParse({
+        tags: ["a_estrenar", "oferta", "a_estrenar"],
+      });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.tags).toEqual(["oferta", "a_estrenar"]);
+    });
+
+    it("reads a lone string as a one-element list", () => {
+      const result = ownerPropertyDraftSchema.safeParse({ tags: "oferta" });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.tags).toEqual(["oferta"]);
+    });
+
+    it("refuses a tag outside the vocabulary instead of dropping it", () => {
+      const result = ownerPropertyDraftSchema.safeParse({ tags: ["oferta", "remate"] });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain("Etiqueta desconocida");
+      }
+    });
+
+    it("refuses a list that is not made of strings", () => {
+      const result = ownerPropertyDraftSchema.safeParse({ tags: [1, 2] });
+      expect(result.success).toBe(false);
+    });
+  });
 });
 
 describe("ownerPropertyPublishSchema", () => {

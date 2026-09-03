@@ -3,6 +3,7 @@ import React from "react";
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { theme } from "./theme";
 import { labelWithOperation } from "@/lib/property/price";
+import { readTags, tagLabel } from "@/lib/property/tags";
 
 /**
  * Ficha de propiedad — the one-pager a buyer downloads and shares.
@@ -119,6 +120,8 @@ export interface PropertySheetInput {
     partida: string | null;
     nomenclatura_catastral: string | null;
     description: string | null;
+    /** Broker labels, raw from the row (see lib/property/tags). */
+    tags: string[];
     /** Absolute URL. Omitted when the listing has no photo or it failed. */
     coverUrl: string | null;
   };
@@ -161,6 +164,9 @@ export function PropertySheetDocument({ data }: { data: PropertySheetInput }) {
       p.operation_type as "venta" | "alquiler" | null,
     ) ?? "";
   const description = trim(p.description);
+  // The sheet travels without the page, so the labels travel with it: a
+  // buyer forwarding an "Oferta" should forward the word too.
+  const tagsLine = readTags(p.tags).map(tagLabel).join("  ·  ");
 
   return (
     <Document
@@ -168,6 +174,7 @@ export function PropertySheetDocument({ data }: { data: PropertySheetInput }) {
       author="Jotaeme — Oportunidades Inmobiliarias"
     >
       <Page size="A4" style={s.page}>
+        {tagsLine && <Text style={s.eyebrow}>{tagsLine}</Text>}
         {typeLine && <Text style={s.eyebrow}>{typeLine}</Text>}
         <Text style={s.address}>{p.address ?? "Propiedad"}</Text>
         {p.partido && <Text style={s.partido}>{p.partido}</Text>}
