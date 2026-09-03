@@ -35,11 +35,6 @@ export default async function AdminDashboardPage() {
           value={metrics.favoritesLast30Days.toLocaleString("es-AR")}
           hint="Últimos 30 días"
         />
-        <MetricCard
-          label="Servicios contratados"
-          value={metrics.serviceOrdersLast30Days.toLocaleString("es-AR")}
-          hint="Últimos 30 días"
-        />
       </section>
 
       <section className="rounded-md border bg-muted/30 p-4">

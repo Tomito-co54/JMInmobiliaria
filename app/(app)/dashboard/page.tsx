@@ -192,18 +192,6 @@ export default async function DashboardPage() {
           </Link>
         )}
       </div>
-
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="text-base">Próximamente</CardTitle>
-          <CardDescription>
-            Bloque 6 va a traer la lista de propiedades que matchean tus
-            búsquedas, alertas por email cuando aparezcan nuevas, y favoritos
-            guardados. Bloque 7 los servicios pagos (informe de dominio,
-            cédula catastral, etc.).
-          </CardDescription>
-        </CardHeader>
-      </Card>
     </div>
   );
 }

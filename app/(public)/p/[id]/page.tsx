@@ -211,7 +211,6 @@ export default async function PublicPropertyPage({ params }: PageProps) {
 
             {userId && (
               <BuyingProcessAdvisor
-                propertyId={property.id}
                 currentStage={profile?.current_stage ?? null}
                 showSetupPrompt={!profile?.current_stage}
               />

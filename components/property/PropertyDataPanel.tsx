@@ -1,5 +1,4 @@
-import { BedDouble, Bath, Maximize2, Car, CalendarClock, FileText, ExternalLink, Download } from "lucide-react";
-import Link from "next/link";
+import { BedDouble, Bath, Maximize2, Car, CalendarClock, ExternalLink, Download } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FavoriteButton } from "./FavoriteButton";
@@ -8,7 +7,6 @@ import { WhatsAppButton } from "./WhatsAppButton";
 import type { PropertyForMatching } from "@/lib/matching";
 import { formatPrice } from "@/lib/property/price";
 import { buildingAgeYears } from "@/lib/matching/match";
-import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
 
 /**
  * The sticky data panel (desktop right column / mobile inline block of the
@@ -192,15 +190,6 @@ export function PropertyDataPanel({
           </a>
         </div>
 
-        {PAID_SERVICES_PUBLIC && (
-          <Link
-            href={`/p/${propertyId}/servicios`}
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-12 w-full gap-2")}
-          >
-            <FileText className="size-5" />
-            Servicios
-          </Link>
-        )}
         {sourceUrl && (
           <a
             href={sourceUrl}

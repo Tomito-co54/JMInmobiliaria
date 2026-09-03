@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import { LogOut, User as UserIcon, FileText, Heart, Search, LayoutDashboard, BookOpen, ShieldCheck } from "lucide-react";
+import { LogOut, User as UserIcon, Heart, Search, LayoutDashboard, BookOpen, ShieldCheck } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -101,14 +101,6 @@ export function UserMenu({ email, fullName, isAdmin = false }: UserMenuProps) {
             <Link href="/favoritos" className="cursor-pointer">
               <Heart className="mr-2 size-4" />
               <span>Favoritos</span>
-            </Link>
-          }
-        />
-        <DropdownMenuItem
-          render={
-            <Link href="/mis-servicios" className="cursor-pointer">
-              <FileText className="mr-2 size-4" />
-              <span>Mis servicios</span>
             </Link>
           }
         />

@@ -4,7 +4,6 @@ import {
   type DocumentInfo,
   type ProcessStep,
 } from "./buying-process";
-import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
 
 /**
  * Buying-process advisor.
@@ -34,14 +33,10 @@ export interface AdvisorContext {
   mainAction: AdvisorAction;
 }
 
+// Había una tercera variante, "buy_service", que llevaba al checkout del
+// informe catastral pago. Los servicios pagos se dieron de baja enteros el
+// 2-sep-2026, así que la acción no tiene a dónde llevar.
 export type AdvisorAction =
-  | {
-      kind: "buy_service";
-      documentSlug: string;
-      serviceId: string;
-      title: string;
-      description: string;
-    }
   | {
       kind: "external_action";
       title: string;
@@ -110,23 +105,9 @@ function pickMainAction(
     };
   }
 
-  // Stage 4 — due diligence: surface the most actionable paid service we
-  // offer. Prefer cadastral_report since it's the only one currently
-  // enabled and instant.
+  // Stage 4 — due diligence. Acá el consejo proponía comprar el informe
+  // catastral; ahora se pide como cualquier otro papel.
   if (stage.slug === "due-diligence") {
-    const arba = PAID_SERVICES_PUBLIC
-      ? docs.find((d) => d.serviceId === "cadastral_report")
-      : undefined;
-    if (arba && arba.serviceId) {
-      return {
-        kind: "buy_service",
-        documentSlug: arba.slug,
-        serviceId: arba.serviceId,
-        title: `Te sacamos el ${arba.title}`,
-        description:
-          "Lo generamos al instante y te lo damos en PDF. Es el primer paso de la verificación catastral.",
-      };
-    }
     return {
       kind: "external_action",
       title: "Pedimos los informes",

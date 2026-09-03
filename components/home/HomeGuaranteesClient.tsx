@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { ShieldCheck, ScanSearch, FileCheck2 } from "lucide-react";
 import {
   useInView,
   useCountUp,
@@ -356,69 +355,6 @@ export function ScoreRingViz({ score }: { score: number }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// TONE 2 — Service steps (numbered sequence; §2.3)
-// ---------------------------------------------------------------------------
-const SERVICE_STEPS = [
-  { icon: ScanSearch, label: "Verificamos la partida", sub: "Contra el padrón oficial" },
-  { icon: ShieldCheck, label: "Consultamos el catastro en vivo", sub: "Superficie, parcela, polígono" },
-  { icon: FileCheck2, label: "Generás el informe en PDF", sub: "Al instante, desde la plataforma" },
-] as const;
-
-export function ServiceSteps() {
-  const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.4 });
-
-  const goldLine = "#D4A24C8C"; // brand gold ~55% — concrete, no color-mix
-
-  return (
-    <div ref={ref} className="mx-auto w-full max-w-xl">
-      <ol className="relative space-y-6 sm:space-y-0 sm:flex sm:gap-4">
-        {/* Connector line — fills along the sequence axis. Two elements so
-            each gets the correct origin/axis per breakpoint (mobile draws
-            top→down, desktop left→right). §2.3: the line advancing IS the
-            process. */}
-        <div
-          aria-hidden
-          className="absolute left-[1.35rem] top-3 bottom-3 w-0.5 origin-top rounded-full sm:hidden motion-safe:transition-transform motion-safe:duration-[1100ms] motion-safe:ease-out"
-          style={{ backgroundColor: goldLine, transform: inView ? "scaleY(1)" : "scaleY(0)" }}
-        />
-        <div
-          aria-hidden
-          className="absolute hidden sm:block left-12 right-12 top-[1.35rem] h-0.5 origin-left rounded-full motion-safe:transition-transform motion-safe:duration-[1100ms] motion-safe:ease-out"
-          style={{ backgroundColor: goldLine, transform: inView ? "scaleX(1)" : "scaleX(0)" }}
-        />
-        {SERVICE_STEPS.map((step, i) => {
-          const Icon = step.icon;
-          const delay = 200 + i * 300;
-          return (
-            <li
-              key={step.label}
-              className="relative flex items-start gap-4 sm:flex-col sm:items-center sm:text-center sm:flex-1"
-            >
-              {/* Icon circle lights up gold in sequence — the step-by-step
-                  reveal. Text stays readable without JS (only the accent
-                  animates), so the content degrades gracefully. */}
-              <span
-                className="relative z-10 grid size-11 shrink-0 place-items-center rounded-full border-2 bg-background transition-colors duration-500"
-                style={{
-                  borderColor: inView ? "var(--brand-gold)" : "var(--border)",
-                  color: inView ? "var(--brand-gold)" : "var(--muted-foreground)",
-                  transitionDelay: inView ? `${delay}ms` : "0ms",
-                }}
-              >
-                <Icon className="size-5" />
-              </span>
-              <div className="pt-1 sm:pt-3">
-                <p className="text-sm font-semibold" style={{ color: "var(--brand-heading)" }}>
-                  <span className="text-muted-foreground mr-1.5 tabular-nums">{i + 1}.</span>
-                  {step.label}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{step.sub}</p>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-}
+// Acá vivía ServiceSteps, la secuencia de tres pasos que vendía el informe
+// catastral pago ("Generás el informe en PDF... desde la plataforma"). Los
+// servicios pagos se dieron de baja enteros el 2-sep-2026.

@@ -2,7 +2,6 @@ import { getAppOrigin, getFromAddress, getResendClient } from "./client";
 import {
   renderNewMatchEmail,
   renderPriceDropEmail,
-  renderServiceDeliveryEmail,
 } from "./templates";
 
 /**
@@ -53,15 +52,6 @@ interface PriceDropInput {
     partido: string | null;
     photos: string[];
   };
-}
-
-interface ServiceDeliveryInput {
-  to: string;
-  recipientName: string | null;
-  serviceTitle: string;
-  propertyAddress: string | null;
-  folio: string;
-  downloadUrl: string;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -156,42 +146,6 @@ export async function sendPriceDropEmail(input: PriceDropInput): Promise<SendRes
     newPriceFormatted: fmtPrice(input.newAmount, input.currency),
     dropPctFormatted: `${dropPct.toFixed(1)}%`,
     coverUrl: property.photos[0] ?? null,
-  });
-
-  try {
-    const result = await client.emails.send({
-      from,
-      to: input.to,
-      subject,
-      html,
-      text,
-    });
-    if (result.error) {
-      return { ok: false, error: result.error.message };
-    }
-    return { ok: true, id: result.data?.id ?? "" };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
-  }
-}
-
-export async function sendServiceDeliveryEmail(
-  input: ServiceDeliveryInput,
-): Promise<SendResult> {
-  const skip = notConfigured();
-  if (skip) return skip;
-  const client = getResendClient()!;
-  const from = getFromAddress()!;
-  const origin = getAppOrigin();
-
-  const { subject, html, text } = renderServiceDeliveryEmail({
-    appOrigin: origin,
-    propertyUrl: `${origin}/mis-servicios`,
-    recipientName: input.recipientName,
-    serviceTitle: input.serviceTitle,
-    propertyAddress: input.propertyAddress,
-    folio: input.folio,
-    downloadUrl: input.downloadUrl,
   });
 
   try {

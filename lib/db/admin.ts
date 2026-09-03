@@ -17,7 +17,6 @@ export async function getDashboardMetrics() {
     propertiesActive,
     usersTotal,
     favoritesLastMonth,
-    serviceOrdersLastMonth,
   ] = await Promise.all([
     supabase.from("properties").select("*", { count: "exact", head: true }),
     supabase
@@ -27,10 +26,6 @@ export async function getDashboardMetrics() {
     supabase.from("users").select("*", { count: "exact", head: true }),
     supabase
       .from("favorites")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", sinceISO),
-    supabase
-      .from("service_orders")
       .select("*", { count: "exact", head: true })
       .gte("created_at", sinceISO),
   ]);
@@ -43,7 +38,6 @@ export async function getDashboardMetrics() {
     },
     usersTotal: usersTotal.count ?? 0,
     favoritesLast30Days: favoritesLastMonth.count ?? 0,
-    serviceOrdersLast30Days: serviceOrdersLastMonth.count ?? 0,
   };
 }
 

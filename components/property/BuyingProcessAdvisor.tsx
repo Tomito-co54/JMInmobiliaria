@@ -12,10 +12,8 @@ import {
   type AdvisorAction,
 } from "@/lib/education/advisor";
 import { PROCESS_STEPS } from "@/lib/education/buying-process";
-import { PAID_SERVICES_PUBLIC } from "@/lib/services/offering";
 
 interface BuyingProcessAdvisorProps {
-  propertyId: string;
   currentStage: string | null;
   /** When true and currentStage is null, render a soft prompt asking
    * the user to set their stage. When false, render nothing. */
@@ -34,7 +32,6 @@ interface BuyingProcessAdvisorProps {
  * a `user_property_progress` table).
  */
 export function BuyingProcessAdvisor({
-  propertyId,
   currentStage,
   showSetupPrompt,
 }: BuyingProcessAdvisorProps) {
@@ -231,7 +228,7 @@ export function BuyingProcessAdvisor({
           </div>
         </div>
 
-        <ActionCta propertyId={propertyId} action={mainAction} />
+        <ActionCta action={mainAction} />
       </div>
 
       {/* Footer link to full guide */}
@@ -253,28 +250,7 @@ export function BuyingProcessAdvisor({
   );
 }
 
-function ActionCta({
-  propertyId,
-  action,
-}: {
-  propertyId: string;
-  action: AdvisorAction;
-}) {
-  if (action.kind === "buy_service") {
-    // The advisor never builds this action while the services are hidden
-    // (see pickMainAction), but the branch stays so flipping the flag needs
-    // no second edit here.
-    if (!PAID_SERVICES_PUBLIC) return null;
-    return (
-      <Link
-        href={`/p/${propertyId}/servicios`}
-        className={cn(buttonVariants({ size: "sm" }), "w-full sm:w-auto gap-1")}
-      >
-        Ir a servicios
-        <ArrowRight className="size-3.5" />
-      </Link>
-    );
-  }
+function ActionCta({ action }: { action: AdvisorAction }) {
   if (action.kind === "advance_stage") {
     return (
       <Link
