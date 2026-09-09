@@ -83,9 +83,11 @@ arreglada y reparada** el mismo día — ver *Volvió a pasar el 1-sep* más aba
 Lo que queda es de contenido:
 
 
-1. **El catálogo tiene 4 propiedades publicadas** — las cuatro unidades de
-   2 ambientes de Belgrano 1287. Faltan el loft dúplex y el 3 ambientes del
-   mismo edificio, bloqueados solo por fotos.
+1. **El catálogo tiene 6 propiedades publicadas** — las cuatro unidades de
+   2 ambientes de Belgrano 1287, Talcahuano 258 (alquiler) y Alsina 1639 4°Y.
+   Faltan el loft dúplex y el 3 ambientes de Belgrano, bloqueados solo por
+   fotos, y el resto de la cartera que Tomy dictó el 3-sep (vive en la memoria
+   de Claude, provisoria hasta que él corrija).
 2. **La protagonista de la portada es Belgrano 1287 2°A** (marcada el 1-sep a
    pedido de Tomy). `getFeaturedProperty` rota entre las marcadas, así que con
    una sola marcada la portada muestra siempre esa. Antes no había ninguna y
@@ -371,7 +373,7 @@ una contra el build: no falta ninguna — están las 41, con `/icon.svg` y
 
 **Project location:** `C:\dev\jotaeme-inmobiliaria` (hermano de `C:\dev\jotaeme` que es el original — este fork no toca al original).
 
-**Contenido real (reverificado contra la base al cierre del 2-sep-2026):**
+**Contenido real (reverificado contra la base el 3-sep-2026):**
 
 | Qué | Cuánto |
 |---|---|
@@ -416,8 +418,8 @@ esperando fotos. Los precios de ficha son **contado sin cochera**; la tabla
 completa —financiado, con cochera— está en el folleto y todavía no tiene
 lugar en el sitio (ver punto 7 del Build map).
 
-El catálogo público muestra dos fichas. Cargar más es lo único que separa
-al sitio de estar listo.
+El catálogo público muestra seis fichas. Cargar el resto de la cartera es lo
+único que separa al sitio de estar listo.
 
 ### Estado de email / auth (resuelto en Fase 9)
 
@@ -854,9 +856,8 @@ Lo que conviene saber antes de tocarlo:
   una etiqueta.
 
 Se cargan desde el editor (sección "Etiquetas", toggles de 44px con autosave)
-o con `"tags": ["oferta"]` en el JSON del cargador. **Ninguna publicada tiene
-etiquetas todavía**, así que lo visual de los chips no se pudo verificar sin
-escribir una en producción: lo mira Tomy.
+o con `"tags": ["oferta"]` en el JSON del cargador. La primera con etiqueta es
+Alsina 1639 4°Y ("A estrenar"); lo visual de los chips lo mira Tomy.
 
 ### Las partidas de propiedad horizontal no están en la capa pública de ARBA (3-sep)
 
@@ -1657,9 +1658,11 @@ Detalles de cada fase en **Current progress** más arriba.
 
 **1. Cargar propiedades reales** ← lo único que separa al sitio de lanzar
 
-Hay 4 publicadas, las cuatro de 2 ambientes de Belgrano 1287. Lo siguiente
-son el **loft dúplex** y el **3 ambientes de planta baja** del mismo
-edificio: los datos están en el folleto y **lo único que falta son las fotos**.
+Hay 6 publicadas. De Belgrano 1287 faltan el **loft dúplex** y el **3
+ambientes de planta baja**: los datos están en el folleto y **lo único que
+falta son las fotos**. Después viene la cartera que Tomy dictó el 3-sep
+(Alsina 1639 completo, Cabrera 205, Drago, Sarmiento 1260…), de a una y en el
+orden que él marque, cuando la corrija.
 Dos caminos:
 
 - **Formulario:** `/admin/properties/nueva`.
