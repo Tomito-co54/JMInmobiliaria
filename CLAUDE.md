@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (16-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **475 tests passing** (+7 skipped a propósito),
+auto-deploy desde `main`. **483 tests passing** (+7 skipped a propósito),
 `npm run build` verde, **33 rutas**.
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
@@ -88,10 +88,11 @@ Lo que queda es de contenido:
    Faltan el loft dúplex y el 3 ambientes de Belgrano, bloqueados solo por
    fotos, y el resto de la cartera que Tomy dictó el 3-sep (vive en la memoria
    de Claude, provisoria hasta que él corrija).
-2. **La protagonista de la portada es Belgrano 1287 2°A** (marcada el 1-sep a
-   pedido de Tomy). `getFeaturedProperty` rota entre las marcadas, así que con
-   una sola marcada la portada muestra siempre esa. Antes no había ninguna y
-   la landing quedaba sin una sola propiedad a la vista.
+2. **La protagonista de la portada es Belgrano 1287 1°A, porque está en
+   oferta.** Desde el 16-sep **una oferta le gana a la destacada**: si hay
+   alguna publicada con la etiqueta `oferta`, la portada muestra la más
+   barata (`cheapestOffer`). Sin ofertas, vuelve la rotación de siempre entre
+   las marcadas con ★, que hoy es sólo la 2°A.
 3. **El scraping corre a mano** — pero ojo, ver abajo: **GitHub Actions
    también corre solo desde el 27-ago** y escribe en la misma base.
 
@@ -200,6 +201,48 @@ que falta. Tomy confirma precios (1°A, 4°Y) y la altura de Vergara (1900 o 190
 revalida la caché pública** (`PUBLIC_CATALOG_TAG`); sólo publicar lo hace. El
 header y los pins muestran el precio viejo hasta 5 minutos. Anotado, no
 arreglado.
+
+### La oferta se ve, y manda en la portada (16-sep)
+
+Tomy, sobre el chip dorado de "Oferta": *"es un recuadro informativo más, ni se
+ve, y los colores son muy apagados"*. Pidió un cartel que sobresalga un poco de
+la publicación, con colores llamativos, el precio en otro color, y que la
+oferta sea la protagonista de la landing — la más barata si hay varias
+(`fb53574`).
+
+- **`OfferBadge`** (`components/property/OfferBadge.tsx`): placa roja, texto en
+  mayúsculas, sombra del mismo rojo, inclinada. Cuelga **por fuera** del borde
+  de lo que la lleva: la card del catálogo, el hero de la ficha y la foto de la
+  portada. Tres tamaños para tres distancias.
+- **`--offer`** en `globals.css`: `#D93D2A` en claro, `#FF6B57` en oscuro.
+  **Sale de la línea navy + dorado a propósito** (§7 del doc de arte: la
+  afirmación queda explícita, no enterrada, y es un gesto puntual). La regla que
+  lo sostiene: **ese rojo no se usa para nada más**, así conserva su significado.
+- **El precio toma el mismo rojo** en las cuatro superficies que lo muestran:
+  card, portada, panel de la ficha y barra mobile. Cartel y número se leen como
+  una sola afirmación.
+- **`PropertyTagChips` ganó `omit`**: las superficies públicas pasan
+  `omit={["oferta"]}` porque el cartel ya lo dice. El PDF y el listado de admin
+  siguen mostrando el chip, que ahí alcanza.
+- **Para que el cartel pueda sobresalir de la card**, el `overflow-hidden` pasó
+  del `<article>` al `<Link>`. Un elemento que desborda necesita un ancestro que
+  no recorte.
+- **La portada**: `getFeaturedProperty` busca primero las publicadas con
+  `oferta` y devuelve la más barata; si no hay, la rotación de ★. El eyebrow
+  dice "Oportunidad en oferta" en vez de "Propiedad destacada".
+- **`lib/property/offers.ts`** es la regla, pura y con tests. `cheapestOffer`
+  **nunca compara pesos contra dólares**: si hay alguna oferta en USD, el pool
+  es sólo USD; un alquiler de 1.900.000 pesos por mes no es "más caro" que una
+  venta de 69.900 dólares, es otra escala. Una oferta sin precio no puede ser
+  la más barata de nada.
+- **El cartel es estático.** Uno que titila es uno que se aprende a ignorar (§6).
+
+**Cómo se verificó:** medido en dev (color y tamaño del cartel y del precio en
+landing, catálogo y ficha; sin overflow horizontal a 375px) y consola limpia en
+pestañas nuevas, con y sin el cambio. Apareció un error de hidratación en la
+pestaña que venía de varias recargas con HMR, que **no se reprodujo** en una
+pestaña limpia ni con el cambio ni sin él. **Lo visual lo mira Tomy**: el panel
+estaba oculto y las capturas salen sin el contenido que entra por `Reveal`.
 
 ### Las portadas de /propiedades no se veían en el celular (3-sep)
 
@@ -399,7 +442,8 @@ visual.
 | Fase 44 — Buscar por área en el mapa | La capa pública sobre `AreaMap` que el punto 6 preveía: en `/propiedades` el mapa es un filtro más (`?mapa=1`, `?area=…`), con "Dibujar un área" en desktop y **"Buscar en esta zona"** en el celular; pins en color de match, los de afuera del área atenuados, Leaflet sólo al abrirlo. En la landing, `HomeMapTeaser`: pins sobre tiles reales sin Leaflet, link al mapa. | `187768e` |
 | Fase 43 — El catálogo se filtra y se ordena por el match | `/propiedades` con búsqueda escrita, selectores de ubicación / operación / tipo (cada uno aparece sólo con más de una posición) y, con el match armado, **orden por match** con "Tu match · N de 100" en cada card. Filtros en la URL, orden no. `lib/catalog/filters.ts` puro; la lista es isla de cliente. `useSearchParams` descartado: su Suspense no hidrataba en dev. | `5549729` |
 | Fase 42 — Los extras, y el tipo cochera | Cochera / patio / terraza como **botón**: chip fijo si viene con la unidad, **toggle de 44px** si se elige, y el precio de la ficha suma el delta en el mismo frame (la barra mobile lee el mismo store). `properties.extras` jsonb con CHECK por función SQL (00020); `price_amount` sigue siendo el piso. Tipo `cochera` (00019) y `lib/property/types.ts` como única lista de tipos. Cargados: 4°Y (cochera + terraza incluidas), Belgrano 1°A/1°B (+8.000), 2°A/2°B (+9.000, terraza incluida). | `aa040cf` |
-| Fase 45 — La cartera se sincroniza desde la carpeta de Tomy | `npm run sincronizar-cartera`: maestra + `Publicación/` → `ficha.json` → cargador, con modo actualizar sin duplicar y tres guardas opt-in (estado, precio, fotos). `lib/admin/cartera-sync.ts` puro con 25 tests; `property-loader.ts` extraído del CLI. `exceljs` como devDependency para leer la maestra. Probado en modo prueba contra Belgrano 1287; nada aplicado. | *(este commit)* |
+| Fase 45 — La cartera se sincroniza desde la carpeta de Tomy | `npm run sincronizar-cartera`: maestra + `Publicación/` → `ficha.json` → cargador, con modo actualizar sin duplicar y tres guardas opt-in (estado, precio, fotos). `lib/admin/cartera-sync.ts` puro con 25 tests; `property-loader.ts` extraído del CLI. `exceljs` como devDependency para leer la maestra. Probado en modo prueba contra toda la maestra; nada aplicado. `Precio oferta (USD)` para que una oferta no pelee con el precio de lista; `Publicar` vacío es "no decidido"; `Dirección real` sale de la hoja `Propiedades`. | `4a260ed` `72c60c4` `786b3ae` |
+| Fase 46 — La oferta se ve, y manda en la portada | `OfferBadge`: cartel rojo que sobresale de la card, del hero y de la foto de la portada, con el precio en el mismo rojo (`--offer`, fuera de la línea navy + dorado a propósito). La portada muestra la oferta publicada más barata, y sin ofertas vuelve a la rotación de ★. `lib/property/offers.ts` puro: nunca compara pesos contra dólares. | `fb53574` |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
 **Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
@@ -415,7 +459,8 @@ mail de entrega, que se fueron con el código que probaban; → **406** tras la
 el lookup por `cca`, el validador de nomenclatura y el JSON de PH; → **432** tras la
 42, con el módulo de extras y su schema; → **446** tras la 43, con los filtros y el
 orden del catálogo; → **450** tras la 44, con el área del mapa en los filtros; → **475** tras la
-45, con la sincronización de la cartera). Los 7 saltados son las bandas de
+45, con la sincronización de la cartera; → **483** tras la 46, con `cheapestOffer` y el
+precio de oferta de la maestra). Los 7 saltados son las bandas de
 coherencia ARBA: quedan como spec de vuelta, ver **El dato de ARBA es de la
 parcela** más abajo.
 
@@ -907,10 +952,10 @@ Lo que conviene saber antes de tocarlo:
 - **Un solo componente las pinta** — `PropertyTagChips` — en la card, la
   portada, el hero de la ficha, el PDF y el listado de admin, para que la
   misma etiqueta no parezca dos afirmaciones distintas en dos lugares.
-  **"Oferta" es la única con acento dorado**: es la única que habla del
-  precio y no del lugar, y dos chips fuertes se anulan. Va justo antes del
-  precio en todas las superficies, que es el orden en que se lee la
-  afirmación.
+  **"Oferta" tenía acento dorado** por ser la única que habla del precio.
+  **Desde el 16-sep no alcanza**: en las superficies públicas la dice
+  `OfferBadge`, en rojo y colgada del borde, y el chip se omite ahí (ver *La
+  oferta se ve*). El chip dorado queda en el PDF y en el listado de admin.
 - **"A estrenar" convive con la antigüedad derivada.** El panel de la ficha
   ya imprime "a estrenar" cuando `year_built` es el año en curso. Son dos
   cosas: una es un hecho del edificio, la otra una etiqueta que el corredor
@@ -1434,6 +1479,9 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   PropertyMapSection, BuildingUnits, etc.
 │   │                             #   PropertyTagChips: las etiquetas del corredor, UN
 │   │                             #   componente para las cinco superficies que las pintan
+│   │                             #   (con `omit`: las públicas no repiten "Oferta")
+│   │                             #   OfferBadge: el cartel rojo de oferta, que cuelga
+│   │                             #   del borde. El único uso del rojo `--offer`
 │   │                             #   PropertyPriceExtras: el precio con sus extras — chip
 │   │                             #   fijo si incluida, toggle si opcional — y la variante
 │   │                             #   de la barra mobile, que lee el mismo store
@@ -1517,6 +1565,8 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   islas que muestran el precio.
 │   │                             #   types.ts: LA lista de tipos y su etiqueta — antes
 │   │                             #   copiada en once archivos
+│   │                             #   offers.ts: qué es "en oferta" y cuál es la más
+│   │                             #   barata (la protagonista). Nunca mezcla monedas
 │   ├── matching/                 # match.ts + preferences.ts (perfil anónimo, puro)
 │   │                             #   + best-match.ts: el mejor match del catálogo,
 │   │                             #   compartido por la home y el header para que los
@@ -1721,6 +1771,7 @@ servicios pagos el 2-sep.)
 45. **Fase 43 — El catálogo se filtra y se ordena por el match** ✅ 3-sep
 46. **Fase 44 — Buscar por área en el mapa** ✅ 3-sep
 47. **Fase 45 — La cartera se sincroniza desde la carpeta de Tomy** ✅ 16-sep (probado, no aplicado)
+48. **Fase 46 — La oferta se ve, y manda en la portada** ✅ 16-sep
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -2141,6 +2192,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.27 | Sep 16, 2026 | **La oferta se ve.** Tomy: el chip dorado de "Oferta" era un recuadro informativo más y no se veía. Ahora es un **cartel rojo que sobresale** de la card, del hero de la ficha y de la foto de la portada, con el precio en el mismo rojo. El rojo sale de la línea navy + dorado a propósito, y la condición para permitirlo es que **no se use para nada más**. **La oferta más barata es la protagonista de la landing**, sin mezclar monedas; sin ofertas vuelve la rotación de ★. Para que el cartel pudiera colgar por fuera, el recorte de la card pasó del `<article>` al `<Link>`. De la sincronización: la maestra recibió sus 13 columnas web y `Precio oferta (USD)`; `Publicar` vacío se lee como "no decidido" (leerlo como "No" habría despublicado Belgrano entero en la primera corrida), y `Dirección real` sale de la hoja `Propiedades`. **475 → 483 tests.** Lo visual queda para que lo mire Tomy. |
 | 2.26 | Sep 16, 2026 | **La cartera se sincroniza desde la carpeta de Tomy.** Tomy administra sus propiedades en OneDrive con Cowork, y el contrato entre esa carpeta y este repo es `PUBLICACION.md` (allá). El primer borrador del asistente describía otro sitio —estático, con "assets generados"— y se corrigió: acá las propiedades viven en Supabase y la pieza que conecta es el cargador. `npm run sincronizar-cartera` lee la maestra y `Publicación/`, arma la ficha, la compara con la base y **por defecto no escribe**. El cargador aprendió a **actualizar sin duplicar**, y la prueba destapó que parchear la fila entera habría borrado la descripción y el año de las cuatro publicadas: el schema rellena con null lo que la ficha no dice. Ahora sólo se escriben las claves declaradas. Tres guardas opt-in: estado (sin columna `Publicar` no se decide), precio (`--precios`), fotos (`--fotos`). Belgrano 1287 1°A pasó a **oferta a USD 69.900** con el chip encendido — la primera publicada con etiqueta. **450 → 475 tests.** |
 | 2.25 | Sep 3, 2026 | **Buscar por área en el mapa.** La capa pública sobre `AreaMap` que el punto 6 esperaba: en `/propiedades` el mapa se abre desde la barra y el área es un filtro más, en la URL; "Dibujar un área" en desktop y "Buscar en esta zona" en el celular, porque un teléfono no puede arrastrar un rectángulo sin mover el mapa. Los pins llevan el color del match y los de afuera del área se atenúan. Leaflet sólo al abrirlo. La landing tiene su recuadro sin Leaflet, pins proyectados con la misma función que los tiles. Una trampa medida: un mapa en una pestaña oculta reporta bounds sin ancho, y "buscar en esta zona" vaciaba la lista — el botón se apaga mientras el rectángulo sea degenerado. **446 → 450 tests.** |
 | 2.24 | Sep 3, 2026 | **El catálogo se filtra y se ordena por el match.** Búsqueda escrita, selectores de ubicación / venta-alquiler / tipo, y con el match armado las propiedades se ordenan por match con el puntaje en cada card. La lista pasó a isla de cliente porque el match sólo existe en el navegador. Cada selector aparece sólo cuando tiene más de una posición, así que hoy Ubicación no se ve: todo es Lomas de Zamora. Y una trampa nueva para la colección: **`useSearchParams` dentro de Suspense no hidrató en dev** — la barra se dibujaba sin fiber de React y sin ningún error; se lee `window.location` al montar. También cerró **las portadas de /propiedades en Safari** (aspect-ratio sobre ítem estirado de grilla → 0px). **432 → 446 tests.** |
