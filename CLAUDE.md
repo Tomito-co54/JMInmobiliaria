@@ -86,6 +86,10 @@ Lo que queda es de contenido:
 1. **El catálogo tiene 9 propiedades publicadas** (16-sep, primera carga
    aplicada desde la maestra): Belgrano 1287 1°A, 1°B, **1°C**, 2°A y 2°B;
    Alsina 1639 4°Y; **Vergara 1901 UF 3 y UF 9**; Talcahuano 258 (alquiler).
+   **2°A y 2°B bajaron a USD 94.000** (16-sep, pedido de Tomy), escrito
+   directo en la base: la maestra todavía dice 96.000 y hasta que Cowork la
+   corrija el modo prueba lo va a mostrar como diferencia de precio. **No
+   correr `--precios` sobre Belgrano antes de eso**, o vuelve a 96.000.
    Lo que falta sale de la **PLANILLA MAESTRA**, que desde el 16-sep es la
    única fuente de la cartera: 25 unidades en `Publicar = Sí`, de las que 8
    tienen material (ver *La cartera se sincroniza*). La lista que Tomy le
@@ -245,11 +249,17 @@ reporte en `PUBLICACION.md` (*Respuestas de Tomy al reporte de Code*):
   258, Banfield": el script compara sin la localidad (`sameListingAddress`).
   No se renombra —no hay columna de localidad adonde mover "Banfield"— y como
   no tiene `Publicación/`, no se toca.
-- **Las dos de Vergara no tienen parcela**: ARBA devolvió `partida_not_found`,
-  igual que Alsina (una partida de UF no está en la capa pública). Sin parcela
-  no hay mapa ni agrupamiento en `/edificios`. Falta la **nomenclatura del
-  lote** de los papeles, para cargarla en su `provisorio.json`; por cercanía
-  no se adivina, porque en Alsina eligió la parcela vecina.
+- **Las dos de Vergara no tenían parcela**: ARBA devolvió `partida_not_found`,
+  igual que Alsina (una partida de UF no está en la capa pública). **Resuelto
+  el mismo 16-sep** con la nomenclatura del lote que traen los boletos de la
+  U.C A: Circ. III · Secc. A · Manz. 49 · **Parc. 20A**
+  (`063030A0000000000000000000000049000002000A`, 229 m², partida del lote
+  063-021511). Los boletos arrastran datos del modelo de Alsina, así que antes
+  de guardarla se verificó contra el catastro: de las 42 parcelas de la
+  manzana, la 20A es **la única con ochava**, y el cruce Valentín Vergara ×
+  José Antonio Cabrera (OSM) queda a 15 m de ese vértice, sobre el eje de la
+  calle. Va en el `provisorio.json` de las dos unidades; las partidas de UF
+  (063-241054 y 063-241060) no se tocaron.
 - **Falta material** en 17: Alsina 3°O, 3°Q, 4°S, 4°X; Cabrera 205 UF 2 y UF 6;
   Sarmiento 1260; Matheu y Viamonte ×4; Condarco y Aguapey ×4; Belgrano PB A
   (tercero) y 1°D.
@@ -506,7 +516,7 @@ visual.
 | Fase 45 — La cartera se sincroniza desde la carpeta de Tomy | `npm run sincronizar-cartera`: maestra + `Publicación/` → `ficha.json` → cargador, con modo actualizar sin duplicar y tres guardas opt-in (estado, precio, fotos). `lib/admin/cartera-sync.ts` puro con 25 tests; `property-loader.ts` extraído del CLI. `exceljs` como devDependency para leer la maestra. Probado en modo prueba contra toda la maestra; nada aplicado. `Precio oferta (USD)` para que una oferta no pelee con el precio de lista; `Publicar` vacío es "no decidido"; `Dirección real` sale de la hoja `Propiedades`. | `4a260ed` `72c60c4` `786b3ae` |
 | Fase 46 — La oferta se ve, y manda en la portada | `OfferBadge`: cartel rojo que sobresale de la card, del hero y de la foto de la portada, con el precio en el mismo rojo (`--offer`, fuera de la línea navy + dorado a propósito). La portada muestra la oferta publicada más barata, y sin ofertas vuelve a la rotación de ★. `lib/property/offers.ts` puro: nunca compara pesos contra dólares. | `fb53574` |
 | Fase 47 — La maestra decide qué se publica | `Publicar` cargado por Tomy (25 Sí). Sí sin fotos no se carga ni como borrador; Sí le gana a `Etapa`; cocheras sueltas afuera; terceros como `agency` desde `Terceros/`; la partida madre no pisa la de unidad; guion en `Unidad` = propiedad entera; aviso de duplicado por dirección parecida. Galerías del sitio bajadas a `Publicación/` (Belgrano ×4, Alsina 4°Y) y las de Zonaprop para Vergara U.F 9. La cartera dictada, archivada. | `91106b9` |
-| Fase 48 — La primera carga desde la maestra | Aplicadas las 8 listas: 1°C y Vergara 1901 UF 3 / UF 9 nuevas, 4°Y con la descripción corregida, Belgrano con el detalle de la cochera. La columna `Cochera` se lee en sus dos formas acordadas (suplemento opcional, detalle incluido). Talcahuano se reconoce sin la localidad. Segunda corrida: sin diferencias. | *(este commit)* |
+| Fase 48 — La primera carga desde la maestra | Aplicadas las 8 listas: 1°C y Vergara 1901 UF 3 / UF 9 nuevas, 4°Y con la descripción corregida, Belgrano con el detalle de la cochera. La columna `Cochera` se lee en sus dos formas acordadas (suplemento opcional, detalle incluido). Talcahuano se reconoce sin la localidad. Segunda corrida: sin diferencias. Después, Vergara con la parcela 20A verificada, y 2°A/2°B a USD 94.000. | `c743bd5` y el siguiente |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
 **Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
@@ -1844,9 +1854,8 @@ Detalles de cada fase en **Current progress** más arriba.
 
 **1. Cargar propiedades reales** ← lo único que separa al sitio de lanzar
 
-Hay 9 publicadas. De Belgrano 1287 faltan el **1°D** (loft) y la **PB A**
-(de un tercero): sólo faltan las fotos. Las dos de Vergara necesitan la
-nomenclatura del lote para tener mapa. Después viene el resto de la cartera, de a una y en el
+Hay 9 publicadas, todas con parcela y mapa. De Belgrano 1287 faltan el
+**1°D** (loft) y la **PB A** (de un tercero): sólo faltan las fotos. Después viene el resto de la cartera, de a una y en el
 orden que marque la maestra (`Publicar = Sí` con fotos en `Publicación/`).
 Tres caminos:
 
@@ -2256,6 +2265,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.30 | Sep 16, 2026 | **Vergara tiene parcela, y Belgrano 2°A/2°B bajan a 94.000.** La nomenclatura del lote vino de los boletos de la U.C A, que arrastran datos del modelo de Alsina, así que no se cargó a ciegas: se trajo la manzana 49 entera del catastro y la 20A resultó ser la única parcela con ochava, a 15 m del cruce Vergara × Cabrera. Las dos unidades ya dibujan su parcela y agrupan en `/edificios`, con sus partidas de UF intactas. El precio de Belgrano se escribió directo en la base porque la maestra todavía dice 96.000: hasta que Cowork la corrija, `--precios` sobre Belgrano lo revertiría. Sin cambios de código: 488 tests. |
 | 2.29 | Sep 16, 2026 | **La primera carga desde la maestra.** Tomy contestó el reporte en `PUBLICACION.md` y se aplicaron las 8 listas: el catálogo pasa de **6 a 9** (Belgrano 1°C y Vergara 1901 UF 3 y UF 9, nuevas). La columna `Cochera` ahora se lee en las dos formas que acordaron Cowork y Tomy ("Opcional (+USD 5.000)", "Incluida: …"), la 4°Y dejó de decir "cochera opcional" cuando la incluye, y Talcahuano se reconoce como la misma publicación aunque el sitio le agregue la localidad. La segunda corrida da sin diferencias en las ocho. Queda un hueco conocido: las dos de Vergara no tienen parcela (su partida de UF no está en la capa pública de ARBA) y necesitan la nomenclatura del lote. **485 → 488 tests.** |
 | 2.28 | Sep 16, 2026 | **La maestra decide qué se publica.** Tomy cargó `Publicar` (25 Sí, 13 No) y `PUBLICACION.md` sumó reglas que el script ya aplica: Sí sin fotos no se carga ni como borrador, Sí le gana a `Etapa` (Belgrano PB A, de un tercero), las cocheras de la familia sólo como extra, y las unidades de terceros se buscan en `Terceros/` y entran como `agency`. Dos guardas aparecieron probando: **una partida madre habría pisado la de unidad de la 4°Y**, y **un "—" en `Unidad` armaba "Talcahuano 258 —"**. Las galerías de Belgrano y la 4°Y bajaron del sitio a la carpeta —las viejas quedaron como `_BORRAR - `, nada se borró— y desde ahora la carpeta es la fuente. Vergara U.F 9 tiene las 16 fotos de su aviso. La cartera que Tomy dictó el 3-sep se archivó en su carpeta y dejó de ser fuente: **para la cartera, sólo la maestra**. Modo prueba: 8 listas, 18 con falta de material, nada aplicado. **483 → 485 tests.** |
 | 2.27 | Sep 16, 2026 | **La oferta se ve.** Tomy: el chip dorado de "Oferta" era un recuadro informativo más y no se veía. Ahora es un **cartel rojo que sobresale** de la card, del hero de la ficha y de la foto de la portada, con el precio en el mismo rojo. El rojo sale de la línea navy + dorado a propósito, y la condición para permitirlo es que **no se use para nada más**. **La oferta más barata es la protagonista de la landing**, sin mezclar monedas; sin ofertas vuelve la rotación de ★. Para que el cartel pudiera colgar por fuera, el recorte de la card pasó del `<article>` al `<Link>`. De la sincronización: la maestra recibió sus 13 columnas web y `Precio oferta (USD)`; `Publicar` vacío se lee como "no decidido" (leerlo como "No" habría despublicado Belgrano entero en la primera corrida), y `Dirección real` sale de la hoja `Propiedades`. **475 → 483 tests.** Lo visual queda para que lo mire Tomy. |
