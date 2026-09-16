@@ -4,6 +4,7 @@ import {
   cocheraFromColumns,
   diffAgainstSite,
   findPartida,
+  sameListingAddress,
   isStandaloneGarage,
   isThirdParty,
   parseEtiquetas,
@@ -127,14 +128,26 @@ describe("parseTipo", () => {
 
 describe("cocheraFromColumns", () => {
   it("maps 'opcional' + tipo to an optional extra with the type as detail", () => {
-    expect(cocheraFromColumns("opcional", "Cubierta")).toEqual({ mode: "opcional", detail: "cubierta" });
+    expect(cocheraFromColumns("opcional", "Cubierta")).toEqual({ mode: "opcional", detail: "cubierta", priceDelta: null });
   });
 
   it("maps a described garage to an included one", () => {
     expect(cocheraFromColumns("Cochera doble cubierta", "Integrada")).toEqual({
       mode: "incluida",
-      detail: "cochera doble cubierta",
+      detail: "Cochera doble cubierta",
+      priceDelta: null,
     });
+  });
+
+  it("reads the agreed shapes: optional with surcharge, included with detail", () => {
+    expect(cocheraFromColumns("Opcional (+USD 5.000)", null)).toEqual({ mode: "opcional", detail: null, priceDelta: 5000 });
+    expect(cocheraFromColumns("Incluida: ½ U.C B espacio C", "Cubierta")).toEqual({
+      mode: "incluida",
+      detail: "½ U.C B espacio C, cubierta",
+      priceDelta: null,
+    });
+    // An included garage never carries a surcharge, whatever the text says.
+    expect(cocheraFromColumns("Incluida (+USD 5.000)", null)?.priceDelta).toBeNull();
   });
 
   it("is null when there is none", () => {
@@ -191,6 +204,18 @@ describe("partidas", () => {
     expect(findPartida([madre, own], "Vergara y Cabrera", "UF 9")).toEqual({ row: own, via: "unidad" });
     expect(findPartida([madre, own], "Vergara y Cabrera", "U.F: 3")).toEqual({ row: madre, via: "madre" });
     expect(findPartida([MADRE], "Cabrera 205", "U.F 2")).toBeNull();
+  });
+});
+
+describe("sameListingAddress", () => {
+  it("ignores a trailing locality, case and accents", () => {
+    expect(sameListingAddress("Talcahuano 258", "Talcahuano 258, Banfield")).toBe(true);
+    expect(sameListingAddress("Lanús 10", "lanus 10")).toBe(true);
+  });
+  it("still tells units and numbers apart", () => {
+    expect(sameListingAddress("Belgrano 1287 1°A", "Belgrano 1287 1°B")).toBe(false);
+    expect(sameListingAddress("Talcahuano 258", "Talcahuano 2580")).toBe(false);
+    expect(sameListingAddress("", ", Banfield")).toBe(false);
   });
 });
 

@@ -184,21 +184,60 @@ export function parseTipo(tipo: string | null): TipoParse {
   return out;
 }
 
-/** The `Cochera` + `Tipo cochera` columns as an extra, or null when there is none. */
+/**
+ * The `Cochera` + `Tipo cochera` columns as an extra, or null when there is none.
+ *
+ * The column is free text, and since 16-sep it follows two shapes Cowork
+ * agreed with Tomy: "Opcional (+USD 5.000)" — the surcharge is read into
+ * `priceDelta` — and "Incluida: ½ U.C B espacio C" — what follows the colon
+ * is the detail, in its original case. Older values ("00-15", "opcional")
+ * still read as before.
+ */
 export function cocheraFromColumns(
   cochera: string | null,
   tipoCochera: string | null,
-): { mode: ExtraMode; detail: string | null } | null {
-  const c = (cochera ?? "").trim().toLowerCase();
+): { mode: ExtraMode; detail: string | null; priceDelta: number | null } | null {
+  const raw = (cochera ?? "").trim();
+  const c = raw.toLowerCase();
   if (c === "" || c === "no" || c === "-" || c === "—") return null;
   const mode: ExtraMode = /opcional/.test(c) ? "opcional" : "incluida";
+
+  let priceDelta: number | null = null;
+  const money = raw.match(/\+\s*(?:USD|U\$S|US\$)?\s*([\d.]+)/i);
+  if (mode === "opcional" && money) {
+    const n = Number(money[1].replace(/\./g, ""));
+    if (Number.isFinite(n) && n > 0) priceDelta = n;
+  }
+
   const detailParts: string[] = [];
-  if (mode === "incluida" && !/^(s[ií]|incluida)$/.test(c)) detailParts.push(c);
+  if (mode === "incluida") {
+    const afterColon = raw.match(/^incluida\s*:\s*(.+)$/i);
+    if (afterColon) detailParts.push(afterColon[1].trim());
+    else if (!/^(s[ií]|incluida)$/.test(c)) detailParts.push(raw);
+  }
   if (tipoCochera && tipoCochera.trim() !== "" && !/integrada/i.test(tipoCochera)) {
     detailParts.push(tipoCochera.trim().toLowerCase());
   }
   const detail = detailParts.length ? [...new Set(detailParts)].join(", ") : null;
-  return { mode, detail };
+  return { mode, detail, priceDelta };
+}
+
+/**
+ * Whether two addresses name the same listing, ignoring a trailing
+ * locality: the site has "Talcahuano 258, Banfield", the maestra
+ * "Talcahuano 258" (Banfield is the locality, not part of the address).
+ * Case, accents and spacing are ignored; the unit, if any, still has to match.
+ */
+export function sameListingAddress(a: string, b: string): boolean {
+  const norm = (s: string) =>
+    s
+      .split(",")[0]
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+  return norm(a) !== "" && norm(a) === norm(b);
 }
 
 // ─── Publish decision ───────────────────────────────────────────────────────
@@ -454,7 +493,7 @@ export function buildFicha(input: BuildInput): BuiltFicha {
   // the Tipo text; provisorio.json can add the price delta or override all.
   const derivedExtras: Record<string, unknown>[] = [];
   const coch = cocheraFromColumns(row.cochera, row.tipoCochera);
-  if (coch) derivedExtras.push({ kind: "cochera", mode: coch.mode, detail: coch.detail, price_delta: null });
+  if (coch) derivedExtras.push({ kind: "cochera", mode: coch.mode, detail: coch.detail, price_delta: coch.priceDelta });
   for (const e of tipo.extras) {
     derivedExtras.push({ kind: e.kind, mode: "incluida", detail: e.detail || null, price_delta: null });
   }

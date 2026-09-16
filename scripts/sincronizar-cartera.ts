@@ -40,6 +40,7 @@ import {
   isStandaloneGarage,
   isThirdParty,
   publishDecision,
+  sameListingAddress,
   siteAddress,
   unitFolderName,
   unpublishedStatus,
@@ -152,6 +153,34 @@ async function readSiteRow(sb: SupabaseClient, id: string): Promise<Record<strin
   return data as Record<string, unknown>;
 }
 
+interface SiteRef {
+  id: string;
+  address: string | null;
+  listing_status: string | null;
+}
+let ownerRowsCache: SiteRef[] | null = null;
+
+/**
+ * The owner rows that are this listing. Exact address first; failing that,
+ * the same address without a trailing locality ("Talcahuano 258" in the
+ * maestra is "Talcahuano 258, Banfield" on the site), so a spelling
+ * difference cannot turn into a duplicate.
+ */
+async function findSite(sb: SupabaseClient, address: string): Promise<{ rows: SiteRef[]; byLocality: boolean }> {
+  const exact = await findOwnerPropertyByAddress(sb, address);
+  if (exact.length > 0) return { rows: exact.map((r) => ({ ...r, address })), byLocality: false };
+  if (!ownerRowsCache) {
+    const { data, error } = await sb
+      .from("properties")
+      .select("id, address, listing_status")
+      .in("source", ["owner_direct", "agency"]);
+    if (error) throw new Error(`No pude leer las propiedades del sitio: ${error.message}`);
+    ownerRowsCache = (data ?? []) as SiteRef[];
+  }
+  const near = ownerRowsCache.filter((r) => !!r.address && sameListingAddress(r.address, address));
+  return { rows: near, byLocality: near.length > 0 };
+}
+
 // ─── Report helpers ──────────────────────────────────────────────────────────
 
 function fmt(v: unknown): string {
@@ -213,6 +242,7 @@ async function main() {
   let markedNo = 0;
   let unmarked = 0;
   const seenAddresses = new Set<string>();
+  const onSiteNoFolder: { label: string; address: string }[] = [];
 
   for (const row of rows) {
     const label = `${row.direccion} · ${row.unidad ?? "(sin unidad)"}`;
@@ -239,30 +269,25 @@ async function main() {
     }
 
     // "Sí" means "to publish, to prepare", not "ready": without photos a unit
-    // is not loaded, not even as a draft (PUBLICACION.md, 16-sep).
+    // is not loaded, not even as a draft (PUBLICACION.md, 16-sep). One already
+    // on the site is left exactly as it is.
     if (decision.kind === "publicar" && !hasPhotos) {
       const siteAddr = siteAddress(row.direccion, row.direccionReal, row.unidad);
-      const onSite = (await findOwnerPropertyByAddress(sb, siteAddr)).length > 0;
-      if (!onSite) {
+      const found = await findSite(sb, siteAddr);
+      if (found.rows.length > 0) {
+        for (const r of found.rows) if (r.address) seenAddresses.add(r.address);
+        if (!folder) {
+          onSiteNoFolder.push({ label, address: found.rows.map((r) => r.address).join(", ") });
+          skipped++;
+          continue;
+        }
+      } else {
         const why = !row.unidad
           ? "sin unidad (propiedad entera): PUBLICACION.md no dice dónde va su Publicación/"
           : folder
             ? "Publicación/ sin fotos"
             : `falta ${join(relative(ROOT, buildingDir(row)), "Publicación", unitFolderName(row.unidad), "fotos")}`;
-        // Same street, different spelling ("Talcahuano 258" vs "Talcahuano
-        // 258, Banfield"): loading it later would duplicate the listing.
-        const { data: lookalikes } = await sb
-          .from("properties")
-          .select("address")
-          .in("source", ["owner_direct", "agency"])
-          .ilike("address", `${siteAddr}%`);
-        const near = ((lookalikes ?? []) as { address: string | null }[])
-          .map((r) => r.address)
-          .filter((a): a is string => !!a && a !== siteAddr);
-        missingMaterial.push({
-          label,
-          why: near.length ? `${why} · ojo: en el sitio está como "${near.join('", "')}", cargarla así la duplicaría` : why,
-        });
+        missingMaterial.push({ label, why });
         skipped++;
         continue;
       }
@@ -294,8 +319,17 @@ async function main() {
     if (decision.kind === "publicar" && decision.note) warnings.push(decision.note);
 
     // What the site has for this address.
+    const found = await findSite(sb, String(f.address));
+    const existing = found.rows;
+    for (const r of existing) if (r.address) seenAddresses.add(r.address);
     seenAddresses.add(String(f.address));
-    const existing = await findOwnerPropertyByAddress(sb, String(f.address));
+    if (found.byLocality && existing.length === 1) {
+      // Same listing, spelled with its locality on the site: keep the site's
+      // address (there is no locality column to move "Banfield" into).
+      warnings.push(`address: el sitio la tiene como "${existing[0].address}"; es la misma publicación y no se renombra.`);
+      delete f.address;
+      delete built.origen.address;
+    }
     if (existing.length > 1) {
       console.log(`   ✗ hay ${existing.length} propiedades propias con esa dirección en el sitio; resolvelo en /admin antes.`);
       failed++;
@@ -337,7 +371,7 @@ async function main() {
           .join(", ")}`
       : "";
     console.log(
-      `   ficha     : ${f.address} · ${f.property_type ?? "?"} en ${f.operation_type} · ${money(f.price_amount, f.price_currency)}` +
+      `   ficha     : ${f.address ?? existing[0]?.address} · ${f.property_type ?? "?"} en ${f.operation_type} · ${money(f.price_amount, f.price_currency)}` +
         ` · ${f.surface_covered ?? "?"}/${f.surface_total ?? "?"} m² · ${f.rooms ?? "?"} amb` +
         `${Array.isArray(f.tags) && f.tags.length ? ` · etiquetas ${(f.tags as string[]).join(", ")}` : ""}` +
         extrasText +
@@ -436,6 +470,10 @@ async function main() {
   if (garages.length) {
     console.log(`Cocheras sueltas en Sí (van sólo como extra, no se cargan): ${garages.length}`);
     for (const g of garages) console.log(`   · ${g}`);
+  }
+  if (onSiteNoFolder.length) {
+    console.log(`Publicar = Sí, ya en el sitio y sin Publicación/ (no se tocan): ${onSiteNoFolder.length}`);
+    for (const o of onSiteNoFolder) console.log(`   · ${o.label} — en el sitio como "${o.address}"`);
   }
   if (folderNotPublish.length) {
     console.log(`Con Publicación/ pero sin Publicar = Sí: ${folderNotPublish.length}`);
