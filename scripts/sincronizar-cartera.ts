@@ -361,6 +361,15 @@ async function main() {
   console.log(`Con Publicación/ pero sin Publicar = Sí: ${folderNotPublish.length}`);
   for (const f of folderNotPublish) console.log(`   · ${f.label} — ${f.reason}`);
 
+  // Only meaningful over the whole sheet: with a filter, every listing outside
+  // it would show up here as "missing from the maestra", which it is not.
+  if (FILTER_DIRECCION || FILTER_UNIDAD) {
+    console.log("En el sitio y no en la maestra: (se omite con --direccion / --unidad)");
+    console.log(`\n${ok} ok · ${skipped} salteadas · ${failed} con errores${APLICAR ? "" : " — modo prueba, no se escribió nada"}\n`);
+    if (failed > 0) process.exit(1);
+    return;
+  }
+
   const { data: siteRows, error: siteErr } = await sb
     .from("properties")
     .select("id, address, listing_status")
