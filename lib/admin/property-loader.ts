@@ -49,6 +49,11 @@ export interface LoadOptions {
    * saves: additive, never a stomp. Omitted = every key (create mode).
    */
   statedKeys?: readonly string[];
+  /**
+   * Create mode only. `agency` for a third party's unit the agency sells,
+   * `owner_direct` (default) for the family's own. Both pass the public gate.
+   */
+  source?: "owner_direct" | "agency";
   log: (line: string) => void;
 }
 
@@ -151,7 +156,7 @@ export async function loadProperty(
       .insert({
         ...row,
         partida,
-        source: "owner_direct",
+        source: opts.source ?? "owner_direct",
         listing_status: "borrador",
         is_active: true,
         is_featured: isFeatured,

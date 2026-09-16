@@ -30,14 +30,17 @@
  */
 
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
-import { join, relative, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import dotenv from "dotenv";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   buildFicha,
   diffAgainstSite,
   findPartida,
+  isStandaloneGarage,
+  isThirdParty,
   publishDecision,
+  siteAddress,
   unitFolderName,
   unpublishedStatus,
   type Provisorio,
@@ -47,6 +50,7 @@ import { readMaestra, type Maestra } from "@/lib/admin/maestra";
 import { mimeForPhoto, parseImportPayload } from "@/lib/admin/property-import";
 import { findOwnerPropertyByAddress, loadProperty, type TargetStatus } from "@/lib/admin/property-loader";
 import { formatPrice, type PriceCurrency } from "@/lib/property/price";
+import { normalizePartida } from "@/lib/zona-sur/partidos";
 
 dotenv.config({ path: ".env.local", quiet: true });
 
@@ -202,25 +206,68 @@ async function main() {
   let skipped = 0;
   let failed = 0;
   // For the closing summary: what the sheet wants vs what the disk has.
-  const wantsPublish: { label: string; folder: boolean }[] = [];
+  const ready: string[] = [];
+  const missingMaterial: { label: string; why: string }[] = [];
+  const garages: string[] = [];
   const folderNotPublish: { label: string; reason: string }[] = [];
+  let markedNo = 0;
+  let unmarked = 0;
   const seenAddresses = new Set<string>();
 
   for (const row of rows) {
     const label = `${row.direccion} · ${row.unidad ?? "(sin unidad)"}`;
     const decision = publishDecision(row, maestra.columns);
     const folder = await readUnitFolder(row);
+    const hasPhotos = !!folder && folder.photos.length > 0;
 
-    if (decision.kind === "publicar") wantsPublish.push({ label, folder: !!folder });
-    else if (folder) {
-      folderNotPublish.push({
-        label,
-        reason: decision.kind === "no" ? decision.reason : decision.reason,
-      });
+    if (decision.kind === "no" && /publicar/i.test(decision.reason)) markedNo++;
+    if (decision.kind === "desconocido" && (row.etapa ?? "").trim().toLowerCase() === "activa") unmarked++;
+
+    // Family garages go only as an extra of the building's units.
+    if (decision.kind === "publicar" && isStandaloneGarage(row)) {
+      garages.push(label);
+      skipped++;
+      continue;
     }
-
     if (decision.kind !== "publicar" && !folder) {
       // Nothing on disk and not asked for: not a unit for the site (yet).
+      skipped++;
+      continue;
+    }
+    if (decision.kind !== "publicar" && folder) {
+      folderNotPublish.push({ label, reason: decision.reason });
+    }
+
+    // "Sí" means "to publish, to prepare", not "ready": without photos a unit
+    // is not loaded, not even as a draft (PUBLICACION.md, 16-sep).
+    if (decision.kind === "publicar" && !hasPhotos) {
+      const siteAddr = siteAddress(row.direccion, row.direccionReal, row.unidad);
+      const onSite = (await findOwnerPropertyByAddress(sb, siteAddr)).length > 0;
+      if (!onSite) {
+        const why = !row.unidad
+          ? "sin unidad (propiedad entera): PUBLICACION.md no dice dónde va su Publicación/"
+          : folder
+            ? "Publicación/ sin fotos"
+            : `falta ${join(relative(ROOT, buildingDir(row)), "Publicación", unitFolderName(row.unidad), "fotos")}`;
+        // Same street, different spelling ("Talcahuano 258" vs "Talcahuano
+        // 258, Banfield"): loading it later would duplicate the listing.
+        const { data: lookalikes } = await sb
+          .from("properties")
+          .select("address")
+          .in("source", ["owner_direct", "agency"])
+          .ilike("address", `${siteAddr}%`);
+        const near = ((lookalikes ?? []) as { address: string | null }[])
+          .map((r) => r.address)
+          .filter((a): a is string => !!a && a !== siteAddr);
+        missingMaterial.push({
+          label,
+          why: near.length ? `${why} · ojo: en el sitio está como "${near.join('", "')}", cargarla así la duplicaría` : why,
+        });
+        skipped++;
+        continue;
+      }
+    }
+    if (!folder) {
       skipped++;
       continue;
     }
@@ -232,13 +279,7 @@ async function main() {
       continue;
     }
     console.log(`   maestra   : ${row.tipo ?? "—"} · etapa ${row.etapa ?? "—"} · ${row.situacion ?? "—"}`);
-    console.log(`               precio pretendido ${money(row.precioPretendido, "USD")} · cochera ${row.cochera ?? "—"}${row.tipoCochera ? ` (${row.tipoCochera})` : ""}`);
-
-    if (!folder) {
-      console.log(`   carpeta   : ✗ falta Publicación/${unitFolderName(row.unidad)}/ — se saltea`);
-      skipped++;
-      continue;
-    }
+    console.log(`               precio pretendido ${money(row.precioPretendido, "USD")}${row.precioOferta ? ` · oferta ${money(row.precioOferta, "USD")}` : ""} · cochera ${row.cochera ?? "—"}${row.tipoCochera ? ` (${row.tipoCochera})` : ""}`);
     console.log(`   carpeta   : ${relative(ROOT, folder.dir)} · ${folder.photos.length} fotos${folder.ignored.length ? ` (ignoradas: ${folder.ignored.join(", ")})` : ""}${folder.provisorio ? " · provisorio.json" : ""}`);
     if (folder.provisorioError) {
       console.log(`   ✗ ${folder.provisorioError}`);
@@ -248,25 +289,9 @@ async function main() {
 
     const partida = findPartida(maestra.partidas, row.direccion, row.unidad);
     const built = buildFicha({ row, columns: maestra.columns, partida, provisorio: folder.provisorio, photos: folder.photos });
-
-    // The loader's own strictness is the last word on the JSON.
-    const parsed = parseImportPayload({
-      ...built.ficha,
-      photos: folder.photos,
-    });
-    const errors = [...built.errors, ...parsed.errors];
-    const warnings = [...built.warnings, ...parsed.warnings.filter((w) => !w.startsWith("Sin fotos"))];
-
     const f = built.ficha;
-    console.log(
-      `   ficha     : ${f.address} · ${f.property_type ?? "?"} en ${f.operation_type} · ${money(f.price_amount, f.price_currency)}` +
-        ` · ${f.surface_covered ?? "?"}/${f.surface_total ?? "?"} m² · ${f.rooms ?? "?"} amb` +
-        `${Array.isArray(f.tags) && f.tags.length ? ` · etiquetas ${(f.tags as string[]).join(", ")}` : ""}` +
-        `${Array.isArray(f.extras) && f.extras.length ? ` · extras ${(f.extras as { kind: string; mode: string; price_delta?: number | null }[]).map((e) => `${e.kind} ${e.mode}${e.price_delta ? ` +${e.price_delta}` : ""}`).join(", ")}` : ""}`,
-    );
-    const byOrigin = new Map<string, string[]>();
-    for (const [k, o] of Object.entries(built.origen)) byOrigin.set(o, [...(byOrigin.get(o) ?? []), k]);
-    console.log(`   origen    : ${[...byOrigin.entries()].map(([o, ks]) => `${o} ← ${ks.join(", ")}`).join(" · ")}`);
+    const warnings = [...built.warnings];
+    if (decision.kind === "publicar" && decision.note) warnings.push(decision.note);
 
     // What the site has for this address.
     seenAddresses.add(String(f.address));
@@ -277,6 +302,50 @@ async function main() {
       continue;
     }
     const site = existing[0] ? await readSiteRow(sb, existing[0].id) : null;
+
+    if (!site && !hasPhotos) {
+      console.log("   ⏭ falta material: no está en el sitio y Publicación/ no tiene fotos; no se crea ni como borrador");
+      if (decision.kind === "publicar") missingMaterial.push({ label, why: "Publicación/ sin fotos" });
+      skipped++;
+      continue;
+    }
+
+    // A building's mother partida never overwrites a unit's own partida that
+    // the site already has (Alsina 1639 4°Y: 063-252296 vs the lot's 063-069832).
+    if (
+      site &&
+      built.origen.partida === "partidas" &&
+      partida?.via === "madre" &&
+      typeof site.partida === "string" &&
+      normalizePartida(site.partida) !== normalizePartida(String(f.partida))
+    ) {
+      warnings.push(`partida: el sitio tiene la de la unidad (${site.partida}); no se pisa con la madre (${f.partida}).`);
+      delete f.partida;
+      delete built.origen.partida;
+    }
+
+    // The loader's own strictness is the last word on the JSON.
+    const parsed = parseImportPayload({ ...f, photos: folder.photos });
+    const errors = [...built.errors, ...parsed.errors];
+    warnings.push(
+      ...parsed.warnings.filter((w) => !w.startsWith("Sin fotos") && !(w.startsWith("Sin partida") && site?.partida)),
+    );
+
+    const extrasText = Array.isArray(f.extras) && f.extras.length
+      ? ` · extras ${(f.extras as { kind: string; mode: string; detail?: string | null; price_delta?: number | null }[])
+          .map((e) => `${e.kind} ${e.mode}${e.detail ? ` (${e.detail})` : ""}${e.price_delta ? ` +${e.price_delta}` : ""}`)
+          .join(", ")}`
+      : "";
+    console.log(
+      `   ficha     : ${f.address} · ${f.property_type ?? "?"} en ${f.operation_type} · ${money(f.price_amount, f.price_currency)}` +
+        ` · ${f.surface_covered ?? "?"}/${f.surface_total ?? "?"} m² · ${f.rooms ?? "?"} amb` +
+        `${Array.isArray(f.tags) && f.tags.length ? ` · etiquetas ${(f.tags as string[]).join(", ")}` : ""}` +
+        extrasText +
+        `${isThirdParty(row) ? " · de terceros (agency)" : ""}`,
+    );
+    const byOrigin = new Map<string, string[]>();
+    for (const [k, o] of Object.entries(built.origen)) byOrigin.set(o, [...(byOrigin.get(o) ?? []), k]);
+    console.log(`   origen    : ${[...byOrigin.entries()].map(([o, ks]) => `${o} ← ${ks.join(", ")}`).join(" · ")}`);
 
     let priceBlocked = false;
     let photosBlocked = false;
@@ -292,12 +361,17 @@ async function main() {
         if (gated && !PRECIOS) priceBlocked = true;
         console.log(`   vs sitio  : ${d.field}: ${fmt(d.site)} → ${fmt(d.ficha)}${gated && !PRECIOS ? "   ⛔ precio: se conserva el del sitio (usá --precios)" : ""}`);
       }
-      if (sitePhotos !== folder.photos.length || FOTOS) {
-        if (!FOTOS) photosBlocked = true;
-        console.log(`   vs sitio  : fotos: ${sitePhotos} en el sitio, ${folder.photos.length} en Publicación/${FOTOS ? "   → se reemplaza la galería" : "   ⛔ se conserva la galería (usá --fotos)"}`);
+      if (sitePhotos !== folder.photos.length || (FOTOS && hasPhotos)) {
+        if (!FOTOS || !hasPhotos) photosBlocked = true;
+        const tail = !hasPhotos
+          ? "   ⛔ Publicación/ vacía: la galería del sitio no se toca"
+          : FOTOS
+            ? "   → se reemplaza la galería"
+            : "   ⛔ se conserva la galería (usá --fotos)";
+        console.log(`   vs sitio  : fotos: ${sitePhotos} en el sitio, ${folder.photos.length} en Publicación/${tail}`);
       }
     } else {
-      console.log("   sitio     : no existe, se crearía");
+      console.log(`   sitio     : no existe, se crearía como borrador${isThirdParty(row) ? " (source agency)" : ""}`);
     }
 
     let target: TargetStatus | null;
@@ -315,7 +389,7 @@ async function main() {
     // ficha.json is portable: photos relative to the unit folder.
     const fichaJson = {
       ...f,
-      photos: folder.photos.map((p) => relative(folder.dir, p).replace(/\\/g, "/")),
+      photos: folder.photos.map((p) => relative(folder.dir, p).split(sep).join("/")),
     };
     if (JSON_OUT) console.log(JSON.stringify(fichaJson, null, 2).replace(/^/gm, "   │ "));
 
@@ -323,6 +397,7 @@ async function main() {
       failed++;
       continue;
     }
+    if (decision.kind === "publicar") ready.push(label);
     if (!APLICAR) {
       ok++;
       continue;
@@ -336,12 +411,13 @@ async function main() {
         existingId: site ? String(site.id) : null,
         status: target,
         updatePrice: !site || PRECIOS,
-        replacePhotos: FOTOS,
+        replacePhotos: FOTOS && hasPhotos,
         statedKeys: Object.keys(f),
+        source: isThirdParty(row) ? "agency" : "owner_direct",
         log: (line) => console.log(`   ${line}`),
       });
       if (priceBlocked) console.log("   ⛔ precio no actualizado (falta --precios)");
-      if (photosBlocked) console.log("   ⛔ galería no reemplazada (falta --fotos)");
+      if (photosBlocked) console.log("   ⛔ galería no reemplazada");
       const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
       console.log(`   → ${base}/p/${result.id}`);
       ok++;
@@ -353,13 +429,19 @@ async function main() {
 
   // ── Summary: the sheet's intent vs the disk vs the site ──
   console.log("\n=== Resumen ===");
-  const conCarpeta = wantsPublish.filter((w) => w.folder);
-  const sinCarpeta = wantsPublish.filter((w) => !w.folder);
-  console.log(`Publicar = Sí: ${wantsPublish.length}`);
-  for (const w of conCarpeta) console.log(`   ✓ ${w.label} — con Publicación/`);
-  for (const w of sinCarpeta) console.log(`   ✗ ${w.label} — FALTA Publicación/`);
-  console.log(`Con Publicación/ pero sin Publicar = Sí: ${folderNotPublish.length}`);
-  for (const f of folderNotPublish) console.log(`   · ${f.label} — ${f.reason}`);
+  console.log(`Publicar = Sí con material, listas: ${ready.length}`);
+  for (const l of ready) console.log(`   ✓ ${l}`);
+  console.log(`Publicar = Sí, falta material (no se cargan): ${missingMaterial.length}`);
+  for (const m of missingMaterial) console.log(`   ✗ ${m.label} — ${m.why}`);
+  if (garages.length) {
+    console.log(`Cocheras sueltas en Sí (van sólo como extra, no se cargan): ${garages.length}`);
+    for (const g of garages) console.log(`   · ${g}`);
+  }
+  if (folderNotPublish.length) {
+    console.log(`Con Publicación/ pero sin Publicar = Sí: ${folderNotPublish.length}`);
+    for (const x of folderNotPublish) console.log(`   · ${x.label} — ${x.reason}`);
+  }
+  console.log(`Publicar = No: ${markedNo} · Activas sin marcar: ${unmarked}`);
 
   // Only meaningful over the whole sheet: with a filter, every listing outside
   // it would show up here as "missing from the maestra", which it is not.

@@ -4,6 +4,8 @@ import {
   cocheraFromColumns,
   diffAgainstSite,
   findPartida,
+  isStandaloneGarage,
+  isThirdParty,
   parseEtiquetas,
   parseTipo,
   partidaFromCell,
@@ -146,12 +148,28 @@ describe("publishDecision — fails closed", () => {
     expect(publishDecision(row(), NO_NEW_COLUMNS).kind).toBe("desconocido");
   });
 
-  it("only publishes Activa + Sí", () => {
-    expect(publishDecision(row({ publicar: "Sí" }), ALL_COLUMNS).kind).toBe("publicar");
+  it("publishes Sí, and only a written No says no", () => {
+    expect(publishDecision(row({ publicar: "Sí" }), ALL_COLUMNS)).toEqual({ kind: "publicar" });
     expect(publishDecision(row({ publicar: "No" }), ALL_COLUMNS).kind).toBe("no");
     expect(publishDecision(row({ publicar: null }), ALL_COLUMNS).kind).toBe("desconocido");
     expect(publishDecision(row({ publicar: "" }), ALL_COLUMNS).kind).toBe("desconocido");
-    expect(publishDecision(row({ publicar: "Sí", etapa: "En transición" }), ALL_COLUMNS).kind).toBe("no");
+  });
+
+  it("lets Publicar = Sí win over a non-Activa Etapa, and says so", () => {
+    const d = publishDecision(row({ publicar: "Sí", etapa: "En transición" }), ALL_COLUMNS);
+    expect(d.kind).toBe("publicar");
+    expect(d.kind === "publicar" && d.note).toContain("En transición");
+    // Unmarked non-Activa rows (sold, historic) are still a no.
+    expect(publishDecision(row({ publicar: null, etapa: "Histórico" }), ALL_COLUMNS).kind).toBe("no");
+  });
+
+  it("recognises standalone garages and third-party folders", () => {
+    expect(isStandaloneGarage(row({ tipo: "3 cocheras cubiertas + 1 baulera" }))).toBe(true);
+    expect(isStandaloneGarage(row({ tipo: "Cochera cubierta (PB)" }))).toBe(true);
+    expect(isStandaloneGarage(row({ tipo: "Monoambiente" }))).toBe(false);
+    expect(isThirdParty(row({ carpetaEnDisco: "Propiedades/Terceros/Belgrano 1287" }))).toBe(true);
+    expect(isThirdParty(row({ carpetaEnDisco: "Propiedades\\Terceros\\X" }))).toBe(true);
+    expect(isThirdParty(row({ carpetaEnDisco: "Propiedades/Familiar/Belgrano 1287" }))).toBe(false);
   });
 
   it("sends sold units to 'vendida' and the rest to 'borrador'", () => {

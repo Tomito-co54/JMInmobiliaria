@@ -123,9 +123,13 @@ export async function readMaestra(path: string): Promise<Maestra> {
     if (n === 1) return;
     const direccion = text(row, "direccion");
     if (!direccion) return;
+    // A dash in `Unidad` ("—", "-") means the row is the whole property, not
+    // a unit of it. Kept as a dash it became "Talcahuano 258 —" on the site
+    // and a folder called "-".
+    const unidadRaw = text(row, "unidad");
     unidades.push({
       direccion,
-      unidad: text(row, "unidad"),
+      unidad: unidadRaw && /^[—–\-\s]+$/.test(unidadRaw) ? null : unidadRaw,
       tipo: text(row, "tipo"),
       cochera: text(row, "cochera"),
       tipoCochera: text(row, "tipoCochera"),

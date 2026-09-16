@@ -204,31 +204,59 @@ export function cocheraFromColumns(
 // ─── Publish decision ───────────────────────────────────────────────────────
 
 export type PublishDecision =
-  | { kind: "publicar" }
+  | { kind: "publicar"; note?: string }
   | { kind: "no"; reason: string }
   | { kind: "desconocido"; reason: string };
 
 /**
- * Whether the maestra says this unit goes on the site. `Etapa` must be
- * `Activa` and `Publicar` must say yes. A missing `Publicar` column is
- * UNKNOWN, not "no" and not "yes": the script then asks for an explicit
- * selection and never changes a listing's status on its own.
+ * Whether the maestra says this unit goes on the site.
+ *
+ * `Publicar` is Tomy's explicit, per-unit decision and wins over `Etapa`:
+ * a third party's unit (Belgrano 1287 PB A, sold to Santanna and now resold
+ * through the agency) is "En transición" in the family's books and still
+ * "Sí" to publish. The mismatch is reported, not silently resolved.
+ *
+ * A missing column or an empty cell is UNKNOWN, not "no" and not "yes": the
+ * column arrived with 128 blank rows, and reading blank as "no" would take
+ * the four published units down on the first real run. Only a written "No"
+ * (or a non-Activa row nobody marked Sí) says no.
  */
 export function publishDecision(row: UnidadRow, columns: MaestraColumns): PublishDecision {
   const etapa = (row.etapa ?? "").trim().toLowerCase();
+  const p = columns.publicar ? (row.publicar ?? "").trim().toLowerCase() : "";
+  const yes = ["sí", "si", "s", "x", "yes", "true", "1"].includes(p);
+
+  if (yes) {
+    return etapa === "activa"
+      ? { kind: "publicar" }
+      : { kind: "publicar", note: `Etapa "${row.etapa ?? "(vacía)"}", pero Publicar = Sí manda` };
+  }
   if (etapa !== "activa") {
     return { kind: "no", reason: `Etapa "${row.etapa ?? "(vacía)"}", sólo se publica "Activa"` };
   }
   if (!columns.publicar) {
     return { kind: "desconocido", reason: 'la maestra todavía no tiene la columna "Publicar"' };
   }
-  const p = (row.publicar ?? "").trim().toLowerCase();
-  if (["sí", "si", "s", "x", "yes", "true", "1"].includes(p)) return { kind: "publicar" };
-  // An empty cell is a decision not yet made, not a "no": the column arrived
-  // with 120 blank rows, and reading blank as "no" would take the four
-  // published units down on the first real run.
   if (p === "") return { kind: "desconocido", reason: "Publicar está vacío" };
   return { kind: "no", reason: `Publicar = "${row.publicar}"` };
+}
+
+/**
+ * A garage (or garage + storage) row sold on its own. The family's garages
+ * are offered only as an extra of the units in the same building (Tomy,
+ * 16-sep-2026), so the sync never loads one of these as a listing — even
+ * marked Sí, it is reported and skipped.
+ */
+export function isStandaloneGarage(row: UnidadRow): boolean {
+  return parseTipo(row.tipo).propertyType === "cochera";
+}
+
+/**
+ * Third parties' units live under `Propiedades/Terceros/` and load as
+ * `source: 'agency'`: the agency sells them, the family does not own them.
+ */
+export function isThirdParty(row: UnidadRow): boolean {
+  return /(^|[\\/])Terceros([\\/]|$)/i.test(row.carpetaEnDisco ?? "");
 }
 
 /** The `listing_status` a unit that is NOT to be published should end up in. */
