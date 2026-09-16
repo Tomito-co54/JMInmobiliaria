@@ -149,7 +149,8 @@ describe("publishDecision — fails closed", () => {
   it("only publishes Activa + Sí", () => {
     expect(publishDecision(row({ publicar: "Sí" }), ALL_COLUMNS).kind).toBe("publicar");
     expect(publishDecision(row({ publicar: "No" }), ALL_COLUMNS).kind).toBe("no");
-    expect(publishDecision(row({ publicar: null }), ALL_COLUMNS).kind).toBe("no");
+    expect(publishDecision(row({ publicar: null }), ALL_COLUMNS).kind).toBe("desconocido");
+    expect(publishDecision(row({ publicar: "" }), ALL_COLUMNS).kind).toBe("desconocido");
     expect(publishDecision(row({ publicar: "Sí", etapa: "En transición" }), ALL_COLUMNS).kind).toBe("no");
   });
 

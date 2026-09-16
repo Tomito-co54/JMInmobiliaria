@@ -149,6 +149,31 @@ export async function readMaestra(path: string): Promise<Maestra> {
     });
   });
 
+  // `Dirección real` lives on the `Propiedades` sheet (one row per building),
+  // not on `Unidades`: the folder is "Vergara y Cabrera", the street number
+  // is a fact of the building. Joined here so a unit row can read it as if
+  // it were its own; a value typed on the unit row still wins.
+  let hasDireccionReal = cols.direccionReal !== null;
+  const wsProp = wb.getWorksheet("Propiedades");
+  if (wsProp) {
+    const { index: pIndex } = headerIndex(wsProp);
+    const dirCol = pIndex.get(fold("Dirección"));
+    const realCol = pIndex.get(fold("Dirección real"));
+    if (dirCol && realCol) {
+      hasDireccionReal = true;
+      const byBuilding = new Map<string, string>();
+      wsProp.eachRow((row, n) => {
+        if (n === 1) return;
+        const dir = cellText(row.getCell(dirCol).value);
+        const real = cellText(row.getCell(realCol).value);
+        if (dir && real) byBuilding.set(fold(dir), real);
+      });
+      for (const u of unidades) {
+        if (!u.direccionReal) u.direccionReal = byBuilding.get(fold(u.direccion)) ?? null;
+      }
+    }
+  }
+
   // `Partidas` is free-form: one merged title cell, then positional columns
   // [partida, código, partido, dirección, alcance, propiedad, notas].
   const partidas: PartidaRow[] = [];
@@ -178,7 +203,7 @@ export async function readMaestra(path: string): Promise<Maestra> {
     partidas,
     columns: {
       publicar: cols.publicar !== null,
-      direccionReal: cols.direccionReal !== null,
+      direccionReal: hasDireccionReal,
       operacion: cols.operacion !== null,
     },
     headers,

@@ -224,7 +224,11 @@ export function publishDecision(row: UnidadRow, columns: MaestraColumns): Publis
   }
   const p = (row.publicar ?? "").trim().toLowerCase();
   if (["sí", "si", "s", "x", "yes", "true", "1"].includes(p)) return { kind: "publicar" };
-  return { kind: "no", reason: `Publicar = "${row.publicar ?? "(vacío)"}"` };
+  // An empty cell is a decision not yet made, not a "no": the column arrived
+  // with 120 blank rows, and reading blank as "no" would take the four
+  // published units down on the first real run.
+  if (p === "") return { kind: "desconocido", reason: "Publicar está vacío" };
+  return { kind: "no", reason: `Publicar = "${row.publicar}"` };
 }
 
 /** The `listing_status` a unit that is NOT to be published should end up in. */

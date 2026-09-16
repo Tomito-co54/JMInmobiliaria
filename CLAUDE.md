@@ -172,11 +172,16 @@ Cowork; si algo cambia, se cambia ahí primero. Lo que este repo aporta:
   Mismas claves que la ficha. Una columna de la maestra, cuando exista, le
   gana y el reporte lo avisa para borrar la entrada. Un campo desconocido es
   error, igual que en el cargador.
-- **Falla cerrada tres veces:** sin columna `Publicar` la decisión es
-  **desconocida** (ni sí ni no: exige `--direccion` y carpeta, y no cambia el
-  estado de nada); un precio distinto del sitio se reporta y **no se escribe**
-  sin `--precios` (los de la maestra son de 2023); la galería de una ya
-  cargada no se reemplaza sin `--fotos`.
+- **Falla cerrada tres veces:** sin columna `Publicar`, **o con la celda
+  vacía**, la decisión es **desconocida** (ni sí ni no: no cambia el estado
+  de nada). La columna llegó el 16-sep con 128 filas en blanco, y leer blanco
+  como "No" habría despublicado las cuatro de Belgrano en la primera corrida
+  real; sólo un "No" escrito despublica. Un precio distinto del sitio se
+  reporta y **no se escribe** sin `--precios`; la galería de una ya cargada
+  no se reemplaza sin `--fotos`.
+- **`Dirección real` vive en la hoja `Propiedades`**, una por edificio, y el
+  lector la une a cada unidad. Las 13 columnas web existen desde el 16-sep a
+  la tarde (V a AH de `Unidades`); `Publicar` y los datos web los llena Tomy.
 
 - **`Precio oferta (USD)`**, columna opcional de la maestra: cuando tiene
   valor es lo que el sitio publica y la etiqueta `oferta` se enciende sola;

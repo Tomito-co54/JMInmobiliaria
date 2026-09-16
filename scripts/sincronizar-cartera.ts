@@ -201,14 +201,26 @@ async function main() {
   let ok = 0;
   let skipped = 0;
   let failed = 0;
+  // For the closing summary: what the sheet wants vs what the disk has.
+  const wantsPublish: { label: string; folder: boolean }[] = [];
+  const folderNotPublish: { label: string; reason: string }[] = [];
+  const seenAddresses = new Set<string>();
 
   for (const row of rows) {
     const label = `${row.direccion} · ${row.unidad ?? "(sin unidad)"}`;
     const decision = publishDecision(row, maestra.columns);
     const folder = await readUnitFolder(row);
 
-    if (decision.kind === "no" && !folder) {
-      // Nothing on disk and nothing to publish: not a unit for the site.
+    if (decision.kind === "publicar") wantsPublish.push({ label, folder: !!folder });
+    else if (folder) {
+      folderNotPublish.push({
+        label,
+        reason: decision.kind === "no" ? decision.reason : decision.reason,
+      });
+    }
+
+    if (decision.kind !== "publicar" && !folder) {
+      // Nothing on disk and not asked for: not a unit for the site (yet).
       skipped++;
       continue;
     }
@@ -257,6 +269,7 @@ async function main() {
     console.log(`   origen    : ${[...byOrigin.entries()].map(([o, ks]) => `${o} ← ${ks.join(", ")}`).join(" · ")}`);
 
     // What the site has for this address.
+    seenAddresses.add(String(f.address));
     const existing = await findOwnerPropertyByAddress(sb, String(f.address));
     if (existing.length > 1) {
       console.log(`   ✗ hay ${existing.length} propiedades propias con esa dirección en el sitio; resolvelo en /admin antes.`);
@@ -336,6 +349,31 @@ async function main() {
       console.log(`   ✗ ${err instanceof Error ? err.message : err}`);
       failed++;
     }
+  }
+
+  // ── Summary: the sheet's intent vs the disk vs the site ──
+  console.log("\n=== Resumen ===");
+  const conCarpeta = wantsPublish.filter((w) => w.folder);
+  const sinCarpeta = wantsPublish.filter((w) => !w.folder);
+  console.log(`Publicar = Sí: ${wantsPublish.length}`);
+  for (const w of conCarpeta) console.log(`   ✓ ${w.label} — con Publicación/`);
+  for (const w of sinCarpeta) console.log(`   ✗ ${w.label} — FALTA Publicación/`);
+  console.log(`Con Publicación/ pero sin Publicar = Sí: ${folderNotPublish.length}`);
+  for (const f of folderNotPublish) console.log(`   · ${f.label} — ${f.reason}`);
+
+  const { data: siteRows, error: siteErr } = await sb
+    .from("properties")
+    .select("id, address, listing_status")
+    .in("source", ["owner_direct", "agency"])
+    .order("address");
+  if (siteErr) {
+    console.log(`En el sitio y no en la maestra: no pude leer el sitio (${siteErr.message})`);
+  } else {
+    const orphans = (siteRows as { id: string; address: string | null; listing_status: string | null }[]).filter(
+      (r) => !r.address || !seenAddresses.has(r.address),
+    );
+    console.log(`En el sitio y no en este recorrido de la maestra: ${orphans.length}`);
+    for (const o of orphans) console.log(`   · ${o.address ?? "(sin dirección)"} — ${o.listing_status} · ${o.id}`);
   }
 
   console.log(`\n${ok} ok · ${skipped} salteadas · ${failed} con errores${APLICAR ? "" : " — modo prueba, no se escribió nada"}\n`);
