@@ -712,6 +712,42 @@ en los tres casos era un número creíble, no un error:
   departamento es el lote del edificio entero. Mediana de departamentos:
   487 así, **2.024** con la superficie declarada.
 
+### Cuarta vez, el 9-sep — y esta vez el código no es de este repo
+
+Encontrado el 16-sep a la noche, verificando la base después de la corrida
+manual de Tomy: **274 activas de 590** scrapeadas, contra 439 el 3-sep.
+
+**Lo que pasó.** El 9-sep a las 10:27 UTC una sola escritura dio de baja **388**
+avisos de Zonaprop. La corrida vio unos 54 de ~442 activos (12%). La guarda de
+este repo la habría rechazado, y **no fue este repo**:
+
+- **Las 388 filas de historial tienen `price_at_change` vacío.** Este repo lo
+  escribe siempre (migración 00014). Las escribió código anterior a la Fase 11.
+- **El repo original `Tomito-co54/Jotaeme` todavía tiene su
+  `.github/workflows/pipeline.yml` con `cron: '0 6 * * *'`**, con los secrets
+  de **esta misma base** (la base es compartida, ver *Live URLs*). Su código es
+  el de mayo: tope de 50 y `if (allScraped.length > 0) deactivateStale(...)`,
+  sin ninguna guarda. La mayoría de los días Zonaprop le devuelve cero desde la
+  IP de GitHub y no pasa nada; el 9-sep le sirvió una página y dio de baja el
+  resto. 10:27 UTC cae en la ventana de retraso del cron gratuito (4 a 12 h).
+- **Apagar el cron de este fork el 1-sep no apagaba el del original.** Todos
+  los arreglos de las Fases 11, 32 y 38 viven sólo acá.
+
+**Lo que dejó en los datos.** La corrida de Tomy del 16-sep vio ~238, insertó
+20 nuevos y **revivió 200 de los 388**, que quedaron registradas como 200
+"republicaciones" que nunca pasaron. Las otras **188 siguen caídas**, con
+`last_seen_at` pisado al 9-sep.
+
+**Pendiente, esperando a Tomy (16-sep):**
+
+1. **Apagar el cron del repo original** (o sacarle los secrets de la base en
+   GitHub). Mientras siga, puede repetirse cualquier mañana.
+2. **La reparación**, igual que las anteriores: backup, y en una transacción
+   borrar las 388 bajas del 9-sep y las 200 altas del 16-sep que sólo las
+   corrigen (588 filas), y revivir las 188. Está verificado que las 200 altas
+   caen todas dentro del lote. Quedó sin aplicar: el modo automático bloqueó el
+   borrado y necesita la autorización de Tomy.
+
 ### Y volvió a pasar el 2-sep, una capa más abajo
 
 Tercera vez, y otra vez se descubrió **verificando este documento**: al chequear
@@ -1867,6 +1903,8 @@ Tres caminos:
 - **Desde un JSON:** `npm run cargar-propiedad -- ficha.json [--dry-run]`
   (`docs/ejemplo-propiedad.json` es la plantilla, ya incluye `year_built`).
 
+**1b. Apagar el cron del repo original y reparar el 9-sep** ← urgente, ver *Cuarta vez, el 9-sep*
+
 **2. Correr `npm run pipeline` seguido** ← ahora es la única forma en que corre
 
 Cada corrida acumula historial que no se puede reconstruir después.
@@ -2265,6 +2303,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.31 | Sep 16, 2026 | **Cuarta baja masiva, y el culpable no es este repo.** Revisar la base después del pipeline mostró 274 activas donde había 439: el 9-sep una corrida dio de baja 388 avisos habiendo visto ~54. Las filas de historial no tienen `price_at_change`, que este repo escribe siempre, y el repo original `Jotaeme` —con la misma base— **sigue corriendo su pipeline de mayo todos los días desde GitHub**, sin ninguna de las guardas. Apagar el cron del fork nunca apagó ese. La corrida del 16-sep revivió 200 (y las anotó como republicaciones falsas); quedan 188 caídas. Diagnóstico escrito; apagar el cron original y la reparación esperan a Tomy. Sin cambios de código: 489 tests. |
 | 2.30 | Sep 16, 2026 | **Vergara tiene parcela, y Belgrano 2°A/2°B bajan a 94.000.** La nomenclatura del lote vino de los boletos de la U.C A, que arrastran datos del modelo de Alsina, así que no se cargó a ciegas: se trajo la manzana 49 entera del catastro y la 20A resultó ser la única parcela con ochava, a 15 m del cruce Vergara × Cabrera. Las dos unidades ya dibujan su parcela y agrupan en `/edificios`, con sus partidas de UF intactas. Agruparlas destapó que `/edificios` las titulaba **"Vergara 1901 UF"**: el prefijo común se cortaba en la palabra que nombra la unidad; ahora se descarta. El precio de Belgrano se escribió directo en la base porque la maestra todavía dice 96.000: hasta que Cowork la corrija, `--precios` sobre Belgrano lo revertiría. **488 → 489 tests.** |
 | 2.29 | Sep 16, 2026 | **La primera carga desde la maestra.** Tomy contestó el reporte en `PUBLICACION.md` y se aplicaron las 8 listas: el catálogo pasa de **6 a 9** (Belgrano 1°C y Vergara 1901 UF 3 y UF 9, nuevas). La columna `Cochera` ahora se lee en las dos formas que acordaron Cowork y Tomy ("Opcional (+USD 5.000)", "Incluida: …"), la 4°Y dejó de decir "cochera opcional" cuando la incluye, y Talcahuano se reconoce como la misma publicación aunque el sitio le agregue la localidad. La segunda corrida da sin diferencias en las ocho. Queda un hueco conocido: las dos de Vergara no tienen parcela (su partida de UF no está en la capa pública de ARBA) y necesitan la nomenclatura del lote. **485 → 488 tests.** |
 | 2.28 | Sep 16, 2026 | **La maestra decide qué se publica.** Tomy cargó `Publicar` (25 Sí, 13 No) y `PUBLICACION.md` sumó reglas que el script ya aplica: Sí sin fotos no se carga ni como borrador, Sí le gana a `Etapa` (Belgrano PB A, de un tercero), las cocheras de la familia sólo como extra, y las unidades de terceros se buscan en `Terceros/` y entran como `agency`. Dos guardas aparecieron probando: **una partida madre habría pisado la de unidad de la 4°Y**, y **un "—" en `Unidad` armaba "Talcahuano 258 —"**. Las galerías de Belgrano y la 4°Y bajaron del sitio a la carpeta —las viejas quedaron como `_BORRAR - `, nada se borró— y desde ahora la carpeta es la fuente. Vergara U.F 9 tiene las 16 fotos de su aviso. La cartera que Tomy dictó el 3-sep se archivó en su carpeta y dejó de ser fuente: **para la cartera, sólo la maestra**. Modo prueba: 8 listas, 18 con falta de material, nada aplicado. **483 → 485 tests.** |
