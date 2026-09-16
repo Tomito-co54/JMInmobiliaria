@@ -1,0 +1,348 @@
+/**
+ * sincronizar-cartera.ts — la cartera de Tomy (PLANILLA MAESTRA + carpeta
+ * Publicación/) hacia el sitio, unidad por unidad.
+ *
+ * Uso:
+ *   npm run sincronizar-cartera                         # modo prueba: lee, compara, no escribe
+ *   npm run sincronizar-cartera -- --direccion "Belgrano 1287"
+ *   npm run sincronizar-cartera -- --direccion "Belgrano 1287" --unidad 1A
+ *   npm run sincronizar-cartera -- --direccion "Belgrano 1287" --aplicar
+ *   npm run sincronizar-cartera -- ... --aplicar --precios   # también pisa el precio de las ya cargadas
+ *   npm run sincronizar-cartera -- ... --aplicar --fotos     # también reemplaza la galería de las ya cargadas
+ *   npm run sincronizar-cartera -- ... --json                # imprime cada ficha.json completa
+ *
+ * The contract is PUBLICACION.md in the Inmobiliaria folder. In short:
+ *   - The maestra is the source of truth. `ficha.json` is generated from it
+ *     plus what `Publicación/<Unidad>/` holds (photos, and `provisorio.json`
+ *     for the columns the sheet does not have yet).
+ *   - This script reads `Propiedades/`, writes ONLY `Publicación/<Unidad>/ficha.json`,
+ *     and never touches the maestra, `Documentación/`, `Contratos/` or `Fotos/`.
+ *   - Modo prueba is the default. `--aplicar` is what writes: the ficha, and
+ *     then the site through `lib/admin/property-loader.ts` (create or update).
+ *
+ * Fail-closed on purpose, three times over:
+ *   - No `Publicar` column → the decision is UNKNOWN. Units are then taken
+ *     only from an explicit `--direccion` AND an existing `Publicación/<Unidad>/`
+ *     folder, and their listing_status is never changed.
+ *   - A price that differs from the site's is reported and NOT written unless
+ *     `--precios` is given: the sheet's prices are known to lag.
+ *   - The gallery of an already-loaded unit is NOT replaced unless `--fotos`.
+ */
+
+import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { join, relative, resolve } from "node:path";
+import dotenv from "dotenv";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  buildFicha,
+  diffAgainstSite,
+  findPartida,
+  publishDecision,
+  unitFolderName,
+  unpublishedStatus,
+  type Provisorio,
+  type UnidadRow,
+} from "@/lib/admin/cartera-sync";
+import { readMaestra, type Maestra } from "@/lib/admin/maestra";
+import { mimeForPhoto, parseImportPayload } from "@/lib/admin/property-import";
+import { findOwnerPropertyByAddress, loadProperty, type TargetStatus } from "@/lib/admin/property-loader";
+import { formatPrice, type PriceCurrency } from "@/lib/property/price";
+
+dotenv.config({ path: ".env.local", quiet: true });
+
+// ─── Args ────────────────────────────────────────────────────────────────────
+
+const args = process.argv.slice(2);
+function flagValue(name: string): string | null {
+  const i = args.indexOf(name);
+  if (i === -1) return null;
+  return args[i + 1] ?? null;
+}
+const APLICAR = args.includes("--aplicar");
+const PRECIOS = args.includes("--precios");
+const FOTOS = args.includes("--fotos");
+const JSON_OUT = args.includes("--json");
+const FILTER_DIRECCION = flagValue("--direccion");
+const FILTER_UNIDAD = flagValue("--unidad");
+
+const ROOT = resolve(
+  flagValue("--carpeta") ?? process.env.CARTERA_DIR ?? "C:/Users/tomit/OneDrive/Escritorio/Inmobiliaria",
+);
+const MAESTRA = join(ROOT, "PLANILLA MAESTRA - Inmobiliaria.xlsx");
+
+function fail(msg: string): never {
+  console.error(`\n✗ ${msg}\n`);
+  process.exit(1);
+}
+
+function admin(): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) fail("Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en .env.local");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+async function exists(p: string): Promise<boolean> {
+  try {
+    await stat(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ─── Folder side ─────────────────────────────────────────────────────────────
+
+interface UnitFolder {
+  dir: string;
+  photos: string[];
+  ignored: string[];
+  provisorio: Provisorio | null;
+  provisorioError: string | null;
+}
+
+function buildingDir(row: UnidadRow): string {
+  // `Carpeta en disco` is relative to the Inmobiliaria root and is the one
+  // place that knows about spellings like "Pellegrini & Portela".
+  const rel = row.carpetaEnDisco?.trim() || join("Propiedades", "Familiar", row.direccion);
+  return resolve(ROOT, rel);
+}
+
+async function readUnitFolder(row: UnidadRow): Promise<UnitFolder | null> {
+  if (!row.unidad) return null;
+  const dir = join(buildingDir(row), "Publicación", unitFolderName(row.unidad));
+  if (!(await exists(dir))) return null;
+
+  const photos: string[] = [];
+  const ignored: string[] = [];
+  const fotosDir = join(dir, "fotos");
+  if (await exists(fotosDir)) {
+    for (const name of (await readdir(fotosDir)).sort((a, b) => a.localeCompare(b, "es", { numeric: true }))) {
+      if (name.startsWith("_BORRAR") || name.startsWith(".")) continue;
+      if (mimeForPhoto(name)) photos.push(join(fotosDir, name));
+      else ignored.push(name);
+    }
+  }
+
+  let provisorio: Provisorio | null = null;
+  let provisorioError: string | null = null;
+  const provPath = join(dir, "provisorio.json");
+  if (await exists(provPath)) {
+    try {
+      provisorio = JSON.parse(await readFile(provPath, "utf8"));
+    } catch (err) {
+      provisorioError = `provisorio.json ilegible: ${err instanceof Error ? err.message : err}`;
+    }
+  }
+  return { dir, photos, ignored, provisorio, provisorioError };
+}
+
+// ─── Site side ───────────────────────────────────────────────────────────────
+
+const SITE_FIELDS =
+  "id, listing_status, property_type, operation_type, price_amount, price_currency, description, surface_total, surface_covered, rooms, bedrooms, bathrooms, garages, year_built, partida, nomenclatura_catastral, tags, extras, photos, is_featured";
+
+async function readSiteRow(sb: SupabaseClient, id: string): Promise<Record<string, unknown>> {
+  const { data, error } = await sb.from("properties").select(SITE_FIELDS).eq("id", id).single();
+  if (error) throw new Error(`No pude leer la propiedad ${id}: ${error.message}`);
+  return data as Record<string, unknown>;
+}
+
+// ─── Report helpers ──────────────────────────────────────────────────────────
+
+function fmt(v: unknown): string {
+  if (v === null || v === undefined) return "—";
+  if (Array.isArray(v)) return JSON.stringify(v);
+  if (typeof v === "object") return JSON.stringify(v);
+  const s = String(v);
+  return s.length > 70 ? `${s.slice(0, 67)}…` : s;
+}
+
+function money(amount: unknown, currency: unknown): string {
+  const n = Number(amount);
+  if (amount === null || amount === undefined || !Number.isFinite(n)) return "—";
+  return formatPrice(n, (currency ?? "USD") as PriceCurrency, null) ?? "—";
+}
+
+// ─── Main ────────────────────────────────────────────────────────────────────
+
+async function main() {
+  if (!(await exists(MAESTRA))) fail(`No encuentro la maestra en ${MAESTRA}`);
+
+  console.log(`\nCarpeta : ${ROOT}`);
+  console.log(`Modo    : ${APLICAR ? "APLICAR (escribe ficha.json y carga en el sitio)" : "prueba (no escribe nada)"}`);
+  if (APLICAR) console.log(`Flags   : precios=${PRECIOS ? "sí" : "no"} · fotos=${FOTOS ? "sí" : "no"}`);
+
+  const maestra: Maestra = await readMaestra(MAESTRA);
+  console.log(`\nMaestra : ${maestra.unidades.length} filas en Unidades · ${maestra.partidas.length} partidas legibles`);
+  const missing = (["publicar", "direccionReal", "operacion"] as const).filter((c) => !maestra.columns[c]);
+  if (missing.length) {
+    console.log(`  ⚠ Columnas que todavía no existen: ${missing.join(", ")}`);
+  }
+  if (!maestra.columns.publicar && !FILTER_DIRECCION) {
+    fail(
+      'La maestra no tiene la columna "Publicar", así que no sé qué unidades querés en el sitio. ' +
+        'Pasá --direccion "Belgrano 1287" para probar contra un edificio con carpeta Publicación/.',
+    );
+  }
+
+  const sb = admin();
+
+  // Selection. With the Publicar column: every Activa + Sí, plus anything
+  // already on the site whose row now says otherwise (so it can be taken
+  // down). Without it: explicit --direccion and an existing unit folder.
+  let rows = maestra.unidades;
+  if (FILTER_DIRECCION) rows = rows.filter((r) => r.direccion.toLowerCase() === FILTER_DIRECCION.toLowerCase());
+  if (FILTER_UNIDAD) {
+    rows = rows.filter((r) => r.unidad && unitFolderName(r.unidad).toLowerCase() === FILTER_UNIDAD.toLowerCase());
+  }
+  if (rows.length === 0) fail("Ningún renglón de la maestra coincide con el filtro.");
+
+  let ok = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (const row of rows) {
+    const label = `${row.direccion} · ${row.unidad ?? "(sin unidad)"}`;
+    const decision = publishDecision(row, maestra.columns);
+    const folder = await readUnitFolder(row);
+
+    if (decision.kind === "no" && !folder) {
+      // Nothing on disk and nothing to publish: not a unit for the site.
+      skipped++;
+      continue;
+    }
+
+    console.log(`\n── ${label}`);
+    if (!row.unidad) {
+      console.log("   ⏭ sin unidad, no se sincroniza");
+      skipped++;
+      continue;
+    }
+    console.log(`   maestra   : ${row.tipo ?? "—"} · etapa ${row.etapa ?? "—"} · ${row.situacion ?? "—"}`);
+    console.log(`               precio pretendido ${money(row.precioPretendido, "USD")} · cochera ${row.cochera ?? "—"}${row.tipoCochera ? ` (${row.tipoCochera})` : ""}`);
+
+    if (!folder) {
+      console.log(`   carpeta   : ✗ falta Publicación/${unitFolderName(row.unidad)}/ — se saltea`);
+      skipped++;
+      continue;
+    }
+    console.log(`   carpeta   : ${relative(ROOT, folder.dir)} · ${folder.photos.length} fotos${folder.ignored.length ? ` (ignoradas: ${folder.ignored.join(", ")})` : ""}${folder.provisorio ? " · provisorio.json" : ""}`);
+    if (folder.provisorioError) {
+      console.log(`   ✗ ${folder.provisorioError}`);
+      failed++;
+      continue;
+    }
+
+    const partida = findPartida(maestra.partidas, row.direccion, row.unidad);
+    const built = buildFicha({ row, columns: maestra.columns, partida, provisorio: folder.provisorio, photos: folder.photos });
+
+    // The loader's own strictness is the last word on the JSON.
+    const parsed = parseImportPayload({
+      ...built.ficha,
+      photos: folder.photos,
+    });
+    const errors = [...built.errors, ...parsed.errors];
+    const warnings = [...built.warnings, ...parsed.warnings.filter((w) => !w.startsWith("Sin fotos"))];
+
+    const f = built.ficha;
+    console.log(
+      `   ficha     : ${f.address} · ${f.property_type ?? "?"} en ${f.operation_type} · ${money(f.price_amount, f.price_currency)}` +
+        ` · ${f.surface_covered ?? "?"}/${f.surface_total ?? "?"} m² · ${f.rooms ?? "?"} amb` +
+        `${Array.isArray(f.tags) && f.tags.length ? ` · etiquetas ${(f.tags as string[]).join(", ")}` : ""}` +
+        `${Array.isArray(f.extras) && f.extras.length ? ` · extras ${(f.extras as { kind: string; mode: string; price_delta?: number | null }[]).map((e) => `${e.kind} ${e.mode}${e.price_delta ? ` +${e.price_delta}` : ""}`).join(", ")}` : ""}`,
+    );
+    const byOrigin = new Map<string, string[]>();
+    for (const [k, o] of Object.entries(built.origen)) byOrigin.set(o, [...(byOrigin.get(o) ?? []), k]);
+    console.log(`   origen    : ${[...byOrigin.entries()].map(([o, ks]) => `${o} ← ${ks.join(", ")}`).join(" · ")}`);
+
+    // What the site has for this address.
+    const existing = await findOwnerPropertyByAddress(sb, String(f.address));
+    if (existing.length > 1) {
+      console.log(`   ✗ hay ${existing.length} propiedades propias con esa dirección en el sitio; resolvelo en /admin antes.`);
+      failed++;
+      continue;
+    }
+    const site = existing[0] ? await readSiteRow(sb, existing[0].id) : null;
+
+    let priceBlocked = false;
+    let photosBlocked = false;
+    if (site) {
+      const diffs = diffAgainstSite(f, site);
+      const sitePhotos = Array.isArray(site.photos) ? site.photos.length : 0;
+      console.log(`   sitio     : ya cargada ${site.id} · ${site.listing_status}${site.is_featured ? " · ★ destacada" : ""} · ${sitePhotos} fotos`);
+      if (diffs.length === 0 && sitePhotos === folder.photos.length) {
+        console.log("   vs sitio  : sin diferencias");
+      }
+      for (const d of diffs) {
+        const gated = d.field === "price_amount" || d.field === "price_currency";
+        if (gated && !PRECIOS) priceBlocked = true;
+        console.log(`   vs sitio  : ${d.field}: ${fmt(d.site)} → ${fmt(d.ficha)}${gated && !PRECIOS ? "   ⛔ precio: se conserva el del sitio (usá --precios)" : ""}`);
+      }
+      if (sitePhotos !== folder.photos.length || FOTOS) {
+        if (!FOTOS) photosBlocked = true;
+        console.log(`   vs sitio  : fotos: ${sitePhotos} en el sitio, ${folder.photos.length} en Publicación/${FOTOS ? "   → se reemplaza la galería" : "   ⛔ se conserva la galería (usá --fotos)"}`);
+      }
+    } else {
+      console.log("   sitio     : no existe, se crearía");
+    }
+
+    let target: TargetStatus | null;
+    if (decision.kind === "publicar") target = "publicada";
+    else if (decision.kind === "no") target = unpublishedStatus(row);
+    else target = null;
+    console.log(
+      `   publicar  : ${decision.kind === "publicar" ? "sí" : decision.kind === "no" ? `no (${decision.reason})` : `desconocido (${decision.reason})`}` +
+        ` → ${target ? `estado ${target}` : site ? `se conserva "${site.listing_status}"` : "queda en borrador"}`,
+    );
+
+    for (const w of warnings) console.log(`   ⚠ ${w}`);
+    for (const e of errors) console.log(`   ✗ ${e}`);
+
+    // ficha.json is portable: photos relative to the unit folder.
+    const fichaJson = {
+      ...f,
+      photos: folder.photos.map((p) => relative(folder.dir, p).replace(/\\/g, "/")),
+    };
+    if (JSON_OUT) console.log(JSON.stringify(fichaJson, null, 2).replace(/^/gm, "   │ "));
+
+    if (errors.length > 0) {
+      failed++;
+      continue;
+    }
+    if (!APLICAR) {
+      ok++;
+      continue;
+    }
+
+    // ── Apply ──
+    await writeFile(join(folder.dir, "ficha.json"), JSON.stringify(fichaJson, null, 2) + "\n", "utf8");
+    console.log(`   ✓ escrita ${relative(ROOT, join(folder.dir, "ficha.json"))}`);
+    try {
+      const result = await loadProperty(sb, parsed.payload!, {
+        existingId: site ? String(site.id) : null,
+        status: target,
+        updatePrice: !site || PRECIOS,
+        replacePhotos: FOTOS,
+        statedKeys: Object.keys(f),
+        log: (line) => console.log(`   ${line}`),
+      });
+      if (priceBlocked) console.log("   ⛔ precio no actualizado (falta --precios)");
+      if (photosBlocked) console.log("   ⛔ galería no reemplazada (falta --fotos)");
+      const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      console.log(`   → ${base}/p/${result.id}`);
+      ok++;
+    } catch (err) {
+      console.log(`   ✗ ${err instanceof Error ? err.message : err}`);
+      failed++;
+    }
+  }
+
+  console.log(`\n${ok} ok · ${skipped} salteadas · ${failed} con errores${APLICAR ? "" : " — modo prueba, no se escribió nada"}\n`);
+  if (APLICAR && ok > 0) {
+    console.log("  La caché pública del header y de los pins se renueva sola en ≤5 minutos.\n");
+  }
+  if (failed > 0) process.exit(1);
+}
+
+main().catch((err) => fail(err instanceof Error ? err.message : String(err)));

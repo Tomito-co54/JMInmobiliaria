@@ -1,0 +1,299 @@
+import { describe, it, expect } from "vitest";
+import {
+  buildFicha,
+  cocheraFromColumns,
+  diffAgainstSite,
+  findPartida,
+  parseEtiquetas,
+  parseTipo,
+  partidaFromCell,
+  publishDecision,
+  siteAddress,
+  unitFolderName,
+  unitSiteLabel,
+  unpublishedStatus,
+  type MaestraColumns,
+  type PartidaRow,
+  type UnidadRow,
+} from "./cartera-sync";
+
+const NO_NEW_COLUMNS: MaestraColumns = { publicar: false, direccionReal: false, operacion: false };
+const ALL_COLUMNS: MaestraColumns = { publicar: true, direccionReal: true, operacion: true };
+
+function row(over: Partial<UnidadRow> = {}): UnidadRow {
+  return {
+    direccion: "Belgrano 1287",
+    unidad: "1°A",
+    tipo: "2 ambientes con balcón (40 m²)",
+    cochera: "opcional",
+    tipoCochera: "Cubierta",
+    etapa: "Activa",
+    situacion: "A estrenar, a la venta",
+    precioPretendido: 80000,
+    carpetaEnDisco: "Propiedades/Familiar/Belgrano 1287",
+    publicar: null,
+    tituloWeb: null,
+    descripcionWeb: null,
+    m2Cubiertos: null,
+    m2Totales: null,
+    ambientes: null,
+    dormitorios: null,
+    banos: null,
+    anioConstruccion: null,
+    etiquetas: null,
+    operacion: null,
+    direccionReal: null,
+    ...over,
+  };
+}
+
+const MADRE: PartidaRow = {
+  partida: "063047850",
+  partidaRaw: "063-047850 (falta el dígito verificador)",
+  partido: "Lomas de Zamora",
+  direccion: "Belgrano 1287",
+  alcance: "partida madre",
+  notas: null,
+};
+
+describe("folder and site names (PUBLICACION.md rule 2)", () => {
+  it("drops the degree sign for the folder and keeps it for the site", () => {
+    expect(unitFolderName("1°C")).toBe("1C");
+    expect(unitSiteLabel("1°C")).toBe("1°C");
+  });
+
+  it("normalizes the U.F / U.C spellings, typos included", () => {
+    expect(unitFolderName("U.F: 9")).toBe("UF 9");
+    expect(unitFolderName("U.F 2")).toBe("UF 2");
+    expect(unitFolderName("U:F 1")).toBe("UF 1");
+    expect(unitFolderName("U.F:1")).toBe("UF 1");
+    expect(unitFolderName("U.C: A — espacio C")).toBe("UC A - espacio C");
+    expect(unitFolderName("PB A")).toBe("PB A");
+  });
+
+  it("builds the site address the four Belgrano rows are already keyed by", () => {
+    expect(siteAddress("Belgrano 1287", null, "1°A")).toBe("Belgrano 1287 1°A");
+  });
+
+  it("prefers the real street address over the folder name", () => {
+    expect(siteAddress("Vergara y Cabrera", "Vergara 1901", "U.F: 9")).toBe("Vergara 1901 UF 9");
+    expect(siteAddress("Alsina 455", null, null)).toBe("Alsina 455");
+  });
+});
+
+describe("parseTipo", () => {
+  it("reads a single surface as the whole unit", () => {
+    const t = parseTipo("2 ambientes con balcón (40 m²)");
+    expect(t.propertyType).toBe("departamento");
+    expect(t.surfaceCovered).toBe(40);
+    expect(t.surfaceTotal).toBe(40);
+    expect(t.rooms).toBe(2);
+    expect(t.extras).toEqual([]);
+  });
+
+  it("reads covered + expansion, and names the expansion as an extra", () => {
+    const t = parseTipo("2 ambientes con terraza propia (40 m² + terraza 40 m²)");
+    expect(t.surfaceCovered).toBe(40);
+    expect(t.surfaceTotal).toBe(80);
+    expect(t.extras).toEqual([{ kind: "terraza", detail: "40 m²" }]);
+  });
+
+  it("handles lofts, monoambientes and words for numbers", () => {
+    expect(parseTipo("Loft dúplex con terraza (54 m² + terraza 30 m²)").propertyType).toBe("departamento");
+    expect(parseTipo("Monoambiente con cochera").rooms).toBe(1);
+    expect(parseTipo("Dos ambientes").rooms).toBe(2);
+    expect(parseTipo("3 ambientes con patio (55 m² + patio 22 m²)").extras).toEqual([{ kind: "patio", detail: "22 m²" }]);
+  });
+
+  it("tells a garage sold alone from a flat with one", () => {
+    expect(parseTipo("1/4 cochera cubierta").propertyType).toBe("cochera");
+    expect(parseTipo("Monoambiente con cochera").propertyType).toBe("departamento");
+    expect(parseTipo("Casa").propertyType).toBe("casa");
+    expect(parseTipo("Local").propertyType).toBe("local");
+    expect(parseTipo("Terrenos baldíos").propertyType).toBe("lote");
+  });
+
+  it("returns nulls, never guesses, for text it cannot read", () => {
+    const t = parseTipo("3 cocheras cubiertas + 1 baulera");
+    expect(t.propertyType).toBe("cochera");
+    expect(t.surfaceCovered).toBeNull();
+    expect(t.rooms).toBeNull();
+    expect(parseTipo(null).propertyType).toBeNull();
+  });
+});
+
+describe("cocheraFromColumns", () => {
+  it("maps 'opcional' + tipo to an optional extra with the type as detail", () => {
+    expect(cocheraFromColumns("opcional", "Cubierta")).toEqual({ mode: "opcional", detail: "cubierta" });
+  });
+
+  it("maps a described garage to an included one", () => {
+    expect(cocheraFromColumns("Cochera doble cubierta", "Integrada")).toEqual({
+      mode: "incluida",
+      detail: "cochera doble cubierta",
+    });
+  });
+
+  it("is null when there is none", () => {
+    expect(cocheraFromColumns(null, null)).toBeNull();
+    expect(cocheraFromColumns("no", "Cubierta")).toBeNull();
+  });
+});
+
+describe("publishDecision — fails closed", () => {
+  it("is UNKNOWN, not no and not yes, while the Publicar column is missing", () => {
+    expect(publishDecision(row(), NO_NEW_COLUMNS).kind).toBe("desconocido");
+  });
+
+  it("only publishes Activa + Sí", () => {
+    expect(publishDecision(row({ publicar: "Sí" }), ALL_COLUMNS).kind).toBe("publicar");
+    expect(publishDecision(row({ publicar: "No" }), ALL_COLUMNS).kind).toBe("no");
+    expect(publishDecision(row({ publicar: null }), ALL_COLUMNS).kind).toBe("no");
+    expect(publishDecision(row({ publicar: "Sí", etapa: "En transición" }), ALL_COLUMNS).kind).toBe("no");
+  });
+
+  it("sends sold units to 'vendida' and the rest to 'borrador'", () => {
+    expect(unpublishedStatus(row({ etapa: "En transición", situacion: "Vendida, cobrada; a escriturar" }))).toBe("vendida");
+    expect(unpublishedStatus(row({ etapa: "Histórico", situacion: "ESCRITURADO" }))).toBe("vendida");
+    expect(unpublishedStatus(row({ situacion: "propio del fideicomiso" }))).toBe("borrador");
+  });
+});
+
+describe("partidas", () => {
+  it("reads the sheet's annotated cell", () => {
+    expect(partidaFromCell("063-047850 (falta el dígito verificador)")).toBe("063047850");
+    expect(partidaFromCell("Qué falta")).toBeNull();
+  });
+
+  it("prefers the unit's own row and falls back to the mother partida", () => {
+    const own: PartidaRow = { ...MADRE, partida: "063241060", partidaRaw: "063-241060", direccion: "Vergara y Cabrera", alcance: "U.F: 9" };
+    const madre: PartidaRow = { ...MADRE, direccion: "Vergara y Cabrera" };
+    expect(findPartida([madre, own], "Vergara y Cabrera", "UF 9")).toEqual({ row: own, via: "unidad" });
+    expect(findPartida([madre, own], "Vergara y Cabrera", "U.F: 3")).toEqual({ row: madre, via: "madre" });
+    expect(findPartida([MADRE], "Cabrera 205", "U.F 2")).toBeNull();
+  });
+});
+
+describe("parseEtiquetas", () => {
+  it("accepts labels and keys, refuses the rest", () => {
+    expect(parseEtiquetas("Oferta, a estrenar")).toEqual({ tags: ["oferta", "a_estrenar"], unknown: [] });
+    expect(parseEtiquetas("apto_comercial")).toEqual({ tags: ["apto_comercial"], unknown: [] });
+    expect(parseEtiquetas("Remate")).toEqual({ tags: [], unknown: ["Remate"] });
+    expect(parseEtiquetas(null)).toEqual({ tags: [], unknown: [] });
+  });
+});
+
+describe("buildFicha", () => {
+  const photos = ["C:/x/Publicación/1A/fotos/01-1A.jpg", "C:/x/Publicación/1A/fotos/02-1A.jpg"];
+
+  it("assembles the loader JSON for a Belgrano unit and records every origin", () => {
+    const b = buildFicha({
+      row: row(),
+      columns: NO_NEW_COLUMNS,
+      partida: { row: MADRE, via: "madre" },
+      provisorio: { description: "Dos ambientes a estrenar.", year_built: 2026, bedrooms: 1, bathrooms: 1, extras: [{ kind: "cochera", price_delta: 8000 }] },
+      photos,
+    });
+    expect(b.errors).toEqual([]);
+    expect(b.ficha).toMatchObject({
+      address: "Belgrano 1287 1°A",
+      partido: "Lomas de Zamora",
+      partida: "063047850",
+      property_type: "departamento",
+      operation_type: "venta",
+      price_amount: 80000,
+      price_currency: "USD",
+      surface_covered: 40,
+      surface_total: 40,
+      rooms: 2,
+      bedrooms: 1,
+      bathrooms: 1,
+      year_built: 2026,
+      description: "Dos ambientes a estrenar.",
+      extras: [{ kind: "cochera", mode: "opcional", detail: "cubierta", price_delta: 8000 }],
+      photos,
+    });
+    expect(b.origen).toMatchObject({
+      price_amount: "maestra",
+      partida: "partidas",
+      partido: "partidas",
+      surface_covered: "derivado",
+      description: "provisorio",
+      extras: "provisorio",
+      operation_type: "default",
+      photos: "fotos",
+    });
+    expect(b.warnings).toContain("partida: es la partida madre del edificio, la unidad no tiene la suya en la hoja Partidas.");
+  });
+
+  it("lets the maestra win over provisorio and says so", () => {
+    const b = buildFicha({
+      row: row({ descripcionWeb: "De la maestra." }),
+      columns: NO_NEW_COLUMNS,
+      partida: { row: MADRE, via: "madre" },
+      provisorio: { description: "Del archivo." },
+      photos,
+    });
+    expect(b.ficha.description).toBe("De la maestra.");
+    expect(b.origen.description).toBe("maestra");
+    expect(b.warnings).toContain("description: la maestra ya lo trae, se ignora provisorio.json.");
+  });
+
+  it("refuses an unknown provisorio key instead of dropping it", () => {
+    const b = buildFicha({
+      row: row(),
+      columns: NO_NEW_COLUMNS,
+      partida: { row: MADRE, via: "madre" },
+      provisorio: { precio: 70000 },
+      photos,
+    });
+    expect(b.errors).toContain('provisorio.json: campo desconocido "precio".');
+  });
+
+  it("does not invent a type it cannot read from Tipo", () => {
+    const b = buildFicha({
+      row: row({ tipo: "1 baulera", unidad: "Baulera", cochera: null }),
+      columns: NO_NEW_COLUMNS,
+      partida: { row: MADRE, via: "madre" },
+      provisorio: null,
+      photos: [],
+    });
+    expect(b.errors.some((e) => e.startsWith("property_type"))).toBe(true);
+    expect(b.warnings).toContain("Sin fotos en Publicación/<Unidad>/fotos/: la ficha no se va a poder publicar.");
+  });
+
+  it("merges the terrace from Tipo with the garage from the Cochera column", () => {
+    const b = buildFicha({
+      row: row({ unidad: "2°A", tipo: "2 ambientes con terraza propia (40 m² + terraza 40 m²)" }),
+      columns: NO_NEW_COLUMNS,
+      partida: { row: MADRE, via: "madre" },
+      provisorio: { extras: [{ kind: "cochera", price_delta: 9000 }, { kind: "terraza", detail: "propia, 40 m²" }] },
+      photos,
+    });
+    expect(b.ficha.extras).toEqual([
+      { kind: "cochera", mode: "opcional", detail: "cubierta", price_delta: 9000 },
+      { kind: "terraza", mode: "incluida", detail: "propia, 40 m²", price_delta: null },
+    ]);
+    expect(b.ficha.surface_total).toBe(80);
+  });
+});
+
+describe("diffAgainstSite", () => {
+  it("only reports fields the ficha sets, and compares numbers as numbers", () => {
+    const site = { price_amount: "69900", surface_total: "40", tags: ["oferta"], extras: [{ kind: "cochera", mode: "opcional", detail: null, price_delta: 8000 }], partida: "063047850" };
+    const diffs = diffAgainstSite(
+      { price_amount: 80000, surface_total: 40, partida: "063-047850", extras: [{ kind: "cochera", mode: "opcional", detail: null, price_delta: 8000 }] },
+      site,
+    );
+    expect(diffs).toEqual([{ field: "price_amount", site: "69900", ficha: 80000 }]);
+  });
+
+  it("sees a tag set and an extras list as the same regardless of order", () => {
+    expect(
+      diffAgainstSite(
+        { tags: ["a_estrenar", "oferta"], extras: [{ kind: "terraza", mode: "incluida", detail: "x", price_delta: null }, { kind: "cochera", mode: "opcional", detail: null, price_delta: 1 }] },
+        { tags: ["oferta", "a_estrenar"], extras: [{ kind: "cochera", mode: "opcional", detail: null, price_delta: 1 }, { kind: "terraza", mode: "incluida", detail: "x", price_delta: null }] },
+      ),
+    ).toEqual([]);
+  });
+});

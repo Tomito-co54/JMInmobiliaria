@@ -57,8 +57,8 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status (3-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **450 tests passing** (+7 skipped a propósito),
+**Status (16-sep-2026):** Deployado y funcionando en producción, con
+auto-deploy desde `main`. **475 tests passing** (+7 skipped a propósito),
 `npm run build` verde, **33 rutas**.
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
@@ -139,6 +139,56 @@ Subirlos es una decisión visual (el header se pondría más alto justo después
 de una pelea por su ancho), así que está en el Build map y no se tocó de
 prendido. Los de 19px son texto inline con tooltip, no botones, y valen menos
 que los otros.
+
+### La cartera se sincroniza desde la carpeta de Tomy (16-sep)
+
+Tomy administra sus propiedades en **otra carpeta**, fuera del repo y con
+Cowork: `C:\Users\tomit\OneDrive\Escritorio\Inmobiliaria`. Ahí viven la
+**PLANILLA MAESTRA** (hojas `Unidades` y `Partidas`), las fotos y los papeles.
+El contrato entre esa carpeta y este repo es **`PUBLICACION.md`, en la raíz de
+esa carpeta** — leerlo antes de tocar cualquier cosa de carga. Lo escribió
+Cowork; si algo cambia, se cambia ahí primero. Lo que este repo aporta:
+
+- **`npm run sincronizar-cartera`** (`scripts/sincronizar-cartera.ts`): lee la
+  maestra y `Propiedades/Familiar/<Dirección>/Publicación/<Unidad>/`, arma un
+  `ficha.json` por unidad en el formato del cargador, lo compara con lo que el
+  sitio ya tiene y **por defecto no escribe nada**. `--aplicar` escribe la
+  ficha y carga (crea o actualiza); `--precios` y `--fotos` son opt-in aparte.
+- **`lib/admin/cartera-sync.ts`** es la lógica, pura y con tests: nombres de
+  carpeta (`1°C` → `1C`, `U.F: 9` → `UF 9`), dirección del sitio, lectura del
+  texto de `Tipo` ("(40 m² + terraza 40 m²)" → cubierta 40, total 80, terraza
+  incluida), decisión de publicar, partida madre vs propia, y el diff contra la
+  base. **Cada campo de la ficha dice de dónde salió** (`origen`): maestra,
+  provisorio, derivado, partidas, fotos o default.
+- **`lib/admin/property-loader.ts`** es lo que antes vivía dentro del CLI
+  `cargar-propiedad`, extraído para que los dos comandos compartan una sola
+  implementación, con **modo actualizar**: encuentra la fila propia por
+  dirección y la parchea. **Sólo con las claves que la ficha declara** — el
+  schema de borrador rellena con null todo lo que falta, y parchear la fila
+  entera habría borrado descripción, año y dormitorios de las cuatro
+  publicadas en la primera corrida. Se encontró en la prueba, no en producción.
+- **`Publicación/<Unidad>/provisorio.json`**: los campos que la maestra
+  todavía no tiene (descripción, año, dormitorios, el delta de la cochera).
+  Mismas claves que la ficha. Una columna de la maestra, cuando exista, le
+  gana y el reporte lo avisa para borrar la entrada. Un campo desconocido es
+  error, igual que en el cargador.
+- **Falla cerrada tres veces:** sin columna `Publicar` la decisión es
+  **desconocida** (ni sí ni no: exige `--direccion` y carpeta, y no cambia el
+  estado de nada); un precio distinto del sitio se reporta y **no se escribe**
+  sin `--precios` (los de la maestra son de 2023); la galería de una ya
+  cargada no se reemplaza sin `--fotos`.
+
+**Estado al 16-sep:** probado en modo prueba contra Belgrano 1287. Las cuatro
+publicadas se reconocen, las fichas coinciden con la base salvo el precio del
+1°A (69.900 en el sitio, 80.000 en la maestra, que está vieja) y las galerías
+(Cowork eligió menos fotos que las subidas). **No se aplicó nada.** Las columnas
+nuevas de la maestra las agrega Cowork; hasta entonces `provisorio.json` lleva lo
+que falta. Tomy confirma precios (1°A, 4°Y) y la altura de Vergara (1900 o 1901).
+
+**Encontrado de paso (16-sep):** cambiar el precio desde el editor **no
+revalida la caché pública** (`PUBLIC_CATALOG_TAG`); sólo publicar lo hace. El
+header y los pins muestran el precio viejo hasta 5 minutos. Anotado, no
+arreglado.
 
 ### Las portadas de /propiedades no se veían en el celular (3-sep)
 
@@ -338,6 +388,7 @@ visual.
 | Fase 44 — Buscar por área en el mapa | La capa pública sobre `AreaMap` que el punto 6 preveía: en `/propiedades` el mapa es un filtro más (`?mapa=1`, `?area=…`), con "Dibujar un área" en desktop y **"Buscar en esta zona"** en el celular; pins en color de match, los de afuera del área atenuados, Leaflet sólo al abrirlo. En la landing, `HomeMapTeaser`: pins sobre tiles reales sin Leaflet, link al mapa. | `187768e` |
 | Fase 43 — El catálogo se filtra y se ordena por el match | `/propiedades` con búsqueda escrita, selectores de ubicación / operación / tipo (cada uno aparece sólo con más de una posición) y, con el match armado, **orden por match** con "Tu match · N de 100" en cada card. Filtros en la URL, orden no. `lib/catalog/filters.ts` puro; la lista es isla de cliente. `useSearchParams` descartado: su Suspense no hidrataba en dev. | `5549729` |
 | Fase 42 — Los extras, y el tipo cochera | Cochera / patio / terraza como **botón**: chip fijo si viene con la unidad, **toggle de 44px** si se elige, y el precio de la ficha suma el delta en el mismo frame (la barra mobile lee el mismo store). `properties.extras` jsonb con CHECK por función SQL (00020); `price_amount` sigue siendo el piso. Tipo `cochera` (00019) y `lib/property/types.ts` como única lista de tipos. Cargados: 4°Y (cochera + terraza incluidas), Belgrano 1°A/1°B (+8.000), 2°A/2°B (+9.000, terraza incluida). | `aa040cf` |
+| Fase 45 — La cartera se sincroniza desde la carpeta de Tomy | `npm run sincronizar-cartera`: maestra + `Publicación/` → `ficha.json` → cargador, con modo actualizar sin duplicar y tres guardas opt-in (estado, precio, fotos). `lib/admin/cartera-sync.ts` puro con 25 tests; `property-loader.ts` extraído del CLI. `exceljs` como devDependency para leer la maestra. Probado en modo prueba contra Belgrano 1287; nada aplicado. | *(este commit)* |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
 **Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
@@ -352,7 +403,8 @@ mail de entrega, que se fueron con el código que probaban; → **406** tras la
 40, con el módulo de etiquetas, el schema y el cargador CLI; → **415** tras la 41, con
 el lookup por `cca`, el validador de nomenclatura y el JSON de PH; → **432** tras la
 42, con el módulo de extras y su schema; → **446** tras la 43, con los filtros y el
-orden del catálogo; → **450** tras la 44, con el área del mapa en los filtros). Los 7 saltados son las bandas de
+orden del catálogo; → **450** tras la 44, con el área del mapa en los filtros; → **475** tras la
+45, con la sincronización de la cartera). Los 7 saltados son las bandas de
 coherencia ARBA: quedan como spec de vuelta, ver **El dato de ARBA es de la
 parcela** más abajo.
 
@@ -1462,6 +1514,10 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   │                             #   callback-errors.ts + password-reset-errors.ts
 │   ├── admin/                    # ← property-import.ts: parseo y validacion
 │   │                             #   del JSON del cargador CLI (puro, testeable)
+│   │                             #   property-loader.ts: los pasos de la carga
+│   │                             #   (crear O actualizar), compartidos por los dos CLIs
+│   │                             #   cartera-sync.ts: maestra + Publicación/ → ficha,
+│   │                             #   puro; maestra.ts: el lector del xlsx (exceljs)
 │   ├── catalog/                  # ← filters.ts: la búsqueda escrita, los selectores y el
 │   │                             #   orden por match de /propiedades. Puro, con tests.
 │   ├── buildings/                # ← agrupar unidades por parcela catastral.
@@ -1502,6 +1558,8 @@ Management API (config de auth, settings de proyecto). Reglas:
 │   └── reset.sql
 ├── scripts/                      # CLIs: scrape, dedup, geocode, ARBA, score, alerts,
 │                                 #   db-run, db-query, create-property,
+│                                 #   sincronizar-cartera (la carpeta de Tomy → el
+│                                 #   sitio; modo prueba por defecto),
 │                                 #   buscar-partida (direccion -> partida, via
 │                                 #   geocoding + ARBA por punto: es AYUDA DE BUSQUEDA
 │                                 #   y no fuente de verdad, y avisa cuando el match
@@ -1651,6 +1709,7 @@ servicios pagos el 2-sep.)
 44. **Fase 42 — Los extras (cochera / patio / terraza) y el tipo cochera** ✅ 3-sep
 45. **Fase 43 — El catálogo se filtra y se ordena por el match** ✅ 3-sep
 46. **Fase 44 — Buscar por área en el mapa** ✅ 3-sep
+47. **Fase 45 — La cartera se sincroniza desde la carpeta de Tomy** ✅ 16-sep (probado, no aplicado)
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -1663,8 +1722,12 @@ ambientes de planta baja**: los datos están en el folleto y **lo único que
 falta son las fotos**. Después viene la cartera que Tomy dictó el 3-sep
 (Alsina 1639 completo, Cabrera 205, Drago, Sarmiento 1260…), de a una y en el
 orden que él marque, cuando la corrija.
-Dos caminos:
+Tres caminos:
 
+- **Desde la carpeta de Tomy:** `npm run sincronizar-cartera -- --direccion "…"`
+  (ver *La cartera se sincroniza desde la carpeta de Tomy*). Es el camino de
+  ahora en más: Cowork deja las fotos en `Publicación/<Unidad>/fotos/`, la
+  maestra dice precio y `Publicar`, y el script hace el resto.
 - **Formulario:** `/admin/properties/nueva`.
 - **Desde un JSON:** `npm run cargar-propiedad -- ficha.json [--dry-run]`
   (`docs/ejemplo-propiedad.json` es la plantilla, ya incluye `year_built`).
@@ -2067,6 +2130,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.26 | Sep 16, 2026 | **La cartera se sincroniza desde la carpeta de Tomy.** Tomy administra sus propiedades en OneDrive con Cowork, y el contrato entre esa carpeta y este repo es `PUBLICACION.md` (allá). El primer borrador del asistente describía otro sitio —estático, con "assets generados"— y se corrigió: acá las propiedades viven en Supabase y la pieza que conecta es el cargador. `npm run sincronizar-cartera` lee la maestra y `Publicación/`, arma la ficha, la compara con la base y **por defecto no escribe**. El cargador aprendió a **actualizar sin duplicar**, y la prueba destapó que parchear la fila entera habría borrado la descripción y el año de las cuatro publicadas: el schema rellena con null lo que la ficha no dice. Ahora sólo se escriben las claves declaradas. Tres guardas opt-in: estado (sin columna `Publicar` no se decide), precio (`--precios`), fotos (`--fotos`). Belgrano 1287 1°A pasó a **oferta a USD 69.900** con el chip encendido — la primera publicada con etiqueta. **450 → 475 tests.** |
 | 2.25 | Sep 3, 2026 | **Buscar por área en el mapa.** La capa pública sobre `AreaMap` que el punto 6 esperaba: en `/propiedades` el mapa se abre desde la barra y el área es un filtro más, en la URL; "Dibujar un área" en desktop y "Buscar en esta zona" en el celular, porque un teléfono no puede arrastrar un rectángulo sin mover el mapa. Los pins llevan el color del match y los de afuera del área se atenúan. Leaflet sólo al abrirlo. La landing tiene su recuadro sin Leaflet, pins proyectados con la misma función que los tiles. Una trampa medida: un mapa en una pestaña oculta reporta bounds sin ancho, y "buscar en esta zona" vaciaba la lista — el botón se apaga mientras el rectángulo sea degenerado. **446 → 450 tests.** |
 | 2.24 | Sep 3, 2026 | **El catálogo se filtra y se ordena por el match.** Búsqueda escrita, selectores de ubicación / venta-alquiler / tipo, y con el match armado las propiedades se ordenan por match con el puntaje en cada card. La lista pasó a isla de cliente porque el match sólo existe en el navegador. Cada selector aparece sólo cuando tiene más de una posición, así que hoy Ubicación no se ve: todo es Lomas de Zamora. Y una trampa nueva para la colección: **`useSearchParams` dentro de Suspense no hidrató en dev** — la barra se dibujaba sin fiber de React y sin ningún error; se lee `window.location` al montar. También cerró **las portadas de /propiedades en Safari** (aspect-ratio sobre ítem estirado de grilla → 0px). **432 → 446 tests.** |
 | 2.23 | Sep 3, 2026 | **Los extras, y la cartera anotada.** Tomy dictó la cartera familiar completa (Belgrano, Alsina 1639, Cabrera 205, Drago, La Costa…) para ir publicando; **vive en la memoria local de Claude y no en el repo**, porque nombra a terceros, y está marcada como provisoria hasta que él corrija. De ahí salieron tres pedidos: (1) **cochera / patio / terraza como botón** — fijo si la unidad se vende con eso, seleccionable si es opcional, y el precio de la ficha suma el delta en el acto. `properties.extras` jsonb con CHECK por función SQL; `price_amount` sigue siendo el piso que leen el score y el mercado. Es el punto 7 del Build map sin la financiación. (2) **Tipo `cochera`** para las unidades complementarias que se venden solas, y una sola lista de tipos en `lib/property/types.ts` en vez de once copias. (3) Las propiedades **fuera de Zona Sur** (CABA, La Costa, Chapadmalal) quedan separadas, sin cargar. **415 → 432 tests.** |

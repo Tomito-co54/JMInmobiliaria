@@ -10,10 +10,9 @@
  * browser. This is the same steps without one, so a property can be loaded
  * from a description and a folder of photos.
  *
- * It reuses the loader's own pieces rather than reimplementing them —
- * the Zod schemas, the ARBA-by-partida lookup, the Storage helper, the
- * scorer. The Server Actions those live behind only add an admin session
- * check, which a local script run by the broker already satisfies.
+ * The steps themselves live in `lib/admin/property-loader.ts`, shared with
+ * `sincronizar-cartera.ts`. This file only reads the JSON, prints what it is
+ * about to do, and refuses to duplicate an address unless told otherwise.
  *
  * Writes as `source: 'owner_direct'` and `listing_status: 'borrador'`.
  * Publishing is opt-in (`--publicar`) and still goes through
@@ -22,19 +21,12 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { basename, resolve } from "node:path";
+import { resolve } from "node:path";
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
-import { parseImportPayload, isRemotePhoto, mimeForPhoto } from "@/lib/admin/property-import";
-import { validateNomenclatura, validatePartida } from "@/lib/zona-sur/partidos";
-import {
-  ensurePropertyCadastralByNomenclatura,
-  ensurePropertyCadastralByPartida,
-} from "@/lib/services/arba/properties";
-import { uploadPropertyPhoto } from "@/lib/storage/property-photos";
-import { canPublishProperty } from "@/lib/validators/property";
+import { parseImportPayload } from "@/lib/admin/property-import";
+import { findOwnerPropertyByAddress, loadProperty, normalizeCadastral } from "@/lib/admin/property-loader";
 import { readTags, tagLabel } from "@/lib/property/tags";
-import { ComparablesCache, recomputeQualityScore } from "@/lib/scoring";
 
 dotenv.config({ path: ".env.local", quiet: true });
 
@@ -54,19 +46,6 @@ function admin() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) fail("Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en .env.local");
   return createClient(url, key, { auth: { persistSession: false } });
-}
-
-async function photoToFile(ref: string): Promise<File> {
-  const mime = mimeForPhoto(ref)!;
-  if (isRemotePhoto(ref)) {
-    const res = await fetch(ref);
-    if (!res.ok) throw new Error(`HTTP ${res.status} al bajar ${ref}`);
-    const buf = Buffer.from(await res.arrayBuffer());
-    return new File([buf], basename(new URL(ref).pathname), { type: mime });
-  }
-  const path = resolve(ref);
-  const buf = await readFile(path);
-  return new File([buf], basename(path), { type: mime });
 }
 
 async function main() {
@@ -89,38 +68,22 @@ async function main() {
     for (const e of parsed.errors) console.error(`  ✗ ${e}`);
     fail(`${parsed.errors.length} error(es) en el archivo. No se creó nada.`);
   }
-  const { row, partida, nomenclatura, photos, isFeatured } = parsed.payload!;
+  const payload = parsed.payload!;
+  const { row, partida, photos, isFeatured } = payload;
 
-  // The partida's first three digits encode the partido; a mismatch means
-  // one of the two is wrong, and it is cheaper to say so before writing.
-  // The normalized form is what ARBA is queried with further down.
-  let partidaNormalized: string | null = null;
-  if (partida && row.partido) {
-    const v = validatePartida(row.partido as string, partida);
-    if (!v.ok) fail(v.message);
-    partidaNormalized = v.normalized;
-  } else if (partida) {
-    fail("Hay partida pero falta el partido: sin él no se puede validar el prefijo.");
-  }
-
-  // A unit under propiedad horizontal: its partida is real but ARBA's public
-  // layer does not know it, so the lot is looked up by the nomenclature on the
-  // papers instead. The partida still goes on the row — it is the unit's.
-  let nomenclaturaNormalized: string | null = null;
-  if (nomenclatura && row.partido) {
-    const v = validateNomenclatura(row.partido as string, nomenclatura);
-    if (!v.ok) fail(v.message);
-    nomenclaturaNormalized = v.normalized;
-  } else if (nomenclatura) {
-    fail("Hay nomenclatura pero falta el partido: sin él no se puede validar el prefijo.");
+  let cad: { partida: string | null; nomenclatura: string | null };
+  try {
+    cad = normalizeCadastral(payload);
+  } catch (err) {
+    fail(err instanceof Error ? err.message : String(err));
   }
 
   console.log("\n=== Propiedad a cargar ===");
   console.log(`  Dirección : ${row.address ?? "(sin dirección)"}`);
   console.log(`  Partido   : ${row.partido ?? "(sin partido)"}`);
   console.log(`  Partida   : ${partida ?? "(sin partida)"}`);
-  if (nomenclaturaNormalized) {
-    console.log(`  Parcela   : ${nomenclaturaNormalized} (por nomenclatura — unidad de PH)`);
+  if (cad.nomenclatura) {
+    console.log(`  Parcela   : ${cad.nomenclatura} (por nomenclatura — unidad de PH)`);
   }
   console.log(`  Tipo      : ${row.property_type ?? "?"} · ${row.operation_type}`);
   console.log(`  Precio    : ${row.price_amount ?? "?"} ${row.price_currency}`);
@@ -137,115 +100,32 @@ async function main() {
   const sb = admin();
 
   // Running the same file twice would otherwise silently duplicate a
-  // listing, and duplicates in a two-property catalog are very visible.
+  // listing, and duplicates in a small catalog are very visible. The sync
+  // script is the one that updates in place; this CLI only creates.
   if (row.address && !force) {
-    const { data: dupes } = await sb
-      .from("properties")
-      .select("id, address")
-      .in("source", ["owner_direct", "agency"])
-      .eq("address", row.address as string);
-    if (dupes && dupes.length > 0) {
+    const dupes = await findOwnerPropertyByAddress(sb, row.address as string);
+    if (dupes.length > 0) {
       fail(
-        `Ya existe una propiedad propia en "${row.address}" (${(dupes[0] as { id: string }).id}). ` +
-          `Usá --force si de verdad querés cargar otra.`,
+        `Ya existe una propiedad propia en "${row.address}" (${dupes[0].id}). ` +
+          `Usá --force si de verdad querés cargar otra, o npm run sincronizar-cartera para actualizarla.`,
       );
     }
   }
 
-  const { data: created, error: insertErr } = await sb
-    .from("properties")
-    .insert({
-      ...row,
-      partida,
-      source: "owner_direct",
-      listing_status: "borrador",
-      is_active: true,
-      is_featured: isFeatured,
-    } as never)
-    .select("id")
-    .single();
-  if (insertErr) fail(`No pude crear la propiedad: ${insertErr.message}`);
-  const id = (created as { id: string }).id;
-  console.log(`\n✓ Borrador creado: ${id}`);
-
-  // ARBA is explicitly non-fatal. The provincial service goes down, and a
-  // listing shouldn't be lost because of it — same call the form's
-  // "Consultar ARBA" button makes, same tolerance.
-  if (nomenclaturaNormalized || partidaNormalized) {
-    try {
-      const r = nomenclaturaNormalized
-        ? await ensurePropertyCadastralByNomenclatura(id, nomenclaturaNormalized)
-        : await ensurePropertyCadastralByPartida(id, partidaNormalized!);
-      if (r.ok) {
-        console.log(`✓ ARBA: ${r.nomenclatura} · ${r.surfaceArba ?? "?"} m² · ${r.tipo ?? "?"}`);
-      } else {
-        console.log(`  ⚠ ARBA no respondió con la parcela (${r.reason}). Queda sin verificar.`);
-      }
-    } catch (err) {
-      console.log(`  ⚠ ARBA falló: ${err instanceof Error ? err.message : err}`);
-    }
-  }
-
-  const uploaded: string[] = [];
-  for (const [i, ref] of photos.entries()) {
-    try {
-      const f = await photoToFile(ref);
-      const r = await uploadPropertyPhoto(id, f);
-      if (r.ok && r.url) {
-        uploaded.push(r.url);
-        console.log(`✓ Foto ${i + 1}/${photos.length}: ${basename(ref)}`);
-      } else {
-        console.log(`  ⚠ Foto ${i + 1} falló: ${r.error}`);
-      }
-    } catch (err) {
-      console.log(`  ⚠ Foto ${i + 1} falló: ${err instanceof Error ? err.message : err}`);
-    }
-  }
-  if (uploaded.length > 0) {
-    const { error } = await sb
-      .from("properties")
-      .update({ photos: uploaded } as never)
-      .eq("id", id);
-    if (error) console.log(`  ⚠ No pude guardar las fotos: ${error.message}`);
-  }
-
-  try {
-    // warmUp() is not optional: the cache throws on `get` until it has
-    // loaded the comparables, and the price sub-score is most of what
-    // separates a scored listing from one the ring shows as "sin datos".
-    const comparables = new ComparablesCache();
-    await comparables.warmUp();
-    const breakdown = await recomputeQualityScore(id, comparables);
-    console.log(`✓ Quality score: ${breakdown?.score ?? "sin datos suficientes"}`);
-  } catch (err) {
-    console.log(`  ⚠ Score falló: ${err instanceof Error ? err.message : err}`);
-  }
-
-  if (publish) {
-    const { data: fresh } = await sb
-      .from("properties")
-      .select(
-        "property_type, operation_type, price_amount, price_currency, partido, partida, nomenclatura_catastral, address, photos",
-      )
-      .eq("id", id)
-      .single();
-    const check = canPublishProperty(fresh as never);
-    if (!check.ok) {
-      console.log(`\n  ⚠ No se publica, falta: ${check.missing.join(", ")}`);
-      console.log("    Queda en borrador. Completá y publicá desde /admin.");
-    } else {
-      const { error } = await sb
-        .from("properties")
-        .update({ listing_status: "publicada" } as never)
-        .eq("id", id);
-      if (error) console.log(`  ⚠ No pude publicar: ${error.message}`);
-      else console.log("✓ Publicada");
-    }
+  const result = await loadProperty(sb, payload, {
+    existingId: null,
+    status: publish ? "publicada" : null,
+    updatePrice: true,
+    replacePhotos: false,
+    log: (line) => console.log(line),
+  });
+  if (publish && result.status !== "publicada") {
+    console.log("    Queda en borrador. Completá y publicá desde /admin.");
   }
 
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  console.log(`\n  Editor : ${base}/admin/properties/${id}/editar`);
-  console.log(`  Pública: ${base}/p/${id}\n`);
+  console.log(`\n  Editor : ${base}/admin/properties/${result.id}/editar`);
+  console.log(`  Pública: ${base}/p/${result.id}\n`);
 }
 
 main().catch((err) => fail(err instanceof Error ? err.message : String(err)));

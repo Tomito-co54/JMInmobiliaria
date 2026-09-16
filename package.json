@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "pipeline": "tsx scripts/scrape-zonaprop.ts \"Lomas de Zamora\" && tsx scripts/scrape-trezza.ts \"Lomas de Zamora\" && tsx scripts/dedup-properties.ts && tsx scripts/geocode-properties.ts && tsx scripts/enrich-cadastral.ts && tsx scripts/score-properties.ts",
     "cargar-propiedad": "tsx scripts/create-property.ts",
-    "buscar-partida": "tsx scripts/buscar-partida.ts"
+    "buscar-partida": "tsx scripts/buscar-partida.ts",
+    "sincronizar-cartera": "tsx scripts/sincronizar-cartera.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -52,6 +53,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9.39.4",
     "eslint-config-next": "^15.5.18",
+    "exceljs": "^4.4.0",
     "pg": "^8.20.0",
     "playwright": "^1.60.0",
     "postcss": "^8.5.14",
