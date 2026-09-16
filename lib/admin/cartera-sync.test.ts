@@ -30,6 +30,7 @@ function row(over: Partial<UnidadRow> = {}): UnidadRow {
     etapa: "Activa",
     situacion: "A estrenar, a la venta",
     precioPretendido: 80000,
+    precioOferta: null,
     carpetaEnDisco: "Propiedades/Familiar/Belgrano 1287",
     publicar: null,
     tituloWeb: null,
@@ -224,6 +225,31 @@ describe("buildFicha", () => {
       photos: "fotos",
     });
     expect(b.warnings).toContain("partida: es la partida madre del edificio, la unidad no tiene la suya en la hoja Partidas.");
+  });
+
+  it("publishes the offer price, keeps the list price out, and tags it", () => {
+    const b = buildFicha({
+      row: row({ precioPretendido: 80000, precioOferta: 69900 }),
+      columns: NO_NEW_COLUMNS,
+      partida: { row: MADRE, via: "madre" },
+      provisorio: null,
+      photos,
+    });
+    expect(b.ficha.price_amount).toBe(69900);
+    expect(b.ficha.tags).toEqual(["oferta"]);
+    expect(b.origen.price_amount).toBe("maestra");
+    expect(b.origen.tags).toBe("maestra");
+  });
+
+  it("does not duplicate the oferta tag when it is already there", () => {
+    const b = buildFicha({
+      row: row({ precioOferta: 69900, etiquetas: "Oferta, A estrenar" }),
+      columns: NO_NEW_COLUMNS,
+      partida: { row: MADRE, via: "madre" },
+      provisorio: null,
+      photos,
+    });
+    expect(b.ficha.tags).toEqual(["oferta", "a_estrenar"]);
   });
 
   it("lets the maestra win over provisorio and says so", () => {

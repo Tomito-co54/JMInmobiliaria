@@ -178,6 +178,12 @@ Cowork; si algo cambia, se cambia ahí primero. Lo que este repo aporta:
   sin `--precios` (los de la maestra son de 2023); la galería de una ya
   cargada no se reemplaza sin `--fotos`.
 
+- **`Precio oferta (USD)`**, columna opcional de la maestra: cuando tiene
+  valor es lo que el sitio publica y la etiqueta `oferta` se enciende sola;
+  `Precio pretendido` sigue siendo el de lista. Existe para que Belgrano 1°A
+  (lista 80.000, oferta 69.900) no pelee con "la maestra manda" en cada
+  corrida. Una oferta que nada marca como oferta es sólo un número más bajo.
+
 **Estado al 16-sep:** probado en modo prueba contra Belgrano 1287. Las cuatro
 publicadas se reconocen, las fichas coinciden con la base salvo el precio del
 1°A (69.900 en el sitio, 80.000 en la maestra, que está vieja) y las galerías

@@ -34,6 +34,12 @@ export interface UnidadRow {
   etapa: string | null;
   situacion: string | null;
   precioPretendido: number | null;
+  /**
+   * A temporary offer price. When set it is what the site publishes and the
+   * `oferta` tag goes on; `precioPretendido` stays the list price. Lets the
+   * maestra keep both numbers without the sync fighting the offer every run.
+   */
+  precioOferta: number | null;
   carpetaEnDisco: string | null;
   /** Columns PUBLICACION.md lists as "a agregar" — absent until Cowork adds them. */
   publicar: string | null;
@@ -384,7 +390,10 @@ export function buildFicha(input: BuildInput): BuiltFicha {
   pick("operation_type", opMaestra);
   if (!ficha.operation_type) set("operation_type", "venta", "default");
 
-  pick("price_amount", row.precioPretendido);
+  // An offer price beats the list price and carries its own tag: an offer
+  // that nothing marks as an offer is just a lower number.
+  const enOferta = row.precioOferta !== null && row.precioOferta > 0;
+  pick("price_amount", enOferta ? row.precioOferta : row.precioPretendido);
   if (!ficha.price_amount) warnings.push("price_amount: sin precio pretendido, la ficha no se va a poder publicar.");
   pick("price_currency", null);
   if (!ficha.price_currency) set("price_currency", "USD", "default");
@@ -404,6 +413,10 @@ export function buildFicha(input: BuildInput): BuiltFicha {
   for (const u of et.unknown) errors.push(`Etiquetas: "${u}" no es una etiqueta conocida (${PROPERTY_TAGS.join(", ")}).`);
   if (et.tags.length) set("tags", et.tags, "maestra");
   else if (Array.isArray(prov.tags) && prov.tags.length) set("tags", prov.tags, "provisorio");
+  if (enOferta) {
+    const current = (ficha.tags as string[] | undefined) ?? [];
+    if (!current.includes("oferta")) set("tags", [...current, "oferta"], "maestra");
+  }
 
   // Extras: the Cochera column decides the garage; terrace/patio come from
   // the Tipo text; provisorio.json can add the price delta or override all.
