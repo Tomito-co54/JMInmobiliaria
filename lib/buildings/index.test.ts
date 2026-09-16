@@ -167,6 +167,12 @@ describe("buildingLabel", () => {
     expect(label).toBe("Loria 1400");
   });
 
+  it("drops a shared unit marker left dangling by the cut", () => {
+    expect(buildingLabel(at("Vergara 1901 UF 3", "Vergara 1901 UF 9"))).toBe("Vergara 1901");
+    expect(buildingLabel(at("Cabrera 205 U.F. 2", "Cabrera 205 U.F. 6"))).toBe("Cabrera 205");
+    expect(buildingLabel(at("Matheu 900 Depto 1", "Matheu 900 Depto 4"))).toBe("Matheu 900");
+  });
+
   it("handles a single unit and no address at all", () => {
     expect(buildingLabel(at("Colombres 700"))).toBe("Colombres 700");
     expect(buildingLabel(at(null, null))).toBeNull();

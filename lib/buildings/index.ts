@@ -197,7 +197,9 @@ function commonPrefixAtWordBoundary(addresses: readonly string[]): string | null
     const lastSpace = cut.lastIndexOf(" ");
     cut = lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
   }
-  const trimmed = cut.trim();
+  // "Vergara 1901 UF 3" and "… UF 9" share the word "UF", which names the
+  // unit, not the building.
+  const trimmed = cut.trim().replace(/\s+(u\.?\s?f\.?|dto\.?|depto\.?|unidad)$/i, "");
   return trimmed.length > 0 ? trimmed : null;
 }
 
