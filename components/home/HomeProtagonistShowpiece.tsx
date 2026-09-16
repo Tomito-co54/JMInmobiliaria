@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useInView } from "@/hooks/use-in-view";
 import { cn } from "@/lib/utils";
+import { OfferBadge } from "@/components/property/OfferBadge";
 
 /**
  * Client island for the protagonist showpiece — the photo that breaks out of
@@ -26,6 +27,7 @@ export function HomeProtagonistShowpiece({
   cover,
   behind,
   headline,
+  offer = false,
 }: {
   id: string;
   cover: string | null;
@@ -40,6 +42,8 @@ export function HomeProtagonistShowpiece({
    */
   behind: string | null;
   headline: string;
+  /** The listing is on offer: the ribbon hangs off the photo's corner. */
+  offer?: boolean;
 }) {
   const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.35 });
 
@@ -100,6 +104,20 @@ export function HomeProtagonistShowpiece({
             : "relative",
         )}
       >
+        {/* The offer ribbon, past the corner of the framed photo. Outside the
+            clipped frame (sibling, not child) so it can overhang; it arrives
+            with the photo, a beat later, so it reads as pinned onto it. */}
+        {offer && (
+          <OfferBadge
+            size="lg"
+            className={cn(
+              "absolute -left-3 -top-4 z-20 rotate-[-7deg]",
+              "motion-safe:transition-all motion-safe:duration-500",
+              inView ? "opacity-100 scale-100" : "motion-safe:opacity-0 motion-safe:scale-75",
+            )}
+            tilt={false}
+          />
+        )}
         <div
           className={cn(
             "relative aspect-[4/3] rounded-2xl overflow-hidden ring-[6px] ring-background",

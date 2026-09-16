@@ -84,6 +84,14 @@
     --brand-circle-bg: var(--brand-navy);
     --brand-circle-fg: #FFFFFF;
 
+    /* Oferta. The one colour on the site that is allowed to shout. Warm red,
+       deliberately outside the navy + gold system: an offer is a claim about
+       the price and it has to be seen before anything else on the card. Used
+       by the OfferBadge ribbon and by the price it hangs over — nowhere else,
+       so it keeps its meaning. White on it clears 4.9:1. */
+    --offer: #D93D2A;
+    --offer-fg: #FFFFFF;
+
     /* Score bands (continuous gradient 0-100; dorado from 95+). See
        lib/scoring/bands.ts for the band boundaries used by the UI. */
     --score-red: #DC2626;
@@ -174,6 +182,11 @@
        23% light — on the slate surfaces it is nearly invisible, which is the
        same reason --brand-heading flips to white here. */
     --match-perfect: #8081DB;
+
+    /* Lighter red on the slate surfaces (the light-mode red sinks into
+       them); the badge keeps the same red with white on it. */
+    --offer: #FF6B57;
+    --offer-fg: #1A0B08;
 
     --background: #15181F;            /* cold slate (page base) */
     --foreground: #FFFFFF;

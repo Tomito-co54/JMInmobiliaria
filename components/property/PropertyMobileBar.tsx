@@ -15,6 +15,7 @@ export function PropertyMobileBar({
   priceCurrency,
   operationType,
   extras,
+  offer,
   propertyId,
   isFavorited,
   signedOut,
@@ -25,6 +26,7 @@ export function PropertyMobileBar({
   priceCurrency: "USD" | "ARS" | null;
   operationType: "venta" | "alquiler" | null;
   extras: unknown;
+  offer: boolean;
   isFavorited: boolean;
   signedOut: boolean;
 }) {
@@ -40,6 +42,7 @@ export function PropertyMobileBar({
             currency={priceCurrency}
             operation={operationType}
             extras={extras}
+            offer={offer}
           />
         </div>
         <FavoriteButton

@@ -1,4 +1,4 @@
-import { readTags, tagEmphasis, tagLabel } from "@/lib/property/tags";
+import { readTags, tagEmphasis, tagLabel, type PropertyTag } from "@/lib/property/tags";
 import { cn } from "@/lib/utils";
 
 /**
@@ -26,12 +26,19 @@ export function PropertyTagChips({
   tags,
   variant = "surface",
   className,
+  omit = [],
 }: {
   tags: unknown;
   variant?: "surface" | "overlay";
   className?: string;
+  /**
+   * Tags another element on the same surface already says. The public
+   * surfaces paint "Oferta" as the OfferBadge ribbon and pass it here, so
+   * the claim is not made twice in two voices on one card.
+   */
+  omit?: readonly PropertyTag[];
 }) {
-  const list = readTags(tags);
+  const list = readTags(tags).filter((t) => !omit.includes(t));
   if (list.length === 0) return null;
 
   return (

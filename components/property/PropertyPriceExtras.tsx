@@ -12,6 +12,7 @@ import {
   readExtras,
 } from "@/lib/property/extras";
 import { toggleExtra, useSelectedExtras } from "@/lib/property/extras-selection";
+import { OfferBadge } from "./OfferBadge";
 
 /**
  * The price of a listing together with its extras — the two cannot be shown
@@ -37,6 +38,12 @@ interface PriceProps {
   currency: PriceCurrency | null;
   operation: OperationType | null;
   extras: unknown;
+  /**
+   * The listing is on offer. The number takes the offer red and a small
+   * ribbon sits beside it, so the price and the claim about it read as one
+   * statement (see OfferBadge). Default false: most prices are just prices.
+   */
+  offer?: boolean;
 }
 
 function useConfiguredPrice({ propertyId, baseAmount, extras }: PriceProps) {
@@ -60,8 +67,12 @@ export function PropertyPriceExtras(props: PriceProps) {
     <div className="space-y-4">
       <div>
         {text ? (
-          <p className="font-heading text-3xl sm:text-4xl font-medium tracking-tight tabular-nums">
+          <p
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 font-heading text-3xl sm:text-4xl font-medium tracking-tight tabular-nums"
+            style={props.offer ? { color: "var(--offer)" } : undefined}
+          >
             {text}
+            {props.offer && <OfferBadge size="sm" tilt={false} className="translate-y-[-0.15em]" />}
           </p>
         ) : (
           <p className="text-2xl font-bold text-muted-foreground">Consultar precio</p>
@@ -124,7 +135,10 @@ export function PropertyBarPrice(props: PriceProps) {
   const text = formatPrice(price.amount, props.currency, props.operation);
   if (!text) return <p className="text-sm font-semibold text-muted-foreground">Consultar precio</p>;
   return (
-    <p className="font-heading text-lg font-medium tabular-nums leading-none truncate">
+    <p
+      className="font-heading text-lg font-medium tabular-nums leading-none truncate"
+      style={props.offer ? { color: "var(--offer)" } : undefined}
+    >
       {text}
       {price.selected.length > 0 && (
         <span className="ml-1.5 text-xs font-normal text-muted-foreground">

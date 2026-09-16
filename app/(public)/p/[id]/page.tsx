@@ -5,6 +5,7 @@ import { getPrimarySearchProfile } from "@/lib/db/search-profiles";
 import type { PropertyForMatching } from "@/lib/matching";
 import { getCurrentUserId } from "@/lib/db/users";
 import { operationLabel } from "@/lib/property/price";
+import { isOnOffer } from "@/lib/property/offers";
 import { isFavorited } from "@/lib/db/favorites";
 import { PreviewBanner } from "./preview-banner";
 import { PropertyTopBar } from "@/components/property/PropertyTopBar";
@@ -133,6 +134,8 @@ export default async function PublicPropertyPage({ params }: PageProps) {
   // Derived display data for the hero + panel.
   const typeLabel = propertyTypeLabel(property.property_type) ?? "Propiedad";
   const opLabel = operationLabel(property.operation_type);
+  // One reading of the tag for the hero ribbon, the panel price and the bar.
+  const offer = isOnOffer(property.tags);
 
 
   return (
@@ -191,6 +194,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
                 bathrooms={property.bathrooms}
                 garages={property.garages}
                 extras={property.extras}
+                offer={offer}
                 surfaceTotal={property.surface_total}
                 surfaceCovered={property.surface_covered}
                 surfaceArba={property.surface_arba}
@@ -271,6 +275,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               bathrooms={property.bathrooms}
               garages={property.garages}
               extras={property.extras}
+              offer={offer}
               surfaceTotal={property.surface_total}
               surfaceCovered={property.surface_covered}
               surfaceArba={property.surface_arba}
@@ -293,6 +298,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
         priceCurrency={property.price_currency}
         operationType={property.operation_type}
         extras={property.extras}
+        offer={offer}
         isFavorited={favorited}
         signedOut={!userId}
       />

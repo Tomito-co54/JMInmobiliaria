@@ -49,6 +49,8 @@ interface PropertyDataPanelProps {
   yearBuilt: number | null;
   /** Cochera / patio / terraza — jsonb from the row (lib/property/extras). */
   extras: unknown;
+  /** The listing carries the `oferta` tag: the price takes the offer colour. */
+  offer: boolean;
   /** Fields the client-side matcher scores against. */
   propertyForMatching: PropertyForMatching;
   source: string;
@@ -72,6 +74,7 @@ export function PropertyDataPanel({
   surfaceArba,
   yearBuilt,
   extras,
+  offer,
   propertyForMatching,
   source,
   sourceUrl,
@@ -145,6 +148,7 @@ export function PropertyDataPanel({
         currency={priceCurrency}
         operation={operationType}
         extras={extras}
+        offer={offer}
       />
 
       {/* Specs strip */}

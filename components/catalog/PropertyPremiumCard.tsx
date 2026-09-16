@@ -5,6 +5,8 @@ import { MapPin, ArrowRight, ImageIcon } from "lucide-react";
 import type { BuildingSummary } from "@/lib/buildings";
 import { formatPrice, labelWithOperation } from "@/lib/property/price";
 import { PropertyTagChips } from "@/components/property/PropertyTagChips";
+import { OfferBadge } from "@/components/property/OfferBadge";
+import { isOnOffer } from "@/lib/property/offers";
 import { propertyTypeLabel } from "@/lib/property/types";
 import { extrasSpecWords, readExtras } from "@/lib/property/extras";
 import { getMatchBand } from "@/lib/matching/bands";
@@ -91,6 +93,7 @@ export function PropertyPremiumCard({
   // Same mistake as Fase 12, on the card nobody re-checked.
   const surface = property.surface_total ?? property.surface_arba ?? null;
   const heading = property.address ?? [typeLabel, property.partido].filter(Boolean).join(" en ");
+  const offer = isOnOffer(property.tags);
 
   const specs = [
     property.rooms !== null ? `${property.rooms} amb` : null,
@@ -105,11 +108,15 @@ export function PropertyPremiumCard({
   ].filter(Boolean);
 
   return (
-    <article className="group rounded-3xl border bg-card overflow-hidden transition-all duration-300 hover:shadow-xl hover:border-primary/30">
+    <article className="group relative rounded-3xl border bg-card transition-all duration-300 hover:shadow-xl hover:border-primary/30">
+      {/* The offer ribbon hangs past the card's corner. The clipping that
+          rounds the photo moved from the article to the link for exactly
+          this: an overhang needs an ancestor that does not clip. */}
+      {offer && <OfferBadge className="absolute -left-2 -top-3 z-10" />}
       <Link
         href={`/p/${property.id}`}
         aria-label={`Ver ${heading}`}
-        className="grid md:grid-cols-2 items-stretch focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-3xl"
+        className="grid md:grid-cols-2 items-stretch overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-3xl"
       >
         {/* Photo — order flips on desktop; always on top on mobile.
 
@@ -160,7 +167,7 @@ export function PropertyPremiumCard({
           {/* The broker's labels sit between the eyebrow and the price: "Oferta"
               is a claim about the number right under it, and "Apto comercial"
               qualifies the type right above. */}
-          <PropertyTagChips tags={property.tags} className="mt-2.5" />
+          <PropertyTagChips tags={property.tags} className="mt-2.5" omit={["oferta"]} />
 
           {/* Why this card is where it is. Same bands and colours as the
               header meter, so the number reads as the same number. */}
@@ -176,7 +183,10 @@ export function PropertyPremiumCard({
           )}
 
           {priceText ? (
-            <p className="mt-2 text-2xl sm:text-3xl font-bold tabular-nums leading-none">
+            <p
+              className="mt-2 text-2xl sm:text-3xl font-bold tabular-nums leading-none"
+              style={offer ? { color: "var(--offer)" } : undefined}
+            >
               {priceText}
             </p>
           ) : (

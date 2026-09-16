@@ -6,6 +6,7 @@ import {
   createPublicClient,
 } from "@/lib/supabase/server";
 import type { QualityBreakdown } from "@/lib/scoring";
+import { cheapestOffer } from "@/lib/property/offers";
 import type { MatchableProperty } from "@/lib/matching";
 import {
   PUBLIC_CATALOG_TAG,
@@ -402,6 +403,22 @@ const FEATURED_PROPERTY_COLS = [
  */
 export async function getFeaturedProperty(): Promise<FeaturedPropertyRow | null> {
   const supabase = await createClient();
+
+  // An offer outranks the curated pick (Tomy, 16-sep-2026): the landing's
+  // one property is the cheapest listing on offer while any exists. Same
+  // two-gate filter; the tag CHECK already limits it to owner rows. Ordered
+  // by price so a tie falls to the same row every request.
+  const { data: offerRows, error: offerErr } = await supabase
+    .from("properties")
+    .select(FEATURED_PROPERTY_COLS)
+    .contains("tags", ["oferta"])
+    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+    .eq("listing_status", PUBLIC_LISTING_STATUS)
+    .order("price_amount", { ascending: true, nullsFirst: false });
+  if (offerErr) throw offerErr;
+  const offer = cheapestOffer((offerRows ?? []) as unknown as FeaturedPropertyRow[]);
+  if (offer) return offer;
+
   const { data, error } = await supabase
     .from("properties")
     .select(FEATURED_PROPERTY_COLS)

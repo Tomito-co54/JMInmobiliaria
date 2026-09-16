@@ -7,6 +7,8 @@ import { usePrefersReducedMotion } from "@/hooks/use-in-view";
 import { cn } from "@/lib/utils";
 import { PropertyGallery, PropertyThumbnails } from "./PropertyGallery";
 import { PropertyTagChips } from "./PropertyTagChips";
+import { OfferBadge } from "./OfferBadge";
+import { isOnOffer } from "@/lib/property/offers";
 
 /**
  * Property detail hero (rediseño /p/[id]).
@@ -50,6 +52,7 @@ export function PropertyHero({
   const [openAt, setOpenAt] = useState<number | null>(null);
   const cover = photos[0];
   const total = photos.length;
+  const offer = isOnOffer(tags);
 
   return (
     <div className="-mx-4 lg:mx-0">
@@ -64,6 +67,16 @@ export function PropertyHero({
           off the photo's bottom edge, and measured against the whole
           component they landed on the thumbnail strip instead. */}
       <div className="relative">
+      {/* The offer ribbon hangs off the photo's top-left corner — outside the
+          clipped frame below, so it can actually overhang (§2.6 in
+          miniature). On mobile the photo is full-bleed, so it sits inside
+          the edge instead of past it. */}
+      {offer && (
+        <OfferBadge
+          size="lg"
+          className="absolute left-4 top-3 z-10 lg:-left-3 lg:-top-3"
+        />
+      )}
       {/* 4:3 on desktop made the hero ~590px tall in a two-column layout —
           the photo pushed everything else below the fold. Wider and shorter
           as the viewport grows: the stage should frame the room, not fill
@@ -103,7 +116,7 @@ export function PropertyHero({
           {/* The broker's labels, over the photo and above the type line —
               the one place on the page where "Oferta" is read before the
               price, which is the order the claim is meant in. */}
-          <PropertyTagChips tags={tags} variant="overlay" className="mb-2.5" />
+          <PropertyTagChips tags={tags} variant="overlay" className="mb-2.5" omit={["oferta"]} />
           <p className="text-[0.7rem] uppercase tracking-[0.2em] font-medium text-white/85">
             {[typeLabel, opLabel].filter(Boolean).join(" · ")}
           </p>

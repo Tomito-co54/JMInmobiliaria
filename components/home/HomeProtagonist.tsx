@@ -9,6 +9,7 @@ import { formatPrice, labelWithOperation } from "@/lib/property/price";
 import { PropertyTagChips } from "@/components/property/PropertyTagChips";
 import { propertyTypeLabel } from "@/lib/property/types";
 import { extrasSpecWords, readExtras } from "@/lib/property/extras";
+import { isOnOffer } from "@/lib/property/offers";
 
 /**
  * The home protagonista — Jotaeme's brand-signature gesture (Block 3 del
@@ -71,6 +72,7 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
   // propias siempre traen la suya porque se cargan a mano.
   const surface = p.surface_total ?? null;
   const headline = p.address ?? [typeLabel, p.partido].filter(Boolean).join(" en ");
+  const offer = isOnOffer(p.tags);
 
   const specs = [
     labelWithOperation(typeLabel, p.operation_type),
@@ -92,7 +94,7 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
             className="text-[0.7rem] sm:text-xs font-medium uppercase tracking-[0.22em] mb-3"
             style={{ color: "var(--brand-accent)" }}
           >
-            Propiedad destacada
+            {offer ? "Oportunidad en oferta" : "Propiedad destacada"}
           </p>
 
           <h2
@@ -107,10 +109,13 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
           )}
 
           {/* Same chips as the card, same spot: right before the price. */}
-          <PropertyTagChips tags={p.tags} className="mt-4" />
+          <PropertyTagChips tags={p.tags} className="mt-4" omit={["oferta"]} />
 
           {priceText ? (
-            <p className="mt-5 text-2xl sm:text-3xl font-bold tabular-nums leading-none">
+            <p
+              className="mt-5 text-2xl sm:text-3xl font-bold tabular-nums leading-none"
+              style={offer ? { color: "var(--offer)" } : undefined}
+            >
               {priceText}
             </p>
           ) : (
@@ -153,6 +158,7 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
             cover={cover}
             behind={behind}
             headline={headline}
+            offer={offer}
           />
         </div>
       </div>
