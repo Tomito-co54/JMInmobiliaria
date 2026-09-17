@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  unitFolderCandidates,
   buildFicha,
   cocheraFromColumns,
   diffAgainstSite,
@@ -365,5 +366,30 @@ describe("diffAgainstSite", () => {
         { tags: ["oferta", "a_estrenar"], extras: [{ kind: "cochera", mode: "opcional", detail: null, price_delta: 1 }, { kind: "terraza", mode: "incluida", detail: "x", price_delta: null }] },
       ),
     ).toEqual([]);
+  });
+});
+
+describe("unitFolderCandidates", () => {
+  it("accepts the UF spelling for a unit the maestra writes as a bare number", () => {
+    // Pellegrini y Portela: `8` in the maestra, `UF 8` on disk.
+    expect(unitFolderCandidates("8")).toEqual(["8", "UF 8"]);
+    expect(unitFolderCandidates("U.F: 8")).toEqual(["UF 8", "8"]);
+  });
+
+  it("leaves a floor unit alone", () => {
+    expect(unitFolderCandidates("1°C")).toEqual(["1C"]);
+  });
+});
+
+describe("siteAddress with a locality in `Dirección real`", () => {
+  it("keeps the unit next to the street number and spells a bare number as UF", () => {
+    expect(siteAddress("Pellegrini y Portela", "Portela 95, Lomas de Zamora", "8")).toBe(
+      "Portela 95 UF 8, Lomas de Zamora",
+    );
+  });
+
+  it("does not change an address without a locality", () => {
+    expect(siteAddress("Vergara y Cabrera", "Vergara 1901", "U.F: 9")).toBe("Vergara 1901 UF 9");
+    expect(siteAddress("Belgrano 1287", null, "1°C")).toBe("Belgrano 1287 1°C");
   });
 });

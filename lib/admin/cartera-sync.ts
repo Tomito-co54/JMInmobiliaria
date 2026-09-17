@@ -95,6 +95,25 @@ export function unitFolderName(unidad: string): string {
 }
 
 /**
+ * The folder names that can hold this unit's material, best first.
+ *
+ * The maestra and the folder do not always spell the same unit the same way:
+ * Pellegrini y Portela is `8` in `Unidad` and `UF 8` on disk, because whoever
+ * built the folder knew it is a unidad funcional and the cell does not say so.
+ * A bare number and `UF <n>` are the same unit, so both are tried instead of
+ * reporting "falta material" next to a folder with eight photos in it.
+ */
+export function unitFolderCandidates(unidad: string): string[] {
+  const exact = unitFolderName(unidad);
+  const out = [exact];
+  const bareNumber = /^\d+$/.test(exact);
+  if (bareNumber) out.push(`UF ${exact}`);
+  const asUf = exact.match(/^UF\s*(\d+)$/i);
+  if (asUf) out.push(asUf[1]);
+  return out;
+}
+
+/**
  * The unit as it reads inside the site address: `1°A` keeps its degree
  * sign (that is how the four Belgrano rows are already keyed), `U.F: 9`
  * becomes `UF 9`.
@@ -122,7 +141,16 @@ function normalizeUnit(unidad: string, opts: { keepDegree: boolean }): string {
 export function siteAddress(direccion: string, direccionReal: string | null, unidad: string | null): string {
   const base = (direccionReal ?? direccion).trim();
   if (!unidad || unidad.trim() === "") return base;
-  return `${base} ${unitSiteLabel(unidad)}`;
+  // A bare number in `Unidad` is a unidad funcional the cell does not spell
+  // out ("8" for Pellegrini y Portela, which is `UF 8` on disk and in the
+  // papers). Written plain it would read "Portela 95 8".
+  const raw = unitSiteLabel(unidad);
+  const label = /^\d+$/.test(raw) ? `UF ${raw}` : raw;
+  // The unit belongs to the street address, not after the locality:
+  // "Portela 95 UF 8, Lomas de Zamora", never "…, Lomas de Zamora UF 8".
+  const comma = base.indexOf(",");
+  if (comma === -1) return `${base} ${label}`;
+  return `${base.slice(0, comma)} ${label}${base.slice(comma)}`;
 }
 
 // ─── Reading the "Tipo" free text ───────────────────────────────────────────

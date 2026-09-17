@@ -273,6 +273,41 @@ revalida la caché pública** (`PUBLIC_CATALOG_TAG`); sólo publicar lo hace. El
 header y los pins muestran el precio viejo hasta 5 minutos. Anotado, no
 arreglado.
 
+### Protocolo «actualizá el sitio» (Tomy, 17-09-2026)
+
+Copiado tal cual de `PUBLICACION.md`, que es el contrato y sigue siendo la
+fuente: si cambia allá, se vuelve a copiar acá. Cuando Tomy diga **«actualizá el
+sitio», «sincronizá», «subí lo nuevo»** o parecido, sin más detalle, Code hace
+siempre esto y no pregunta:
+
+1. Leer la última sesión de `CONTEXTO.md` (bloque «Sesión del <fecha>» más
+   reciente) por si hay una decisión que el script no ve.
+2. `sincronizar-cartera` en seco: mostrar en 5 líneas qué cambió desde la última
+   corrida (altas, precios, galerías, archivos). La base es el sitio (Supabase)
+   más el `ficha.json` de cada unidad, que es la foto de lo último aplicado:
+   Code no necesita que Tomy le diga qué tocó, lo detecta comparando.
+3. Correr con `--aplicar --precios --fotos`. **La maestra y `Publicación/`
+   mandan siempre; el sitio nunca gana.**
+4. No cargar unidades con `Publicar = Sí` que no tengan fotos en
+   `Publicación/<Unidad>/fotos/` **o** precio pretendido: reportarlas como
+   «esperan material» y seguir.
+5. Si una unidad tiene `Dirección real` vacía en `Propiedades`, no adivinar:
+   reportarla y seguir con el resto.
+6. Segunda corrida en seco: tiene que dar cero diferencias. Cerrar con el commit
+   y la lista de lo que quedó publicado.
+
+**Quién hace qué** (mismo bloque de `PUBLICACION.md`): Cowork mantiene la
+maestra y arma `Publicación/<Unidad>/fotos/` eligiendo de `Fotos/` —Code no
+mira `Fotos/`—; Tomy decide `Publicar` y `Precio pretendido` y deja las fotos
+crudas en `Fotos/`; Code corre la sincronización, el sitio, Supabase y Vercel.
+
+**Ojo con el punto 3, que es nuevo para este repo:** hasta el 17-sep `--precios`
+y `--fotos` eran opt-in *por corrida*, justamente para que una maestra con un
+dato viejo no pisara el sitio. Ahora la orden corta los incluye siempre, así que
+**el único lugar donde se corrige un precio es la maestra**. Si el sitio tiene
+un precio que la maestra no tiene (como los USD 94.000 de Belgrano 2°A/2°B el
+16-sep), esta corrida lo revierte: el paso 2 lo muestra antes, y ahí se avisa.
+
 ### La oferta se ve, y manda en la portada (16-sep)
 
 Tomy, sobre el chip dorado de "Oferta": *"es un recuadro informativo más, ni se

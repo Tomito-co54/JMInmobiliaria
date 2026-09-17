@@ -42,6 +42,7 @@ import {
   publishDecision,
   sameListingAddress,
   siteAddress,
+  unitFolderCandidates,
   unitFolderName,
   unpublishedStatus,
   type Provisorio,
@@ -115,8 +116,15 @@ function buildingDir(row: UnidadRow): string {
 
 async function readUnitFolder(row: UnidadRow): Promise<UnitFolder | null> {
   if (!row.unidad) return null;
-  const dir = join(buildingDir(row), "Publicación", unitFolderName(row.unidad));
-  if (!(await exists(dir))) return null;
+  let dir: string | null = null;
+  for (const name of unitFolderCandidates(row.unidad)) {
+    const candidate = join(buildingDir(row), "Publicación", name);
+    if (await exists(candidate)) {
+      dir = candidate;
+      break;
+    }
+  }
+  if (!dir) return null;
 
   const photos: string[] = [];
   const ignored: string[] = [];
