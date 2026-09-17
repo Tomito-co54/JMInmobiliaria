@@ -738,15 +738,28 @@ este repo la habría rechazado, y **no fue este repo**:
 "republicaciones" que nunca pasaron. Las otras **188 siguen caídas**, con
 `last_seen_at` pisado al 9-sep.
 
-**Pendiente, esperando a Tomy (16-sep):**
+**Cerrado el 17-sep, las dos mitades:**
 
-1. **Apagar el cron del repo original** (o sacarle los secrets de la base en
-   GitHub). Mientras siga, puede repetirse cualquier mañana.
-2. **La reparación**, igual que las anteriores: backup, y en una transacción
-   borrar las 388 bajas del 9-sep y las 200 altas del 16-sep que sólo las
-   corrigen (588 filas), y revivir las 188. Está verificado que las 200 altas
-   caen todas dentro del lote. Quedó sin aplicar: el modo automático bloqueó el
-   borrado y necesita la autorización de Tomy.
+1. **El workflow del repo original quedó desactivado a mano** por Tomy, desde
+   Actions → Data pipeline → "Disable workflow". No alcanzaba con pedirle que
+   mirara: la página le daba 404 porque el repo es privado y su navegador no
+   tenía la sesión de `Tomito-co54`. Ahí se vio que **corría todos los días y
+   terminaba en success** —#122 a #125, del 14 al 17-sep—, o sea que el 9-sep no
+   fue un accidente aislado sino el día que Zonaprop le sirvió una página. La
+   del 17 a las 7:40 no escribió nada: le devolvió cero.
+2. **La reparación se aplicó** (`scripts/repair-2026-09-09.mjs`, que queda en el
+   repo como registro): backup a `.backups/` —ignorado por git—, y en una
+   transacción, borradas las 388 bajas del 9-sep y las 200 altas del 16-sep que
+   sólo las corregían (588 filas), y revividas las 188. **Scrapeadas activas:
+   274 → 462.** El historial queda en 314 eventos, **ninguno del 9-sep**.
+   Como siempre, la reparación **no** se registró como reactivación, y el
+   `last_seen_at` de esas 188 quedó pisado al 9-sep: eso no se recupera.
+
+**Lo que ninguna guarda de este repo podía evitar, y conviene tener presente:**
+la base es compartida y cualquier código con el service role puede escribirla.
+Las guardas viven en el llamador, no en la base. Si mañana aparece otro
+escritor, el chequeo rápido es el mismo: `price_at_change` vacío en un lote de
+bajas significa que no salió de acá.
 
 ### Y volvió a pasar el 2-sep, una capa más abajo
 
@@ -1903,8 +1916,6 @@ Tres caminos:
 - **Desde un JSON:** `npm run cargar-propiedad -- ficha.json [--dry-run]`
   (`docs/ejemplo-propiedad.json` es la plantilla, ya incluye `year_built`).
 
-**1b. Apagar el cron del repo original y reparar el 9-sep** ← urgente, ver *Cuarta vez, el 9-sep*
-
 **2. Correr `npm run pipeline` seguido** ← ahora es la única forma en que corre
 
 Cada corrida acumula historial que no se puede reconstruir después.
@@ -2303,6 +2314,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.32 | Sep 17, 2026 | **La cuarta baja masiva, cerrada.** Tomy desactivó a mano el workflow del repo original —404 de por medio: el repo es privado y su navegador no tenía esa sesión— y ahí quedó a la vista que **corría todos los días con success**, del 14 al 17; el 9-sep fue el día que Zonaprop le sirvió una página en vez de cero. La reparación se aplicó con backup y en transacción: 588 filas de historial inventado borradas y **188 avisos revividos**, de 274 a **462 activas**, sin un solo evento del 9-sep en el historial. Queda escrito lo que esto enseña: la base es compartida y las guardas viven en el llamador, así que el chequeo rápido ante un lote de bajas es si trae `price_at_change`. Sin cambios de código: 489 tests. |
 | 2.31 | Sep 16, 2026 | **Cuarta baja masiva, y el culpable no es este repo.** Revisar la base después del pipeline mostró 274 activas donde había 439: el 9-sep una corrida dio de baja 388 avisos habiendo visto ~54. Las filas de historial no tienen `price_at_change`, que este repo escribe siempre, y el repo original `Jotaeme` —con la misma base— **sigue corriendo su pipeline de mayo todos los días desde GitHub**, sin ninguna de las guardas. Apagar el cron del fork nunca apagó ese. La corrida del 16-sep revivió 200 (y las anotó como republicaciones falsas); quedan 188 caídas. Diagnóstico escrito; apagar el cron original y la reparación esperan a Tomy. Sin cambios de código: 489 tests. |
 | 2.30 | Sep 16, 2026 | **Vergara tiene parcela, y Belgrano 2°A/2°B bajan a 94.000.** La nomenclatura del lote vino de los boletos de la U.C A, que arrastran datos del modelo de Alsina, así que no se cargó a ciegas: se trajo la manzana 49 entera del catastro y la 20A resultó ser la única parcela con ochava, a 15 m del cruce Vergara × Cabrera. Las dos unidades ya dibujan su parcela y agrupan en `/edificios`, con sus partidas de UF intactas. Agruparlas destapó que `/edificios` las titulaba **"Vergara 1901 UF"**: el prefijo común se cortaba en la palabra que nombra la unidad; ahora se descarta. El precio de Belgrano se escribió directo en la base porque la maestra todavía dice 96.000: hasta que Cowork la corrija, `--precios` sobre Belgrano lo revertiría. **488 → 489 tests.** |
 | 2.29 | Sep 16, 2026 | **La primera carga desde la maestra.** Tomy contestó el reporte en `PUBLICACION.md` y se aplicaron las 8 listas: el catálogo pasa de **6 a 9** (Belgrano 1°C y Vergara 1901 UF 3 y UF 9, nuevas). La columna `Cochera` ahora se lee en las dos formas que acordaron Cowork y Tomy ("Opcional (+USD 5.000)", "Incluida: …"), la 4°Y dejó de decir "cochera opcional" cuando la incluye, y Talcahuano se reconoce como la misma publicación aunque el sitio le agregue la localidad. La segunda corrida da sin diferencias en las ocho. Queda un hueco conocido: las dos de Vergara no tienen parcela (su partida de UF no está en la capa pública de ARBA) y necesitan la nomenclatura del lote. **485 → 488 tests.** |

@@ -52,3 +52,6 @@ next-env.d.ts
 
 # Temporary git commit message files
 .git-commit-msg*.txt
+
+# Backups de reparaciones de datos: no van al repo
+.backups/

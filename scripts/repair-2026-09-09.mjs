@@ -7,6 +7,7 @@
 import dotenv from "dotenv";
 import pg from "pg";
 import fs from "fs";
+import path from "path";
 
 dotenv.config({ path: ".env.local" });
 const backupPath = process.argv[2];
@@ -29,6 +30,7 @@ const props = await c.query(
 const toRevive = props.rows.filter((p) => !p.is_active).map((p) => p.id);
 const historyIds = [...bajas.rows, ...altas.rows].map((r) => r.id);
 
+fs.mkdirSync(path.dirname(backupPath), { recursive: true });
 fs.writeFileSync(backupPath, JSON.stringify(
   { bajas: bajas.rows, altas: altas.rows, properties: props.rows }, null, 1));
 console.log(`backup: ${bajas.rowCount} bajas, ${altas.rowCount} altas, ${props.rowCount} propiedades -> ${backupPath}`);
