@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (16-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **489 tests passing** (+7 skipped a propósito),
+auto-deploy desde `main`. **493 tests passing** (+7 skipped a propósito),
 `npm run build` verde, **33 rutas**.
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
@@ -83,13 +83,12 @@ arreglada y reparada** el mismo día — ver *Volvió a pasar el 1-sep* más aba
 Lo que queda es de contenido:
 
 
-1. **El catálogo tiene 9 propiedades publicadas** (16-sep, primera carga
-   aplicada desde la maestra): Belgrano 1287 1°A, 1°B, **1°C**, 2°A y 2°B;
-   Alsina 1639 4°Y; **Vergara 1901 UF 3 y UF 9**; Talcahuano 258 (alquiler).
-   **2°A y 2°B bajaron a USD 94.000** (16-sep, pedido de Tomy), escrito
-   directo en la base: la maestra todavía dice 96.000 y hasta que Cowork la
-   corrija el modo prueba lo va a mostrar como diferencia de precio. **No
-   correr `--precios` sobre Belgrano antes de eso**, o vuelve a 96.000.
+1. **El catálogo tiene 10 propiedades publicadas** (17-sep, primera corrida
+   del protocolo «actualizá el sitio»): Belgrano 1287 1°A, 1°B, 1°C, 2°A y 2°B;
+   Alsina 1639 4°Y; Vergara 1901 UF 3 y UF 9; **Portela 95 UF 8** (nueva);
+   Talcahuano 258 (alquiler). Los USD 94.000 de 2°A y 2°B **ya están en la
+   maestra**, así que `--precios` los sostiene en vez de revertirlos, y la 4°Y
+   subió a 89.000 desde la maestra (Tomy, 17-sep: va con terraza y cochera).
    Lo que falta sale de la **PLANILLA MAESTRA**, que desde el 16-sep es la
    única fuente de la cartera: 25 unidades en `Publicar = Sí`, de las que 8
    tienen material (ver *La cartera se sincroniza*). La lista que Tomy le
@@ -274,6 +273,23 @@ header y los pins muestran el precio viejo hasta 5 minutos. Anotado, no
 arreglado.
 
 ### Protocolo «actualizá el sitio» (Tomy, 17-09-2026)
+
+**Primera corrida, 17-sep:** 9 unidades aplicadas con `--aplicar --precios
+--fotos`, una nueva (Portela 95 UF 8, 8 fotos, USD 67.000, cochera opcional
++5.000), la 4°Y de 72.000 a 89.000, y la segunda corrida en seco **sin
+diferencias en las nueve**. Aparecieron dos cosas, las dos de nombres:
+
+- **La maestra escribe `8` y la carpeta dice `UF 8`.** El script reportaba
+  "falta material" al lado de una carpeta con ocho fotos adentro. Ahora
+  `unitFolderCandidates` prueba las dos formas: un número pelado y `UF <n>` son
+  la misma unidad. **No es adivinar un dato**: es la misma unidad escrita de
+  dos maneras por dos manos distintas.
+- **La unidad va pegada al número de calle, no después de la localidad.** Con
+  `Dirección real` = "Portela 95, Lomas de Zamora", la dirección salía "Portela
+  95, Lomas de Zamora 8". Ahora es **"Portela 95 UF 8, Lomas de Zamora"**, y un
+  número pelado se escribe `UF <n>` porque suelto no se lee como unidad. Las
+  direcciones ya cargadas no cambian: ninguna tenía localidad y unidad a la vez.
+
 
 Copiado tal cual de `PUBLICACION.md`, que es el contrato y sigue siendo la
 fuente: si cambia allá, se vuelve a copiar acá. Cuando Tomy diga **«actualizá el
@@ -552,6 +568,7 @@ visual.
 | Fase 46 — La oferta se ve, y manda en la portada | `OfferBadge`: cartel rojo que sobresale de la card, del hero y de la foto de la portada, con el precio en el mismo rojo (`--offer`, fuera de la línea navy + dorado a propósito). La portada muestra la oferta publicada más barata, y sin ofertas vuelve a la rotación de ★. `lib/property/offers.ts` puro: nunca compara pesos contra dólares. | `fb53574` |
 | Fase 47 — La maestra decide qué se publica | `Publicar` cargado por Tomy (25 Sí). Sí sin fotos no se carga ni como borrador; Sí le gana a `Etapa`; cocheras sueltas afuera; terceros como `agency` desde `Terceros/`; la partida madre no pisa la de unidad; guion en `Unidad` = propiedad entera; aviso de duplicado por dirección parecida. Galerías del sitio bajadas a `Publicación/` (Belgrano ×4, Alsina 4°Y) y las de Zonaprop para Vergara U.F 9. La cartera dictada, archivada. | `91106b9` |
 | Fase 48 — La primera carga desde la maestra | Aplicadas las 8 listas: 1°C y Vergara 1901 UF 3 / UF 9 nuevas, 4°Y con la descripción corregida, Belgrano con el detalle de la cochera. La columna `Cochera` se lee en sus dos formas acordadas (suplemento opcional, detalle incluido). Talcahuano se reconoce sin la localidad. Segunda corrida: sin diferencias. Después, Vergara con la parcela 20A verificada, y 2°A/2°B a USD 94.000. | `c743bd5` y el siguiente |
+| Fase 49 — El protocolo «actualizá el sitio» | El bloque que escribió Tomy en `PUBLICACION.md` copiado a este documento y corrido: leer `CONTEXTO.md`, seco, `--aplicar --precios --fotos`, seco otra vez. 9 aplicadas, **Portela 95 UF 8 nueva**, 4°Y a 89.000, segunda corrida sin diferencias. `unitFolderCandidates` (la maestra dice `8`, la carpeta `UF 8`) y la unidad junto al número de calle. **489 → 493 tests.** | `53c3073` |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
 **Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
@@ -568,7 +585,7 @@ el lookup por `cca`, el validador de nomenclatura y el JSON de PH; → **432** t
 42, con el módulo de extras y su schema; → **446** tras la 43, con los filtros y el
 orden del catálogo; → **450** tras la 44, con el área del mapa en los filtros; → **475** tras la
 45, con la sincronización de la cartera; → **483** tras la 46, con `cheapestOffer` y el
-precio de oferta de la maestra; → **485** con Sí sobre Etapa, cocheras sueltas y terceros; → **488** con la columna Cochera y la dirección sin localidad; → **489** con el nombre del edificio sin "UF"). Los 7 saltados son las bandas de
+precio de oferta de la maestra; → **485** con Sí sobre Etapa, cocheras sueltas y terceros; → **488** con la columna Cochera y la dirección sin localidad; → **489** con el nombre del edificio sin "UF"; → **493** con los dos nombres de carpeta de una unidad y la dirección con localidad). Los 7 saltados son las bandas de
 coherencia ARBA: quedan como spec de vuelta, ver **El dato de ARBA es de la
 parcela** más abajo.
 
@@ -1931,6 +1948,7 @@ servicios pagos el 2-sep.)
 48. **Fase 46 — La oferta se ve, y manda en la portada** ✅ 16-sep
 49. **Fase 47 — La maestra decide qué se publica** ✅ 16-sep
 50. **Fase 48 — La primera carga desde la maestra** ✅ 16-sep (9 publicadas)
+51. **Fase 49 — El protocolo «actualizá el sitio»** ✅ 17-sep (10 publicadas)
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -1938,8 +1956,9 @@ Detalles de cada fase en **Current progress** más arriba.
 
 **1. Cargar propiedades reales** ← lo único que separa al sitio de lanzar
 
-Hay 9 publicadas, todas con parcela y mapa. De Belgrano 1287 faltan el
-**1°D** (loft) y la **PB A** (de un tercero): sólo faltan las fotos. Después viene el resto de la cartera, de a una y en el
+Hay 10 publicadas. De Belgrano 1287 faltan el **1°D** (loft) y la **PB A**
+(de un tercero): sólo faltan las fotos. Quedan 17 unidades en `Publicar = Sí`
+esperando material. Después viene el resto de la cartera, de a una y en el
 orden que marque la maestra (`Publicar = Sí` con fotos en `Publicación/`).
 Tres caminos:
 
@@ -2349,6 +2368,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.33 | Sep 17, 2026 | **El protocolo «actualizá el sitio», copiado y corrido.** Tomy lo escribió en `PUBLICACION.md` y ahora vive también acá: leer la última sesión de `CONTEXTO.md`, corrida en seco, `--aplicar --precios --fotos` —la maestra manda siempre, el sitio nunca gana— y una segunda corrida en seco que tiene que dar cero. Primera vez: **10 publicadas**, con Portela 95 UF 8 nueva y la 4°Y a 89.000, y la segunda corrida sin diferencias en las nueve. Dos arreglos de nombres: la carpeta `UF 8` para una unidad que la maestra escribe `8`, y la unidad pegada al número de calle cuando `Dirección real` trae localidad. **489 → 493 tests.** |
 | 2.32 | Sep 17, 2026 | **La cuarta baja masiva, cerrada.** Tomy desactivó a mano el workflow del repo original —404 de por medio: el repo es privado y su navegador no tenía esa sesión— y ahí quedó a la vista que **corría todos los días con success**, del 14 al 17; el 9-sep fue el día que Zonaprop le sirvió una página en vez de cero. La reparación se aplicó con backup y en transacción: 588 filas de historial inventado borradas y **188 avisos revividos**, de 274 a **462 activas**, sin un solo evento del 9-sep en el historial. Queda escrito lo que esto enseña: la base es compartida y las guardas viven en el llamador, así que el chequeo rápido ante un lote de bajas es si trae `price_at_change`. Sin cambios de código: 489 tests. |
 | 2.31 | Sep 16, 2026 | **Cuarta baja masiva, y el culpable no es este repo.** Revisar la base después del pipeline mostró 274 activas donde había 439: el 9-sep una corrida dio de baja 388 avisos habiendo visto ~54. Las filas de historial no tienen `price_at_change`, que este repo escribe siempre, y el repo original `Jotaeme` —con la misma base— **sigue corriendo su pipeline de mayo todos los días desde GitHub**, sin ninguna de las guardas. Apagar el cron del fork nunca apagó ese. La corrida del 16-sep revivió 200 (y las anotó como republicaciones falsas); quedan 188 caídas. Diagnóstico escrito; apagar el cron original y la reparación esperan a Tomy. Sin cambios de código: 489 tests. |
 | 2.30 | Sep 16, 2026 | **Vergara tiene parcela, y Belgrano 2°A/2°B bajan a 94.000.** La nomenclatura del lote vino de los boletos de la U.C A, que arrastran datos del modelo de Alsina, así que no se cargó a ciegas: se trajo la manzana 49 entera del catastro y la 20A resultó ser la única parcela con ochava, a 15 m del cruce Vergara × Cabrera. Las dos unidades ya dibujan su parcela y agrupan en `/edificios`, con sus partidas de UF intactas. Agruparlas destapó que `/edificios` las titulaba **"Vergara 1901 UF"**: el prefijo común se cortaba en la palabra que nombra la unidad; ahora se descarta. El precio de Belgrano se escribió directo en la base porque la maestra todavía dice 96.000: hasta que Cowork la corrija, `--precios` sobre Belgrano lo revertiría. **488 → 489 tests.** |
