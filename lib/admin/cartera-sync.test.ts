@@ -33,6 +33,7 @@ function row(over: Partial<UnidadRow> = {}): UnidadRow {
     tipoCochera: "Cubierta",
     etapa: "Activa",
     situacion: "A estrenar, a la venta",
+    linkAviso: null,
     precioPretendido: 80000,
     precioOferta: null,
     carpetaEnDisco: "Propiedades/Familiar/Belgrano 1287",

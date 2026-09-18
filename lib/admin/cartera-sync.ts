@@ -43,6 +43,8 @@ export interface UnidadRow {
   carpetaEnDisco: string | null;
   /** Columns PUBLICACION.md lists as "a agregar" — absent until Cowork adds them. */
   publicar: string | null;
+  /** `Link Zonaprop` — the listing's ad, whatever the portal. Photos of last resort (PUBLICACION.md, paso 6). */
+  linkAviso: string | null;
   tituloWeb: string | null;
   descripcionWeb: string | null;
   m2Cubiertos: number | null;

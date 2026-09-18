@@ -90,6 +90,7 @@ const UNIDADES_HEADERS = {
   etiquetas: "Etiquetas",
   operacion: "Operación",
   direccionReal: "Dirección real",
+  linkAviso: "Link Zonaprop",
 } as const;
 
 export async function readMaestra(path: string): Promise<Maestra> {
@@ -139,6 +140,7 @@ export async function readMaestra(path: string): Promise<Maestra> {
       precioOferta: num(row, "precioOferta"),
       carpetaEnDisco: text(row, "carpetaEnDisco"),
       publicar: text(row, "publicar"),
+      linkAviso: text(row, "linkAviso"),
       tituloWeb: text(row, "tituloWeb"),
       descripcionWeb: text(row, "descripcionWeb"),
       m2Cubiertos: num(row, "m2Cubiertos"),

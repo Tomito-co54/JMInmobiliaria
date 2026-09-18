@@ -83,10 +83,9 @@ arreglada y reparada** el mismo día — ver *Volvió a pasar el 1-sep* más aba
 Lo que queda es de contenido:
 
 
-1. **El catálogo tiene 10 propiedades publicadas** (17-sep, primera corrida
-   del protocolo «actualizá el sitio»): Belgrano 1287 1°A, 1°B, 1°C, 2°A y 2°B;
-   Alsina 1639 4°Y; Vergara 1901 UF 3 y UF 9; **Portela 95 UF 8** (nueva);
-   Talcahuano 258 (alquiler). Los USD 94.000 de 2°A y 2°B **ya están en la
+1. **El catálogo tiene 14 propiedades publicadas** (18-sep): Belgrano 1287 1°A,
+   1°B, 1°C, 2°A y 2°B; Alsina 1639 **3°Q, 4°S, 4°X** y 4°Y; **Cabrera 205 UF 2**;
+   Vergara 1901 UF 3 y UF 9; Portela 95 UF 8; Talcahuano 258 (alquiler). Los USD 94.000 de 2°A y 2°B **ya están en la
    maestra**, así que `--precios` los sostiene en vez de revertirlos, y la 4°Y
    subió a 89.000 desde la maestra (Tomy, 17-sep: va con terraza y cochera).
    Lo que falta sale de la **PLANILLA MAESTRA**, que desde el 16-sep es la
@@ -274,6 +273,18 @@ arreglado.
 
 ### Protocolo «actualizá el sitio» (Tomy, 17-09-2026)
 
+**Segunda corrida, 18-sep:** cuatro altas que salieron del paso 6 — Alsina 3°Q
+(53.000, 15 fotos), 4°S (59.900, 25), 4°X (58.000, 15, el mismo aviso que la
+3°Q porque es la misma tipología un piso más arriba) y **Cabrera 205 UF 2**
+(83.000, 13). Las fotos son de los avisos de Trezza, que las sirve desde
+`staticbp.com`; el orden del aviso es el orden del DOM. Y dos precios que
+bajaron con el criterio nuevo de Tomy —**el pretendido sale del aviso**—:
+Portela 95 UF 8 de 67.000 a **57.000** y Vergara 1901 UF 9 de 68.000 a
+**62.000**, esta con la cochera opcional de 5.000 a 6.000. **El catálogo queda
+en 14.** La maestra ya trae las superficies y los ambientes de la UF 9, así que
+esas entradas salieron de su `provisorio.json` (lo avisa el reporte). Segunda
+corrida en seco: **sin diferencias en las trece**.
+
 **Primera corrida, 17-sep:** 9 unidades aplicadas con `--aplicar --precios
 --fotos`, una nueva (Portela 95 UF 8, 8 fotos, USD 67.000, cochera opcional
 +5.000), la 4°Y de 72.000 a 89.000, y la segunda corrida en seco **sin
@@ -309,7 +320,14 @@ siempre esto y no pregunta:
    «esperan material» y seguir.
 5. Si una unidad tiene `Dirección real` vacía en `Propiedades`, no adivinar:
    reportarla y seguir con el resto.
-6. Segunda corrida en seco: tiene que dar cero diferencias. Cerrar con el commit
+6. **Fotos provisorias del aviso** (paso nuevo, 17-sep a la noche): si una unidad
+   tiene `Link Zonaprop` cargado y no tiene galería en `Publicación/<Unidad>/fotos/`,
+   bajar las fotos del link a esa carpeta, renumeradas `01-<Unidad>.jpg`…, en el
+   orden del aviso, y recién después sincronizar. **Nunca subirlas al sitio sin
+   pasar por `Publicación/`**: la próxima corrida con `--fotos` las pisaría.
+   Quedan hasta que Tomy saque las propias. La herramienta es
+   `node scripts/bajar-fotos-aviso.mjs <url> "<carpeta>" <etiqueta>`.
+7. Segunda corrida en seco: tiene que dar cero diferencias. Cerrar con el commit
    y la lista de lo que quedó publicado.
 
 **Quién hace qué** (mismo bloque de `PUBLICACION.md`): Cowork mantiene la
@@ -569,6 +587,7 @@ visual.
 | Fase 47 — La maestra decide qué se publica | `Publicar` cargado por Tomy (25 Sí). Sí sin fotos no se carga ni como borrador; Sí le gana a `Etapa`; cocheras sueltas afuera; terceros como `agency` desde `Terceros/`; la partida madre no pisa la de unidad; guion en `Unidad` = propiedad entera; aviso de duplicado por dirección parecida. Galerías del sitio bajadas a `Publicación/` (Belgrano ×4, Alsina 4°Y) y las de Zonaprop para Vergara U.F 9. La cartera dictada, archivada. | `91106b9` |
 | Fase 48 — La primera carga desde la maestra | Aplicadas las 8 listas: 1°C y Vergara 1901 UF 3 / UF 9 nuevas, 4°Y con la descripción corregida, Belgrano con el detalle de la cochera. La columna `Cochera` se lee en sus dos formas acordadas (suplemento opcional, detalle incluido). Talcahuano se reconoce sin la localidad. Segunda corrida: sin diferencias. Después, Vergara con la parcela 20A verificada, y 2°A/2°B a USD 94.000. | `c743bd5` y el siguiente |
 | Fase 49 — El protocolo «actualizá el sitio» | El bloque que escribió Tomy en `PUBLICACION.md` copiado a este documento y corrido: leer `CONTEXTO.md`, seco, `--aplicar --precios --fotos`, seco otra vez. 9 aplicadas, **Portela 95 UF 8 nueva**, 4°Y a 89.000, segunda corrida sin diferencias. `unitFolderCandidates` (la maestra dice `8`, la carpeta `UF 8`) y la unidad junto al número de calle. **489 → 493 tests.** | `53c3073` |
+| Fase 50 — Las fotos del aviso, y los precios del aviso | Paso 6 del protocolo: una unidad con `Link Zonaprop` y sin galería toma las fotos del aviso, por `Publicación/` y nunca directo al sitio (`scripts/bajar-fotos-aviso.mjs`). Cuatro altas —Alsina 3°Q, 4°S, 4°X y Cabrera 205 UF 2— y los precios nuevos de Portela UF 8 (57.000) y Vergara UF 9 (62.000 + cochera 6.000). **El catálogo queda en 14.** | `(este commit)` |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
 **Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
@@ -1949,6 +1968,7 @@ servicios pagos el 2-sep.)
 49. **Fase 47 — La maestra decide qué se publica** ✅ 16-sep
 50. **Fase 48 — La primera carga desde la maestra** ✅ 16-sep (9 publicadas)
 51. **Fase 49 — El protocolo «actualizá el sitio»** ✅ 17-sep (10 publicadas)
+52. **Fase 50 — Las fotos del aviso, y los precios del aviso** ✅ 18-sep (14 publicadas)
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -1956,9 +1976,10 @@ Detalles de cada fase en **Current progress** más arriba.
 
 **1. Cargar propiedades reales** ← lo único que separa al sitio de lanzar
 
-Hay 10 publicadas. De Belgrano 1287 faltan el **1°D** (loft) y la **PB A**
-(de un tercero): sólo faltan las fotos. Quedan 17 unidades en `Publicar = Sí`
-esperando material. Después viene el resto de la cartera, de a una y en el
+Hay 14 publicadas. Quedan **13 unidades en `Publicar = Sí` esperando material**:
+Alsina 3°O y Belgrano PB A (Tomy les saca fotos propias), Belgrano 1°D,
+Cabrera 205 UF 6, Sarmiento 1260 UF 1, y las cuatro de Matheu y Viamonte y las
+cuatro de Condarco y Aguapey, que además no tienen precio. Después viene el resto de la cartera, de a una y en el
 orden que marque la maestra (`Publicar = Sí` con fotos en `Publicación/`).
 Tres caminos:
 
@@ -2368,6 +2389,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.34 | Sep 18, 2026 | **Las fotos del aviso, y los precios del aviso.** `PUBLICACION.md` sumó el paso 6 al protocolo: una unidad con `Link Zonaprop` y sin galería propia toma las fotos del aviso —a `Publicación/`, nunca directo al sitio, porque el próximo `--fotos` las pisaría—, y de ahí salieron cuatro altas: Alsina 1639 **3°Q, 4°S y 4°X** y **Cabrera 205 UF 2**. El criterio de precios de Tomy también cambió, y el pretendido ahora sale del aviso: Portela 95 UF 8 a **57.000** y Vergara 1901 UF 9 a **62.000** (cochera +6.000). **10 → 14 publicadas**, segunda corrida en seco sin diferencias en las trece. Queda `scripts/bajar-fotos-aviso.mjs` y la columna `Link Zonaprop` en el lector de la maestra. |
 | 2.33 | Sep 17, 2026 | **El protocolo «actualizá el sitio», copiado y corrido.** Tomy lo escribió en `PUBLICACION.md` y ahora vive también acá: leer la última sesión de `CONTEXTO.md`, corrida en seco, `--aplicar --precios --fotos` —la maestra manda siempre, el sitio nunca gana— y una segunda corrida en seco que tiene que dar cero. Primera vez: **10 publicadas**, con Portela 95 UF 8 nueva y la 4°Y a 89.000, y la segunda corrida sin diferencias en las nueve. Dos arreglos de nombres: la carpeta `UF 8` para una unidad que la maestra escribe `8`, y la unidad pegada al número de calle cuando `Dirección real` trae localidad. **489 → 493 tests.** |
 | 2.32 | Sep 17, 2026 | **La cuarta baja masiva, cerrada.** Tomy desactivó a mano el workflow del repo original —404 de por medio: el repo es privado y su navegador no tenía esa sesión— y ahí quedó a la vista que **corría todos los días con success**, del 14 al 17; el 9-sep fue el día que Zonaprop le sirvió una página en vez de cero. La reparación se aplicó con backup y en transacción: 588 filas de historial inventado borradas y **188 avisos revividos**, de 274 a **462 activas**, sin un solo evento del 9-sep en el historial. Queda escrito lo que esto enseña: la base es compartida y las guardas viven en el llamador, así que el chequeo rápido ante un lote de bajas es si trae `price_at_change`. Sin cambios de código: 489 tests. |
 | 2.31 | Sep 16, 2026 | **Cuarta baja masiva, y el culpable no es este repo.** Revisar la base después del pipeline mostró 274 activas donde había 439: el 9-sep una corrida dio de baja 388 avisos habiendo visto ~54. Las filas de historial no tienen `price_at_change`, que este repo escribe siempre, y el repo original `Jotaeme` —con la misma base— **sigue corriendo su pipeline de mayo todos los días desde GitHub**, sin ninguna de las guardas. Apagar el cron del fork nunca apagó ese. La corrida del 16-sep revivió 200 (y las anotó como republicaciones falsas); quedan 188 caídas. Diagnóstico escrito; apagar el cron original y la reparación esperan a Tomy. Sin cambios de código: 489 tests. |
