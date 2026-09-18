@@ -153,7 +153,7 @@ async function readUnitFolder(row: UnidadRow): Promise<UnitFolder | null> {
 // ─── Site side ───────────────────────────────────────────────────────────────
 
 const SITE_FIELDS =
-  "id, listing_status, property_type, operation_type, price_amount, price_currency, description, surface_total, surface_covered, rooms, bedrooms, bathrooms, garages, year_built, partida, nomenclatura_catastral, tags, extras, photos, is_featured";
+  "id, listing_status, property_type, operation_type, price_amount, price_list_amount, price_currency, description, surface_total, surface_covered, rooms, bedrooms, bathrooms, garages, year_built, partida, nomenclatura_catastral, tags, extras, photos, is_featured";
 
 async function readSiteRow(sb: SupabaseClient, id: string): Promise<Record<string, unknown>> {
   const { data, error } = await sb.from("properties").select(SITE_FIELDS).eq("id", id).single();

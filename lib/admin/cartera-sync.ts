@@ -222,15 +222,26 @@ export function parseTipo(tipo: string | null): TipoParse {
  * `priceDelta` — and "Incluida: ½ U.C B espacio C" — what follows the colon
  * is the detail, in its original case. Older values ("00-15", "opcional")
  * still read as before.
+ *
+ * `kind` is what the cell is actually about. Alsina 3°O has "terraza 05-01"
+ * in `Cochera` —the column ended up holding whatever comes with the unit—
+ * and publishing that as "cochera incluida (terraza 05-01)" would have been
+ * the site stating something the papers do not say. When the text names
+ * another extra and no garage, that is the extra it returns.
  */
 export function cocheraFromColumns(
   cochera: string | null,
   tipoCochera: string | null,
-): { mode: ExtraMode; detail: string | null; priceDelta: number | null } | null {
+): { kind: ExtraKind; mode: ExtraMode; detail: string | null; priceDelta: number | null } | null {
   const raw = (cochera ?? "").trim();
   const c = raw.toLowerCase();
   if (c === "" || c === "no" || c === "-" || c === "—") return null;
   const mode: ExtraMode = /opcional/.test(c) ? "opcional" : "incluida";
+  // The cell is about another extra only when it OPENS with its name
+  // ("terraza 05-01", Alsina 3°O). "00-15 + terraza 05-02" is a garage that
+  // also mentions a terrace, and that terrace comes from `Tipo` anyway.
+  const opensWith = EXTRA_KINDS.find((k) => k !== "cochera" && new RegExp(`^${k}\\b`, "i").test(c));
+  const kind: ExtraKind = opensWith ?? "cochera";
 
   let priceDelta: number | null = null;
   const money = raw.match(/\+\s*(?:USD|U\$S|US\$)?\s*([\d.]+)/i);
@@ -243,13 +254,17 @@ export function cocheraFromColumns(
   if (mode === "incluida") {
     const afterColon = raw.match(/^incluida\s*:\s*(.+)$/i);
     if (afterColon) detailParts.push(afterColon[1].trim());
-    else if (!/^(s[ií]|incluida)$/.test(c)) detailParts.push(raw);
+    else if (!/^(s[ií]|incluida)$/.test(c)) {
+      // "terraza 05-01" describes a terraza: the word is the kind, not detail.
+      const bare = kind === "cochera" ? raw : raw.replace(new RegExp(`\\b${kind}\\b\\s*`, "i"), "").trim();
+      if (bare) detailParts.push(bare);
+    }
   }
   if (tipoCochera && tipoCochera.trim() !== "" && !/integrada/i.test(tipoCochera)) {
     detailParts.push(tipoCochera.trim().toLowerCase());
   }
   const detail = detailParts.length ? [...new Set(detailParts)].join(", ") : null;
-  return { mode, detail, priceDelta };
+  return { kind, mode, detail, priceDelta };
 }
 
 /**
@@ -528,8 +543,9 @@ export function buildFicha(input: BuildInput): BuiltFicha {
   // the Tipo text; provisorio.json can add the price delta or override all.
   const derivedExtras: Record<string, unknown>[] = [];
   const coch = cocheraFromColumns(row.cochera, row.tipoCochera);
-  if (coch) derivedExtras.push({ kind: "cochera", mode: coch.mode, detail: coch.detail, price_delta: coch.priceDelta });
+  if (coch) derivedExtras.push({ kind: coch.kind, mode: coch.mode, detail: coch.detail, price_delta: coch.priceDelta });
   for (const e of tipo.extras) {
+    if (derivedExtras.some((d) => d.kind === e.kind)) continue;
     derivedExtras.push({ kind: e.kind, mode: "incluida", detail: e.detail || null, price_delta: null });
   }
   if (Array.isArray(prov.extras)) {

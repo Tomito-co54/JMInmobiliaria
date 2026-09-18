@@ -130,11 +130,12 @@ describe("parseTipo", () => {
 
 describe("cocheraFromColumns", () => {
   it("maps 'opcional' + tipo to an optional extra with the type as detail", () => {
-    expect(cocheraFromColumns("opcional", "Cubierta")).toEqual({ mode: "opcional", detail: "cubierta", priceDelta: null });
+    expect(cocheraFromColumns("opcional", "Cubierta")).toEqual({ kind: "cochera", mode: "opcional", detail: "cubierta", priceDelta: null });
   });
 
   it("maps a described garage to an included one", () => {
     expect(cocheraFromColumns("Cochera doble cubierta", "Integrada")).toEqual({
+      kind: "cochera",
       mode: "incluida",
       detail: "Cochera doble cubierta",
       priceDelta: null,
@@ -142,8 +143,9 @@ describe("cocheraFromColumns", () => {
   });
 
   it("reads the agreed shapes: optional with surcharge, included with detail", () => {
-    expect(cocheraFromColumns("Opcional (+USD 5.000)", null)).toEqual({ mode: "opcional", detail: null, priceDelta: 5000 });
+    expect(cocheraFromColumns("Opcional (+USD 5.000)", null)).toEqual({ kind: "cochera", mode: "opcional", detail: null, priceDelta: 5000 });
     expect(cocheraFromColumns("Incluida: ½ U.C B espacio C", "Cubierta")).toEqual({
+      kind: "cochera",
       mode: "incluida",
       detail: "½ U.C B espacio C, cubierta",
       priceDelta: null,
@@ -419,5 +421,33 @@ describe("buildFicha con precio de oferta", () => {
     // Un tachado por debajo del precio vigente leería la oferta como aumento.
     const f = build({ precioPretendido: 69900, precioOferta: 69900 });
     expect(f.price_list_amount).toBeUndefined();
+  });
+});
+
+describe("cocheraFromColumns cuando la celda no habla de una cochera", () => {
+  it("lee 'terraza 05-01' como terraza, no como cochera", () => {
+    // Alsina 3°O: la columna Cochera terminó guardando lo que viene con la
+    // unidad, y publicar "cochera incluida (terraza 05-01)" sería afirmar algo
+    // que los papeles no dicen.
+    expect(cocheraFromColumns("terraza 05-01", null)).toEqual({
+      kind: "terraza",
+      mode: "incluida",
+      detail: "05-01",
+      priceDelta: null,
+    });
+  });
+
+  it("la cochera gana si la celda la nombra junto a otra cosa", () => {
+    expect(cocheraFromColumns("00-15 + terraza 05-02", null)?.kind).toBe("cochera");
+    expect(cocheraFromColumns("Opcional (+USD 5.000)", "Cubierta")?.kind).toBe("cochera");
+  });
+
+  it("una celda sin palabra conocida sigue siendo la cochera", () => {
+    expect(cocheraFromColumns("00-06", null)).toEqual({
+      kind: "cochera",
+      mode: "incluida",
+      detail: "00-06",
+      priceDelta: null,
+    });
   });
 });
