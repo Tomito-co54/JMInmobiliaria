@@ -5,9 +5,8 @@ import { MapPin, ArrowRight, ImageIcon } from "lucide-react";
 import type { BuildingSummary } from "@/lib/buildings";
 import { formatPrice, labelWithOperation } from "@/lib/property/price";
 import { PropertyTagChips } from "@/components/property/PropertyTagChips";
-import { OfferBadge } from "@/components/property/OfferBadge";
+import { OfferBadge, OfferPrice } from "@/components/property/OfferBadge";
 import { isOnOffer } from "@/lib/property/offers";
-import { ListPriceStrike } from "@/components/property/ListPriceStrike";
 import { propertyTypeLabel } from "@/lib/property/types";
 import { extrasSpecWords, readExtras } from "@/lib/property/extras";
 import { getMatchBand } from "@/lib/matching/bands";
@@ -41,8 +40,6 @@ export interface PremiumCardProperty {
   partido: string | null;
   address: string | null;
   price_amount: number | null;
-  /** Only set on an offer: printed struck through beside the price. */
-  price_list_amount?: number | null;
   price_currency: "USD" | "ARS" | null;
   rooms: number | null;
   bedrooms: number | null;
@@ -186,17 +183,11 @@ export function PropertyPremiumCard({
           )}
 
           {priceText ? (
-            <p
-              className="mt-2 flex flex-wrap items-baseline gap-x-2 text-2xl sm:text-3xl font-bold tabular-nums leading-none"
-              style={{ color: "var(--price)" }}
-            >
-              {priceText}
-              {offer && (
-                <ListPriceStrike
-                  amount={property.price_list_amount ?? null}
-                  currency={property.price_currency}
-                  className="text-base sm:text-lg"
-                />
+            <p className="mt-2 text-2xl sm:text-3xl font-bold tabular-nums leading-none">
+              {offer ? (
+                <OfferPrice>{priceText}</OfferPrice>
+              ) : (
+                <span style={{ color: "var(--price)" }}>{priceText}</span>
               )}
             </p>
           ) : (

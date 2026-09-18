@@ -17,9 +17,10 @@ import { cn } from "@/lib/utils";
  * listing, and the protagonist on the landing. Static on purpose — a badge
  * that pulses is a badge you learn to ignore (§6).
  *
- * The price beside it is brand navy like every other price on the site; what
- * marks the offer is this plate and the list price struck through next to the
- * number (`ListPriceStrike`), not a colour the reader has to decode.
+ * `OfferPrice` puts the number on the same plate (Tomy, 18-sep: "hacele un
+ * recuadro como el de oferta al precio"), so the two read as one object. A
+ * price that is not on offer stays plain navy: the plate is what says "this
+ * one, now", and a plate on every price would say nothing.
  */
 export function OfferBadge({
   size = "md",
@@ -48,6 +49,35 @@ export function OfferBadge({
       }}
     >
       Oferta
+    </span>
+  );
+}
+
+/**
+ * A price on the offer plate. Same gold and same corners as the ribbon beside
+ * it, without the tilt — a number set on an angle is a number you read twice.
+ *
+ * Only for a price that IS the offer. The list price it discounts from is not
+ * shown anywhere: Tomy dropped it on 18-sep ("el de lista desaparece
+ * directamente") after seeing it struck through in grey.
+ */
+export function OfferPrice({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn("inline-flex items-center rounded-md px-3 py-1.5 shadow-lg", className)}
+      style={{
+        backgroundColor: "var(--offer)",
+        color: "var(--offer-fg)",
+        boxShadow: "0 8px 20px -8px color-mix(in srgb, var(--offer) 70%, transparent)",
+      }}
+    >
+      {children}
     </span>
   );
 }

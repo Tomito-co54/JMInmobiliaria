@@ -2,7 +2,6 @@
 
 import { Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ListPriceStrike } from "@/components/property/ListPriceStrike";
 import { formatPrice, type OperationType, type PriceCurrency } from "@/lib/property/price";
 import {
   extraKindLabel,
@@ -13,7 +12,7 @@ import {
   readExtras,
 } from "@/lib/property/extras";
 import { toggleExtra, useSelectedExtras } from "@/lib/property/extras-selection";
-import { OfferBadge } from "./OfferBadge";
+import { OfferBadge, OfferPrice } from "./OfferBadge";
 
 /**
  * The price of a listing together with its extras — the two cannot be shown
@@ -45,12 +44,6 @@ interface PriceProps {
    * are just prices.
    */
   offer?: boolean;
-  /**
-   * The list price this offer discounts from. Only shown while no optional
-   * extra is on: with the cochera added the live number climbs past it, and
-   * a struck number BELOW the price would read as a markup.
-   */
-  listAmount?: number | null;
 }
 
 function useConfiguredPrice({ propertyId, baseAmount, extras }: PriceProps) {
@@ -74,17 +67,11 @@ export function PropertyPriceExtras(props: PriceProps) {
     <div className="space-y-4">
       <div>
         {text ? (
-          <p
-            className="flex flex-wrap items-center gap-x-3 gap-y-1 font-heading text-3xl sm:text-4xl font-medium tracking-tight tabular-nums"
-            style={{ color: "var(--price)" }}
-          >
-            {text}
-            {props.offer && price.selected.length === 0 && (
-              <ListPriceStrike
-                amount={props.listAmount ?? null}
-                currency={props.currency}
-                className="text-xl sm:text-2xl"
-              />
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-heading text-3xl sm:text-4xl font-medium tracking-tight tabular-nums">
+            {props.offer ? (
+              <OfferPrice>{text}</OfferPrice>
+            ) : (
+              <span style={{ color: "var(--price)" }}>{text}</span>
             )}
             {props.offer && <OfferBadge size="sm" tilt={false} className="translate-y-[-0.15em]" />}
           </p>
@@ -149,17 +136,11 @@ export function PropertyBarPrice(props: PriceProps) {
   const text = formatPrice(price.amount, props.currency, props.operation);
   if (!text) return <p className="text-sm font-semibold text-muted-foreground">Consultar precio</p>;
   return (
-    <p
-      className="font-heading text-lg font-medium tabular-nums leading-none truncate"
-      style={{ color: "var(--price)" }}
-    >
-      {text}
-      {props.offer && price.selected.length === 0 && (
-        <ListPriceStrike
-          amount={props.listAmount ?? null}
-          currency={props.currency}
-          className="ml-1.5 text-sm"
-        />
+    <p className="font-heading text-lg font-medium tabular-nums leading-none truncate">
+      {props.offer ? (
+        <OfferPrice className="px-2 py-1">{text}</OfferPrice>
+      ) : (
+        <span style={{ color: "var(--price)" }}>{text}</span>
       )}
       {price.selected.length > 0 && (
         <span className="ml-1.5 text-xs font-normal text-muted-foreground">

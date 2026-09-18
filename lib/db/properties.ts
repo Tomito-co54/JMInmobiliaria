@@ -60,8 +60,6 @@ export interface PublicPropertyRow {
   // sites, where "it is not 'alquiler'" is a guess rather than a check.
   operation_type: "venta" | "alquiler" | null;
   price_amount: number | null;
-  /** The list price an offer discounts from; null when there is no offer. */
-  price_list_amount: number | null;
   price_currency: "USD" | "ARS" | null;
   surface_total: number | null;
   surface_covered: number | null;
@@ -110,7 +108,6 @@ const PUBLIC_PROPERTY_COLS = [
   "property_type",
   "operation_type",
   "price_amount",
-  "price_list_amount",
   "price_currency",
   "surface_total",
   "surface_covered",
@@ -194,8 +191,6 @@ export interface BuildingUnitRow {
   property_type: string | null;
   operation_type: "venta" | "alquiler" | null;
   price_amount: number | null;
-  /** The list price an offer discounts from; null when there is no offer. */
-  price_list_amount: number | null;
   price_currency: "USD" | "ARS" | null;
   rooms: number | null;
   bedrooms: number | null;
@@ -227,7 +222,7 @@ export async function getBuildingUnits(
   const { data, error } = await supabase
     .from("properties")
     .select(
-      "id, address, property_type, operation_type, price_amount, price_list_amount, price_currency, rooms, bedrooms, surface_total, surface_covered, photos, quality_score",
+      "id, address, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_covered, photos, quality_score",
     )
     .eq("nomenclatura_catastral", nomenclatura.trim())
     .neq("id", excludeId)
@@ -357,8 +352,6 @@ export interface FeaturedPropertyRow {
   property_type: string | null;
   operation_type: "venta" | "alquiler" | null;
   price_amount: number | null;
-  /** The list price an offer discounts from; null when there is no offer. */
-  price_list_amount: number | null;
   price_currency: "USD" | "ARS" | null;
   rooms: number | null;
   bedrooms: number | null;
@@ -379,7 +372,6 @@ const FEATURED_PROPERTY_COLS = [
   "property_type",
   "operation_type",
   "price_amount",
-  "price_list_amount",
   "price_currency",
   "rooms",
   "bedrooms",

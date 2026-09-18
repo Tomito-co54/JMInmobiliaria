@@ -9,8 +9,8 @@ import { formatPrice, labelWithOperation } from "@/lib/property/price";
 import { PropertyTagChips } from "@/components/property/PropertyTagChips";
 import { propertyTypeLabel } from "@/lib/property/types";
 import { extrasSpecWords, readExtras } from "@/lib/property/extras";
+import { OfferPrice } from "@/components/property/OfferBadge";
 import { isOnOffer } from "@/lib/property/offers";
-import { ListPriceStrike } from "@/components/property/ListPriceStrike";
 
 /**
  * The home protagonista — Jotaeme's brand-signature gesture (Block 3 del
@@ -113,17 +113,11 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
           <PropertyTagChips tags={p.tags} className="mt-4" omit={["oferta"]} />
 
           {priceText ? (
-            <p
-              className="mt-5 flex flex-wrap items-baseline gap-x-2 text-2xl sm:text-3xl font-bold tabular-nums leading-none"
-              style={{ color: "var(--price)" }}
-            >
-              {priceText}
-              {offer && (
-                <ListPriceStrike
-                  amount={p.price_list_amount}
-                  currency={p.price_currency}
-                  className="text-base sm:text-lg"
-                />
+            <p className="mt-5 text-2xl sm:text-3xl font-bold tabular-nums leading-none">
+              {offer ? (
+                <OfferPrice>{priceText}</OfferPrice>
+              ) : (
+                <span style={{ color: "var(--price)" }}>{priceText}</span>
               )}
             </p>
           ) : (

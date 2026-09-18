@@ -51,8 +51,6 @@ interface PropertyDataPanelProps {
   extras: unknown;
   /** The listing carries the `oferta` tag: gold ribbon and list price beside it. */
   offer: boolean;
-  /** The list price the offer discounts from (null when there is no offer). */
-  priceListAmount?: number | null;
   /** Fields the client-side matcher scores against. */
   propertyForMatching: PropertyForMatching;
   source: string;
@@ -77,7 +75,6 @@ export function PropertyDataPanel({
   yearBuilt,
   extras,
   offer,
-  priceListAmount,
   propertyForMatching,
   source,
   sourceUrl,
@@ -152,7 +149,6 @@ export function PropertyDataPanel({
         operation={operationType}
         extras={extras}
         offer={offer}
-        listAmount={priceListAmount}
       />
 
       {/* Specs strip */}
