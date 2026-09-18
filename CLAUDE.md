@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (16-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **496 tests passing** (+7 skipped a propósito),
+auto-deploy desde `main`. **499 tests passing** (+7 skipped a propósito),
 `npm run build` verde, **33 rutas**.
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
@@ -83,9 +83,12 @@ arreglada y reparada** el mismo día — ver *Volvió a pasar el 1-sep* más aba
 Lo que queda es de contenido:
 
 
-1. **El catálogo tiene 14 propiedades publicadas** (18-sep): Belgrano 1287 1°A,
-   1°B, 1°C, 2°A y 2°B; Alsina 1639 **3°Q, 4°S, 4°X** y 4°Y; **Cabrera 205 UF 2**;
-   Vergara 1901 UF 3 y UF 9; Portela 95 UF 8; Talcahuano 258 (alquiler). Los USD 94.000 de 2°A y 2°B **ya están en la
+1. **El catálogo tiene 15 propiedades publicadas** (18-sep, a la noche):
+   Belgrano 1287 1°A, 1°B, 1°C, 2°A y 2°B; Alsina 1639 **3°O**, 3°Q, 4°S, 4°X y
+   4°Y; Cabrera 205 UF 2; Vergara 1901 UF 3 y UF 9; Portela 95 UF 8;
+   Talcahuano 258 (alquiler). **Dos en oferta**, así que la portada muestra la
+   más barata: Alsina 3°Q (lista 58.000, oferta **53.000**) le ganó el lugar a
+   Belgrano 1°A (lista 80.000, oferta **69.500**). Los USD 94.000 de 2°A y 2°B **ya están en la
    maestra**, así que `--precios` los sostiene en vez de revertirlos, y la 4°Y
    subió a 89.000 desde la maestra (Tomy, 17-sep: va con terraza y cochera).
    Lo que falta sale de la **PLANILLA MAESTRA**, que desde el 16-sep es la
@@ -272,6 +275,27 @@ header y los pins muestran el precio viejo hasta 5 minutos. Anotado, no
 arreglado.
 
 ### Protocolo «actualizá el sitio» (Tomy, 17-09-2026)
+
+**Tercera corrida, 18-sep a la noche:** **Alsina 3°O** entró con las 6 fotos
+propias que sacó Tomy (88.000), la **3°Q pasó a oferta** (lista 58.000, oferta
+53.000) y **Belgrano 1°A bajó a 69.500**. 14 unidades aplicadas, segunda corrida
+en seco sin diferencias. Dos cosas que destapó:
+
+- **La columna `Cochera` no siempre habla de una cochera.** La 3°O tiene
+  "terraza 05-01" ahí —la columna terminó guardando lo que viene con la unidad—
+  y la ficha decía *"cochera incluida (terraza 05-01)"*: el sitio afirmando algo
+  que los papeles no dicen. Ahora `cocheraFromColumns` devuelve también el
+  `kind`, y la celda es otro extra **sólo cuando abre con su nombre**; "00-15 +
+  terraza 05-02" sigue siendo la cochera de la 4°Y.
+- **El precio de lista se reportaba como diferencia en cada corrida**: la
+  consulta que lee la fila del sitio no traía `price_list_amount`, así que el
+  diff comparaba contra "no hay". Es la misma familia de siempre —un dato que
+  falta leyéndose como un dato distinto— y por eso la segunda corrida en seco es
+  parte del protocolo.
+
+**Y lo que queda pendiente de la 3°O:** la maestra no tiene sus m² (el `Tipo`
+dice sólo "Dos ambientes"), así que la ficha sale sin superficie. No la frena
+—el protocolo sólo exige fotos y precio— pero conviene cargarlos.
 
 **Segunda corrida, 18-sep:** cuatro altas que salieron del paso 6 — Alsina 3°Q
 (53.000, 15 fotos), 4°S (59.900, 25), 4°X (58.000, 15, el mismo aviso que la
@@ -625,6 +649,7 @@ visual.
 | Fase 49 — El protocolo «actualizá el sitio» | El bloque que escribió Tomy en `PUBLICACION.md` copiado a este documento y corrido: leer `CONTEXTO.md`, seco, `--aplicar --precios --fotos`, seco otra vez. 9 aplicadas, **Portela 95 UF 8 nueva**, 4°Y a 89.000, segunda corrida sin diferencias. `unitFolderCandidates` (la maestra dice `8`, la carpeta `UF 8`) y la unidad junto al número de calle. **489 → 493 tests.** | `53c3073` |
 | Fase 50 — Las fotos del aviso, y los precios del aviso | Paso 6 del protocolo: una unidad con `Link Zonaprop` y sin galería toma las fotos del aviso, por `Publicación/` y nunca directo al sitio (`scripts/bajar-fotos-aviso.mjs`). Cuatro altas —Alsina 3°Q, 4°S, 4°X y Cabrera 205 UF 2— y los precios nuevos de Portela UF 8 (57.000) y Vergara UF 9 (62.000 + cochera 6.000). **El catálogo queda en 14.** | `3620652` |
 | Fase 51 — El precio es de la marca, y el de oferta va en placa | Los precios pasan al navy (`--price`, con su variante clara para el modo oscuro) y el sello de oferta al dorado con texto navy. El precio en oferta va **sobre la misma placa dorada** (`OfferPrice`): el tachado gris del precio de lista se probó y Tomy lo descartó en la misma sesión, así que el de lista no se muestra. La columna **00021** `price_list_amount` queda llenándose desde la maestra, fuera de las consultas públicas. **493 → 496 tests.** | `723a648` y el siguiente |
+| Fase 52 — La tercera corrida del protocolo | Alsina 3°O con fotos propias, la 3°Q en oferta (58.000 → 53.000) y Belgrano 1°A a 69.500: **15 publicadas** y la portada pasa a la 3°Q, que es la oferta más barata. Dos arreglos: la columna `Cochera` puede nombrar otro extra (la 3°O traía "terraza 05-01") y el diff ahora lee `price_list_amount` del sitio. **496 → 499 tests.** | `ea4b3e9` |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
 **Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
@@ -2008,7 +2033,8 @@ servicios pagos el 2-sep.)
 50. **Fase 48 — La primera carga desde la maestra** ✅ 16-sep (9 publicadas)
 51. **Fase 49 — El protocolo «actualizá el sitio»** ✅ 17-sep (10 publicadas)
 52. **Fase 50 — Las fotos del aviso, y los precios del aviso** ✅ 18-sep (14 publicadas)
-53. **Fase 51 — El precio de la marca y el tachado de la oferta** ✅ 18-sep (migración 00021)
+53. **Fase 51 — El precio de la marca y la placa de la oferta** ✅ 18-sep (migración 00021)
+54. **Fase 52 — La tercera corrida del protocolo** ✅ 18-sep (15 publicadas)
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -2016,10 +2042,11 @@ Detalles de cada fase en **Current progress** más arriba.
 
 **1. Cargar propiedades reales** ← lo único que separa al sitio de lanzar
 
-Hay 14 publicadas. Quedan **13 unidades en `Publicar = Sí` esperando material**:
-Alsina 3°O y Belgrano PB A (Tomy les saca fotos propias), Belgrano 1°D,
-Cabrera 205 UF 6, Sarmiento 1260 UF 1, y las cuatro de Matheu y Viamonte y las
-cuatro de Condarco y Aguapey, que además no tienen precio. Después viene el resto de la cartera, de a una y en el
+Hay 15 publicadas. Quedan **12 unidades en `Publicar = Sí` esperando material**:
+Belgrano PB A (Tomy le saca fotos propias) y 1°D, Cabrera 205 UF 6,
+Sarmiento 1260 UF 1, y las cuatro de Matheu y Viamonte y las cuatro de Condarco
+y Aguapey, que además no tienen precio. A la 3°O, ya publicada, le faltan el
+dormitorio y el baño en la galería y los m² en la maestra. Después viene el resto de la cartera, de a una y en el
 orden que marque la maestra (`Publicar = Sí` con fotos en `Publicación/`).
 Tres caminos:
 
@@ -2429,6 +2456,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.37 | Sep 18, 2026 | **Tercera corrida del protocolo: 15 publicadas, y dos ofertas.** Entró **Alsina 1639 3°O** con las seis fotos propias de Tomy (88.000), la **3°Q pasó a oferta** (lista 58.000, oferta 53.000) y **Belgrano 1°A bajó a 69.500**; como la portada muestra la oferta más barata, la protagonista pasó a ser la 3°Q. Dos arreglos que salieron de la corrida: la columna `Cochera` de la 3°O decía **"terraza 05-01"** y se publicaba como cochera —ahora la celda puede nombrar otro extra, y sólo cuando abre con su nombre—, y el diff no leía `price_list_amount` del sitio, así que reportaba una diferencia inexistente en cada corrida. **496 → 499 tests.** |
 | 2.36 | Sep 18, 2026 | **El precio de oferta va en placa; el de lista no se muestra.** Tomy vio el tachado gris y lo descartó en la misma sesión: *"mejor hacele un recuadro como el de oferta al precio"*, y **"al de oferta, el de lista desaparece directamente"**. Ahora el número en oferta va sobre la misma placa dorada del sello (`OfferPrice`, sin inclinación) en las cuatro superficies, y un precio sin oferta sigue siendo navy pelado. La columna `price_list_amount` se queda llenándose desde la maestra pero salió de las consultas públicas: que la base lo guarde no obliga a mostrarlo. 496 tests, build verde. |
 | 2.35 | Sep 18, 2026 | **El precio es del color de la marca, y la oferta dice de cuánto baja.** A pedido de Tomy los precios pasan al navy `#1A1B5C` (con `--price`, que en oscuro sube la luminosidad porque el navy desaparece sobre slate), el sello "Oferta" deja el rojo y pasa a **dorado con texto navy**, y al lado del precio de oferta va **el de lista tachado en gris**. Ese último pedido destapó que **el precio de lista no estaba en la base**: una oferta era sólo un número más bajo. Migración **00021** `price_list_amount`, owner-only y siempre mayor que el publicado —un tachado por debajo leería la oferta como aumento—, que la sincronización llena desde `Precio pretendido` y que viaja con el precio bajo `--precios`. En la ficha el tachado se oculta al prender un extra. **493 → 496 tests**, medido en los dos temas; lo visual lo mira Tomy. |
 | 2.34 | Sep 18, 2026 | **Las fotos del aviso, y los precios del aviso.** `PUBLICACION.md` sumó el paso 6 al protocolo: una unidad con `Link Zonaprop` y sin galería propia toma las fotos del aviso —a `Publicación/`, nunca directo al sitio, porque el próximo `--fotos` las pisaría—, y de ahí salieron cuatro altas: Alsina 1639 **3°Q, 4°S y 4°X** y **Cabrera 205 UF 2**. El criterio de precios de Tomy también cambió, y el pretendido ahora sale del aviso: Portela 95 UF 8 a **57.000** y Vergara 1901 UF 9 a **62.000** (cochera +6.000). **10 → 14 publicadas**, segunda corrida en seco sin diferencias en las trece. Queda `scripts/bajar-fotos-aviso.mjs` y la columna `Link Zonaprop` en el lector de la maestra. |
