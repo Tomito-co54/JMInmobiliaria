@@ -293,9 +293,10 @@ en seco sin diferencias. Dos cosas que destapó:
   falta leyéndose como un dato distinto— y por eso la segunda corrida en seco es
   parte del protocolo.
 
-**Y lo que queda pendiente de la 3°O:** la maestra no tiene sus m² (el `Tipo`
-dice sólo "Dos ambientes"), así que la ficha sale sin superficie. No la frena
-—el protocolo sólo exige fotos y precio— pero conviene cargarlos.
+**Los m² de la 3°O los dio Tomy**: *"misma superficie que 4°Y"*, o sea 40
+cubiertos y 42 totales, cargados en su `provisorio.json` porque Code no escribe
+la maestra. **Cuando Cowork los ponga en las columnas `m² cubiertos` / `m²
+totales`, la entrada del provisorio se borra** y el reporte lo avisa solo.
 
 **Segunda corrida, 18-sep:** cuatro altas que salieron del paso 6 — Alsina 3°Q
 (53.000, 15 fotos), 4°S (59.900, 25), 4°X (58.000, 15, el mismo aviso que la
@@ -2046,7 +2047,8 @@ Hay 15 publicadas. Quedan **12 unidades en `Publicar = Sí` esperando material**
 Belgrano PB A (Tomy le saca fotos propias) y 1°D, Cabrera 205 UF 6,
 Sarmiento 1260 UF 1, y las cuatro de Matheu y Viamonte y las cuatro de Condarco
 y Aguapey, que además no tienen precio. A la 3°O, ya publicada, le faltan el
-dormitorio y el baño en la galería y los m² en la maestra. Después viene el resto de la cartera, de a una y en el
+dormitorio y el baño en la galería; los m² (40/42, los mismos que la 4°Y) ya
+están, en el `provisorio.json`. Después viene el resto de la cartera, de a una y en el
 orden que marque la maestra (`Publicar = Sí` con fotos en `Publicación/`).
 Tres caminos:
 
@@ -2456,7 +2458,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
-| 2.37 | Sep 18, 2026 | **Tercera corrida del protocolo: 15 publicadas, y dos ofertas.** Entró **Alsina 1639 3°O** con las seis fotos propias de Tomy (88.000), la **3°Q pasó a oferta** (lista 58.000, oferta 53.000) y **Belgrano 1°A bajó a 69.500**; como la portada muestra la oferta más barata, la protagonista pasó a ser la 3°Q. Dos arreglos que salieron de la corrida: la columna `Cochera` de la 3°O decía **"terraza 05-01"** y se publicaba como cochera —ahora la celda puede nombrar otro extra, y sólo cuando abre con su nombre—, y el diff no leía `price_list_amount` del sitio, así que reportaba una diferencia inexistente en cada corrida. **496 → 499 tests.** |
+| 2.37 | Sep 18, 2026 | **Tercera corrida del protocolo: 15 publicadas, y dos ofertas.** (Cerrado después: la 3°O tomó los m² de la 4°Y —40 cubiertos, 42 totales— por `provisorio.json`, a dicho de Tomy.) Entró **Alsina 1639 3°O** con las seis fotos propias de Tomy (88.000), la **3°Q pasó a oferta** (lista 58.000, oferta 53.000) y **Belgrano 1°A bajó a 69.500**; como la portada muestra la oferta más barata, la protagonista pasó a ser la 3°Q. Dos arreglos que salieron de la corrida: la columna `Cochera` de la 3°O decía **"terraza 05-01"** y se publicaba como cochera —ahora la celda puede nombrar otro extra, y sólo cuando abre con su nombre—, y el diff no leía `price_list_amount` del sitio, así que reportaba una diferencia inexistente en cada corrida. **496 → 499 tests.** |
 | 2.36 | Sep 18, 2026 | **El precio de oferta va en placa; el de lista no se muestra.** Tomy vio el tachado gris y lo descartó en la misma sesión: *"mejor hacele un recuadro como el de oferta al precio"*, y **"al de oferta, el de lista desaparece directamente"**. Ahora el número en oferta va sobre la misma placa dorada del sello (`OfferPrice`, sin inclinación) en las cuatro superficies, y un precio sin oferta sigue siendo navy pelado. La columna `price_list_amount` se queda llenándose desde la maestra pero salió de las consultas públicas: que la base lo guarde no obliga a mostrarlo. 496 tests, build verde. |
 | 2.35 | Sep 18, 2026 | **El precio es del color de la marca, y la oferta dice de cuánto baja.** A pedido de Tomy los precios pasan al navy `#1A1B5C` (con `--price`, que en oscuro sube la luminosidad porque el navy desaparece sobre slate), el sello "Oferta" deja el rojo y pasa a **dorado con texto navy**, y al lado del precio de oferta va **el de lista tachado en gris**. Ese último pedido destapó que **el precio de lista no estaba en la base**: una oferta era sólo un número más bajo. Migración **00021** `price_list_amount`, owner-only y siempre mayor que el publicado —un tachado por debajo leería la oferta como aumento—, que la sincronización llena desde `Precio pretendido` y que viaja con el precio bajo `--precios`. En la ficha el tachado se oculta al prender un extra. **493 → 496 tests**, medido en los dos temas; lo visual lo mira Tomy. |
 | 2.34 | Sep 18, 2026 | **Las fotos del aviso, y los precios del aviso.** `PUBLICACION.md` sumó el paso 6 al protocolo: una unidad con `Link Zonaprop` y sin galería propia toma las fotos del aviso —a `Publicación/`, nunca directo al sitio, porque el próximo `--fotos` las pisaría—, y de ahí salieron cuatro altas: Alsina 1639 **3°Q, 4°S y 4°X** y **Cabrera 205 UF 2**. El criterio de precios de Tomy también cambió, y el pretendido ahora sale del aviso: Portela 95 UF 8 a **57.000** y Vergara 1901 UF 9 a **62.000** (cochera +6.000). **10 → 14 publicadas**, segunda corrida en seco sin diferencias en las trece. Queda `scripts/bajar-fotos-aviso.mjs` y la columna `Link Zonaprop` en el lector de la maestra. |
