@@ -2,6 +2,7 @@
 
 import { Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ListPriceStrike } from "@/components/property/ListPriceStrike";
 import { formatPrice, type OperationType, type PriceCurrency } from "@/lib/property/price";
 import {
   extraKindLabel,
@@ -39,11 +40,17 @@ interface PriceProps {
   operation: OperationType | null;
   extras: unknown;
   /**
-   * The listing is on offer. The number takes the offer red and a small
-   * ribbon sits beside it, so the price and the claim about it read as one
-   * statement (see OfferBadge). Default false: most prices are just prices.
+   * The listing is on offer: the gold ribbon sits beside the number and the
+   * list price goes next to it, struck through. Default false: most prices
+   * are just prices.
    */
   offer?: boolean;
+  /**
+   * The list price this offer discounts from. Only shown while no optional
+   * extra is on: with the cochera added the live number climbs past it, and
+   * a struck number BELOW the price would read as a markup.
+   */
+  listAmount?: number | null;
 }
 
 function useConfiguredPrice({ propertyId, baseAmount, extras }: PriceProps) {
@@ -69,9 +76,16 @@ export function PropertyPriceExtras(props: PriceProps) {
         {text ? (
           <p
             className="flex flex-wrap items-center gap-x-3 gap-y-1 font-heading text-3xl sm:text-4xl font-medium tracking-tight tabular-nums"
-            style={props.offer ? { color: "var(--offer)" } : undefined}
+            style={{ color: "var(--price)" }}
           >
             {text}
+            {props.offer && price.selected.length === 0 && (
+              <ListPriceStrike
+                amount={props.listAmount ?? null}
+                currency={props.currency}
+                className="text-xl sm:text-2xl"
+              />
+            )}
             {props.offer && <OfferBadge size="sm" tilt={false} className="translate-y-[-0.15em]" />}
           </p>
         ) : (
@@ -137,9 +151,16 @@ export function PropertyBarPrice(props: PriceProps) {
   return (
     <p
       className="font-heading text-lg font-medium tabular-nums leading-none truncate"
-      style={props.offer ? { color: "var(--offer)" } : undefined}
+      style={{ color: "var(--price)" }}
     >
       {text}
+      {props.offer && price.selected.length === 0 && (
+        <ListPriceStrike
+          amount={props.listAmount ?? null}
+          currency={props.currency}
+          className="ml-1.5 text-sm"
+        />
+      )}
       {price.selected.length > 0 && (
         <span className="ml-1.5 text-xs font-normal text-muted-foreground">
           con {price.selected.map((e) => extraKindLabel(e.kind).toLowerCase()).join(" y ")}

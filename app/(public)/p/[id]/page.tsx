@@ -195,6 +195,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
                 garages={property.garages}
                 extras={property.extras}
                 offer={offer}
+                priceListAmount={property.price_list_amount}
                 surfaceTotal={property.surface_total}
                 surfaceCovered={property.surface_covered}
                 surfaceArba={property.surface_arba}
@@ -276,6 +277,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               garages={property.garages}
               extras={property.extras}
               offer={offer}
+              priceListAmount={property.price_list_amount}
               surfaceTotal={property.surface_total}
               surfaceCovered={property.surface_covered}
               surfaceArba={property.surface_arba}
@@ -299,6 +301,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
         operationType={property.operation_type}
         extras={property.extras}
         offer={offer}
+        priceListAmount={property.price_list_amount}
         isFavorited={favorited}
         signedOut={!userId}
       />

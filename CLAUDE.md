@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (16-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **493 tests passing** (+7 skipped a propósito),
+auto-deploy desde `main`. **496 tests passing** (+7 skipped a propósito),
 `npm run build` verde, **33 rutas**.
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
@@ -342,6 +342,36 @@ dato viejo no pisara el sitio. Ahora la orden corta los incluye siempre, así qu
 un precio que la maestra no tiene (como los USD 94.000 de Belgrano 2°A/2°B el
 16-sep), esta corrida lo revierte: el paso 2 lo muestra antes, y ahí se avisa.
 
+### El precio es del color de la marca, y la oferta dice de cuánto baja (18-sep)
+
+Tomy: **los precios en el azul de la marca** (`#1A1B5C`), misma tipografía; el
+sello "Oferta" deja de ser rojo y pasa a **fondo dorado con texto azul**; y al
+lado del precio de oferta, **el de lista tachado en gris**.
+
+- **El rojo se fue del sitio.** La v2.27 lo había metido a propósito fuera de la
+  línea navy + dorado, con la condición de que no se usara para nada más. Ahora
+  el número vuelve a ser de la marca y el que grita es el sello, que ya está en
+  el lugar donde cae el ojo. `--offer` sigue existiendo pero apunta al dorado, y
+  **`--price` es el token nuevo**: navy en claro, y en oscuro el mismo tono
+  subido de luminosidad (`#A5A6EE`), por lo mismo que `--match-perfect` — el navy
+  es 23% de luz y sobre slate desaparece.
+- **El precio de lista no existía en la base.** Una oferta era un número más
+  bajo con su etiqueta, y el de lista vivía sólo en la maestra, así que no había
+  con qué comparar. Migración **00021**: `price_list_amount`, sólo para las
+  propias y **siempre mayor que `price_amount`** (un "precio de lista" más bajo
+  que el publicado no es un precio de lista: impreso tachado haría leer la
+  oferta como un aumento). La sincronización lo llena desde `Precio pretendido`
+  cuando hay `Precio oferta`, y viaja con el precio: `--precios` escribe los dos
+  o ninguno, porque una oferta con el "antes" viejo anuncia un descuento que no
+  es el que publicamos.
+- **`ListPriceStrike`** lo pinta en las cuatro superficies (card, portada, panel
+  de la ficha y barra mobile), gris y más chico: es el número que **no** rige.
+  En la ficha **se esconde al prender un extra**: con la cochera sumada el precio
+  vivo sube por encima del de lista, y un tachado por debajo sería un aumento.
+- **Verificado midiendo los píxeles en los dos temas** (claro: `rgb(26,27,92)` en
+  el precio, `rgb(115,115,115)` tachado; oscuro: `rgb(165,166,238)`; sello dorado
+  con texto navy en los dos). **Lo visual lo mira Tomy.**
+
 ### La oferta se ve, y manda en la portada (16-sep)
 
 Tomy, sobre el chip dorado de "Oferta": *"es un recuadro informativo más, ni se
@@ -588,6 +618,7 @@ visual.
 | Fase 48 — La primera carga desde la maestra | Aplicadas las 8 listas: 1°C y Vergara 1901 UF 3 / UF 9 nuevas, 4°Y con la descripción corregida, Belgrano con el detalle de la cochera. La columna `Cochera` se lee en sus dos formas acordadas (suplemento opcional, detalle incluido). Talcahuano se reconoce sin la localidad. Segunda corrida: sin diferencias. Después, Vergara con la parcela 20A verificada, y 2°A/2°B a USD 94.000. | `c743bd5` y el siguiente |
 | Fase 49 — El protocolo «actualizá el sitio» | El bloque que escribió Tomy en `PUBLICACION.md` copiado a este documento y corrido: leer `CONTEXTO.md`, seco, `--aplicar --precios --fotos`, seco otra vez. 9 aplicadas, **Portela 95 UF 8 nueva**, 4°Y a 89.000, segunda corrida sin diferencias. `unitFolderCandidates` (la maestra dice `8`, la carpeta `UF 8`) y la unidad junto al número de calle. **489 → 493 tests.** | `53c3073` |
 | Fase 50 — Las fotos del aviso, y los precios del aviso | Paso 6 del protocolo: una unidad con `Link Zonaprop` y sin galería toma las fotos del aviso, por `Publicación/` y nunca directo al sitio (`scripts/bajar-fotos-aviso.mjs`). Cuatro altas —Alsina 3°Q, 4°S, 4°X y Cabrera 205 UF 2— y los precios nuevos de Portela UF 8 (57.000) y Vergara UF 9 (62.000 + cochera 6.000). **El catálogo queda en 14.** | `3620652` |
+| Fase 51 — El precio es de la marca, y la oferta muestra de cuánto baja | Los precios pasan al navy (`--price`, con su variante clara para el modo oscuro), el sello de oferta al dorado con texto navy, y el precio de lista va tachado al lado del de oferta. Eso obligó a guardar el dato: migración **00021** `price_list_amount`, owner-only y siempre mayor que el publicado, llenado desde `Precio pretendido`. `ListPriceStrike` en las cuatro superficies; en la ficha se oculta con un extra prendido. **493 → 496 tests.** | `(este commit)` |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
 **Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
@@ -1147,8 +1178,9 @@ Lo que conviene saber antes de tocarlo:
   misma etiqueta no parezca dos afirmaciones distintas en dos lugares.
   **"Oferta" tenía acento dorado** por ser la única que habla del precio.
   **Desde el 16-sep no alcanza**: en las superficies públicas la dice
-  `OfferBadge`, en rojo y colgada del borde, y el chip se omite ahí (ver *La
-  oferta se ve*). El chip dorado queda en el PDF y en el listado de admin.
+  `OfferBadge`, colgada del borde, y el chip se omite ahí (ver *La oferta se
+  ve*). El chip dorado queda en el PDF y en el listado de admin. **Desde el
+  18-sep el cartel es dorado con texto navy**, no rojo.
 - **"A estrenar" convive con la antigüedad derivada.** El panel de la ficha
   ya imprime "a estrenar" cuando `year_built` es el año en curso. Son dos
   cosas: una es un hecho del edificio, la otra una etiqueta que el corredor
@@ -1804,7 +1836,7 @@ Management API (config de auth, settings de proyecto). Reglas:
 │                                 #   la base. Sin esto la funcion corre en Washington
 │                                 #   y cada consulta cruza el continente (~375ms)
 ├── supabase/
-│   ├── migrations/               # 00001..00020 + 00015b (00011+ son del fork).
+│   ├── migrations/               # 00001..00021 + 00015b (00011+ son del fork).
 │   │                             #   00015b es compañera de 00015: indexa
 │   │                             #   arba_lookups por partida, que es la clave de
 │   │                             #   las propias. La tabla solo tenía (lat, lng)
@@ -1854,6 +1886,7 @@ Columnas clave:
 | `surface_total`, `surface_covered`, `surface_arba` | numeric | Declaradas + ARBA real |
 | `tpa` | text | Urbano / Rural (desde ARBA WFS) |
 | `year_built` | integer | **NEW** (00016): año de construcción. **No** es la antigüedad del aviso — para eso está `first_seen_at`. Nulo en casi todas las scrapeadas: la fuente lo publica en la ficha individual, fuera del techo de pedidos |
+| `price_list_amount` | numeric | **NEW** (00021): el precio de lista que una oferta descuenta (maestra: `Precio pretendido`). `price_amount` sigue siendo el publicado. Sólo propias, y **siempre mayor** que `price_amount` — las dos condiciones por CHECK |
 | `extras` | jsonb | **NEW** (00020): `[{ kind, mode, detail, price_delta }]` — cochera / patio / terraza, `incluida` (fija, ya en el precio) u `opcional` (toggle; `price_delta` es lo que suma). CHECK vía `property_extras_valid()`, espejo de `lib/property/extras.ts`. Solo propias. `price_amount` sigue siendo contado sin extras |
 | `tags` | text[] | **NEW** (00017): etiquetas del corredor — `apto_comercial` / `oferta` / `a_estrenar`. Vocabulario cerrado por CHECK, espejo de `lib/property/tags.ts`. Solo propias (CHECK owner-only); `'{}'` en las scrapeadas |
 | `rooms`, `bedrooms`, `bathrooms`, `garages` | integer | |
@@ -1969,6 +2002,7 @@ servicios pagos el 2-sep.)
 50. **Fase 48 — La primera carga desde la maestra** ✅ 16-sep (9 publicadas)
 51. **Fase 49 — El protocolo «actualizá el sitio»** ✅ 17-sep (10 publicadas)
 52. **Fase 50 — Las fotos del aviso, y los precios del aviso** ✅ 18-sep (14 publicadas)
+53. **Fase 51 — El precio de la marca y el tachado de la oferta** ✅ 18-sep (migración 00021)
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -2389,6 +2423,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.35 | Sep 18, 2026 | **El precio es del color de la marca, y la oferta dice de cuánto baja.** A pedido de Tomy los precios pasan al navy `#1A1B5C` (con `--price`, que en oscuro sube la luminosidad porque el navy desaparece sobre slate), el sello "Oferta" deja el rojo y pasa a **dorado con texto navy**, y al lado del precio de oferta va **el de lista tachado en gris**. Ese último pedido destapó que **el precio de lista no estaba en la base**: una oferta era sólo un número más bajo. Migración **00021** `price_list_amount`, owner-only y siempre mayor que el publicado —un tachado por debajo leería la oferta como aumento—, que la sincronización llena desde `Precio pretendido` y que viaja con el precio bajo `--precios`. En la ficha el tachado se oculta al prender un extra. **493 → 496 tests**, medido en los dos temas; lo visual lo mira Tomy. |
 | 2.34 | Sep 18, 2026 | **Las fotos del aviso, y los precios del aviso.** `PUBLICACION.md` sumó el paso 6 al protocolo: una unidad con `Link Zonaprop` y sin galería propia toma las fotos del aviso —a `Publicación/`, nunca directo al sitio, porque el próximo `--fotos` las pisaría—, y de ahí salieron cuatro altas: Alsina 1639 **3°Q, 4°S y 4°X** y **Cabrera 205 UF 2**. El criterio de precios de Tomy también cambió, y el pretendido ahora sale del aviso: Portela 95 UF 8 a **57.000** y Vergara 1901 UF 9 a **62.000** (cochera +6.000). **10 → 14 publicadas**, segunda corrida en seco sin diferencias en las trece. Queda `scripts/bajar-fotos-aviso.mjs` y la columna `Link Zonaprop` en el lector de la maestra. |
 | 2.33 | Sep 17, 2026 | **El protocolo «actualizá el sitio», copiado y corrido.** Tomy lo escribió en `PUBLICACION.md` y ahora vive también acá: leer la última sesión de `CONTEXTO.md`, corrida en seco, `--aplicar --precios --fotos` —la maestra manda siempre, el sitio nunca gana— y una segunda corrida en seco que tiene que dar cero. Primera vez: **10 publicadas**, con Portela 95 UF 8 nueva y la 4°Y a 89.000, y la segunda corrida sin diferencias en las nueve. Dos arreglos de nombres: la carpeta `UF 8` para una unidad que la maestra escribe `8`, y la unidad pegada al número de calle cuando `Dirección real` trae localidad. **489 → 493 tests.** |
 | 2.32 | Sep 17, 2026 | **La cuarta baja masiva, cerrada.** Tomy desactivó a mano el workflow del repo original —404 de por medio: el repo es privado y su navegador no tenía esa sesión— y ahí quedó a la vista que **corría todos los días con success**, del 14 al 17; el 9-sep fue el día que Zonaprop le sirvió una página en vez de cero. La reparación se aplicó con backup y en transacción: 588 filas de historial inventado borradas y **188 avisos revividos**, de 274 a **462 activas**, sin un solo evento del 9-sep en el historial. Queda escrito lo que esto enseña: la base es compartida y las guardas viven en el llamador, así que el chequeo rápido ante un lote de bajas es si trae `price_at_change`. Sin cambios de código: 489 tests. |

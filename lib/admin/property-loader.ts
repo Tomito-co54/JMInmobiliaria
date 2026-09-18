@@ -142,9 +142,13 @@ export async function loadProperty(
     }
     delete patch.price_amount;
     delete patch.price_currency;
+    // The list price is part of the price: an offer whose "before" number
+    // stayed behind would print a discount that is not the one we publish.
+    delete patch.price_list_amount;
     if (opts.updatePrice && (!stated || stated.has("price_amount"))) {
       patch.price_amount = row.price_amount;
       patch.price_currency = row.price_currency;
+      patch.price_list_amount = row.price_list_amount ?? null;
     }
     if (partida) patch.partida = partida;
     const { error } = await sb.from("properties").update(patch as never).eq("id", id);

@@ -84,13 +84,17 @@
     --brand-circle-bg: var(--brand-navy);
     --brand-circle-fg: #FFFFFF;
 
-    /* Oferta. The one colour on the site that is allowed to shout. Warm red,
-       deliberately outside the navy + gold system: an offer is a claim about
-       the price and it has to be seen before anything else on the card. Used
-       by the OfferBadge ribbon and by the price it hangs over — nowhere else,
-       so it keeps its meaning. White on it clears 4.9:1. */
-    --offer: #D93D2A;
-    --offer-fg: #FFFFFF;
+    /* Precios. Every price on the public side is brand navy (Tomy, 18-sep):
+       the number is the loudest thing on a listing already, so it does not
+       need a colour of its own — it needs to belong. The red that the offer
+       used to paint it with is gone.
+
+       The badge is the gold plate with navy on it: inside the brand's two
+       colours, and still the only element allowed to shout, because gold on
+       a white card is where the eye lands. Navy on gold clears 5.2:1. */
+    --price: var(--brand-navy);
+    --offer: var(--brand-gold);
+    --offer-fg: var(--brand-navy);
 
     /* Score bands (continuous gradient 0-100; dorado from 95+). See
        lib/scoring/bands.ts for the band boundaries used by the UI. */
@@ -183,10 +187,11 @@
        same reason --brand-heading flips to white here. */
     --match-perfect: #8081DB;
 
-    /* Lighter red on the slate surfaces (the light-mode red sinks into
-       them); the badge keeps the same red with white on it. */
-    --offer: #FF6B57;
-    --offer-fg: #1A0B08;
+    /* Same hue as the brand navy, raised in lightness, for the same reason
+       as --match-perfect: the navy itself is 23% light and disappears on
+       slate. The gold badge needs no dark variant — gold carries, and it
+       keeps the navy text it has in light mode. */
+    --price: #A5A6EE;
 
     --background: #15181F;            /* cold slate (page base) */
     --foreground: #FFFFFF;

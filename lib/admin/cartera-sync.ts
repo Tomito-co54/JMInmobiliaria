@@ -411,7 +411,7 @@ export interface BuiltFicha {
 
 const PROVISORIO_KEYS = new Set([
   "address", "partido", "partida", "nomenclatura_catastral", "property_type", "operation_type",
-  "price_amount", "price_currency", "surface_total", "surface_covered", "rooms", "bedrooms",
+  "price_amount", "price_list_amount", "price_currency", "surface_total", "surface_covered", "rooms", "bedrooms",
   "bathrooms", "garages", "year_built", "description", "tags", "extras", "is_featured",
 ]);
 
@@ -495,6 +495,11 @@ export function buildFicha(input: BuildInput): BuiltFicha {
   // that nothing marks as an offer is just a lower number.
   const enOferta = row.precioOferta !== null && row.precioOferta > 0;
   pick("price_amount", enOferta ? row.precioOferta : row.precioPretendido);
+  // The list price only means something next to a lower one. Sent alone it
+  // would be a second price with nothing to compare against.
+  if (enOferta && row.precioPretendido !== null && row.precioPretendido > (row.precioOferta ?? 0)) {
+    set("price_list_amount", row.precioPretendido, "maestra");
+  }
   if (!ficha.price_amount) warnings.push("price_amount: sin precio pretendido, la ficha no se va a poder publicar.");
   pick("price_currency", null);
   if (!ficha.price_currency) set("price_currency", "USD", "default");
@@ -563,7 +568,7 @@ export interface FieldDiff {
 }
 
 const COMPARED_FIELDS = [
-  "property_type", "operation_type", "price_amount", "price_currency", "description",
+  "property_type", "operation_type", "price_amount", "price_list_amount", "price_currency", "description",
   "surface_total", "surface_covered", "rooms", "bedrooms", "bathrooms", "garages", "year_built",
   "partida", "nomenclatura_catastral", "tags", "extras",
 ] as const;

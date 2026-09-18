@@ -5,19 +5,21 @@ import { cn } from "@/lib/utils";
  *
  * Tomy, 16-sep-2026: the gold chip read as one more informative pill and
  * nobody saw it. An offer is the broker choosing to say "this one, now", and
- * that has to be read before the address, before the price. So this steps a
- * little outside the navy + gold line on purpose (DIRECCION_DE_ARTE §7, the
- * golden rule: it reinforces trust — the claim is explicit, not buried — and
- * it is one punctual gesture, not a pattern): a warm red plate, slightly
- * tilted, that hangs OVER the edge of whatever carries it (§2.6, the thing
- * that breaks out of its quadrant, in miniature).
+ * that has to be read before the address, before the price. A gold plate
+ * with navy on it, slightly tilted, that hangs OVER the edge of whatever
+ * carries it (§2.6, the thing that breaks out of its quadrant, in miniature).
+ *
+ * It was a warm red until 18-sep-2026, outside the brand's two colours on
+ * purpose. Tomy brought it back inside: gold on a white card is already
+ * where the eye lands, and the red was one more thing to explain.
  *
  * Three sizes for three distances: the card in the catalog, the hero of the
  * listing, and the protagonist on the landing. Static on purpose — a badge
  * that pulses is a badge you learn to ignore (§6).
  *
- * The same red colours the price beside it, via the `--offer` token, so the
- * ribbon and the number read as one statement. Nothing else uses that red.
+ * The price beside it is brand navy like every other price on the site; what
+ * marks the offer is this plate and the list price struck through next to the
+ * number (`ListPriceStrike`), not a colour the reader has to decode.
  */
 export function OfferBadge({
   size = "md",

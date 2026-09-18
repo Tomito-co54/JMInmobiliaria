@@ -119,6 +119,14 @@ export const ownerPropertyDraftSchema = z.object({
     z.enum(OPERATION_TYPES),
   ),
   price_amount: nullablePositiveNumber(),
+  /**
+   * The price an offer is a discount from (maestra: `Precio pretendido`).
+   * `price_amount` stays the published one; this is only what the ficha
+   * shows struck through beside it. The DB's CHECK also demands it be
+   * higher than `price_amount` — a "list price" below what we publish would
+   * print the offer as a markup.
+   */
+  price_list_amount: nullablePositiveNumber(),
   price_currency: z.preprocess(
     (v) => (v === "" || v === undefined || v === null ? "USD" : v),
     z.enum(CURRENCIES),

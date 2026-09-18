@@ -394,3 +394,30 @@ describe("siteAddress with a locality in `Dirección real`", () => {
     expect(siteAddress("Belgrano 1287", null, "1°C")).toBe("Belgrano 1287 1°C");
   });
 });
+
+describe("buildFicha con precio de oferta", () => {
+  const build = (over: Partial<UnidadRow>) =>
+    buildFicha({ row: row(over), columns: ALL_COLUMNS, provisorio: null, photos: [], partida: null }).ficha as Record<
+      string,
+      unknown
+    >;
+
+  it("publica la oferta y guarda el precio de lista al lado", () => {
+    const f = build({ precioPretendido: 80000, precioOferta: 69900 });
+    expect(f.price_amount).toBe(69900);
+    expect(f.price_list_amount).toBe(80000);
+    expect(f.tags).toContain("oferta");
+  });
+
+  it("no manda precio de lista cuando no hay oferta", () => {
+    const f = build({ precioPretendido: 80000, precioOferta: null });
+    expect(f.price_amount).toBe(80000);
+    expect(f.price_list_amount).toBeUndefined();
+  });
+
+  it("descarta un precio de lista que no está por encima de la oferta", () => {
+    // Un tachado por debajo del precio vigente leería la oferta como aumento.
+    const f = build({ precioPretendido: 69900, precioOferta: 69900 });
+    expect(f.price_list_amount).toBeUndefined();
+  });
+});
