@@ -274,6 +274,23 @@ revalida la caché pública** (`PUBLIC_CATALOG_TAG`); sólo publicar lo hace. El
 header y los pins muestran el precio viejo hasta 5 minutos. Anotado, no
 arreglado.
 
+### El editor no tiene botón de guardar, y eso confunde (19-sep)
+
+Tomy, probando a editar una propiedad desde `/admin`: *"no me aparece botón de
+guardar"*. No hay: cada sección **se guarda sola** ~800ms después del último
+cambio (`useAutoSave`), y lo único que lo dice es el cartelito al lado del
+título de la sección — "Guardando…", "Guardado". Él confirmó que aparece, así
+que funciona; queda anotado porque **la ausencia de un botón se lee como una
+función rota**, y porque este repo ya tuvo una isla que se dibujaba sin
+responder (ver el `useSearchParams` de la Fase 43): la prueba que separa los
+dos casos es mirar ese cartelito mientras se escribe.
+
+**Y lo que hay que decirle a quien edite a mano:** la próxima corrida del
+protocolo **pisa** lo que se tocó en el panel, porque corre con `--precios
+--fotos` y la maestra manda. El panel sirve para lo que la maestra todavía no
+tiene (descripción, año, dormitorios) o para un borrador; un precio se corrige
+en la maestra.
+
 ### Protocolo «actualizá el sitio» (Tomy, 17-09-2026)
 
 **Tercera corrida, 18-sep a la noche:** **Alsina 3°O** entró con las 6 fotos
@@ -2458,6 +2475,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.38 | Sep 19, 2026 | **El editor guarda solo, y conviene decirlo.** Tomy buscó el botón de guardar en `/admin` y no existe: cada sección se guarda sola con `useAutoSave` y lo anuncia el cartelito al lado del título ("Guardando…" → "Guardado"). Confirmó que aparece, así que no había bug; queda escrito porque la ausencia de botón se lee como función rota, y con el recordatorio de que **la sincronización pisa lo editado a mano**: el panel es para lo que la maestra no tiene, un precio se corrige en la maestra. Sin cambios de código. |
 | 2.37 | Sep 18, 2026 | **Tercera corrida del protocolo: 15 publicadas, y dos ofertas.** (Cerrado después: la 3°O tomó los m² de la 4°Y —40 cubiertos, 42 totales— por `provisorio.json`, a dicho de Tomy.) Entró **Alsina 1639 3°O** con las seis fotos propias de Tomy (88.000), la **3°Q pasó a oferta** (lista 58.000, oferta 53.000) y **Belgrano 1°A bajó a 69.500**; como la portada muestra la oferta más barata, la protagonista pasó a ser la 3°Q. Dos arreglos que salieron de la corrida: la columna `Cochera` de la 3°O decía **"terraza 05-01"** y se publicaba como cochera —ahora la celda puede nombrar otro extra, y sólo cuando abre con su nombre—, y el diff no leía `price_list_amount` del sitio, así que reportaba una diferencia inexistente en cada corrida. **496 → 499 tests.** |
 | 2.36 | Sep 18, 2026 | **El precio de oferta va en placa; el de lista no se muestra.** Tomy vio el tachado gris y lo descartó en la misma sesión: *"mejor hacele un recuadro como el de oferta al precio"*, y **"al de oferta, el de lista desaparece directamente"**. Ahora el número en oferta va sobre la misma placa dorada del sello (`OfferPrice`, sin inclinación) en las cuatro superficies, y un precio sin oferta sigue siendo navy pelado. La columna `price_list_amount` se queda llenándose desde la maestra pero salió de las consultas públicas: que la base lo guarde no obliga a mostrarlo. 496 tests, build verde. |
 | 2.35 | Sep 18, 2026 | **El precio es del color de la marca, y la oferta dice de cuánto baja.** A pedido de Tomy los precios pasan al navy `#1A1B5C` (con `--price`, que en oscuro sube la luminosidad porque el navy desaparece sobre slate), el sello "Oferta" deja el rojo y pasa a **dorado con texto navy**, y al lado del precio de oferta va **el de lista tachado en gris**. Ese último pedido destapó que **el precio de lista no estaba en la base**: una oferta era sólo un número más bajo. Migración **00021** `price_list_amount`, owner-only y siempre mayor que el publicado —un tachado por debajo leería la oferta como aumento—, que la sincronización llena desde `Precio pretendido` y que viaja con el precio bajo `--precios`. En la ficha el tachado se oculta al prender un extra. **493 → 496 tests**, medido en los dos temas; lo visual lo mira Tomy. |
