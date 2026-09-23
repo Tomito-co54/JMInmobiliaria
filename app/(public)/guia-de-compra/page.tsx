@@ -23,7 +23,7 @@ export const metadata = {
  *
  * Structure:
  *   - Hero with intro
- *   - Quick-jump nav to the 6 etapas
+ *   - Quick-jump nav to the etapas
  *   - Timeline of etapas with documents under each
  *   - Glossary section at the end
  */
@@ -92,7 +92,7 @@ export default function GuiaDeCompraPage() {
             <span className="italic">etapa por etapa</span>
           </h1>
           <p className="text-base sm:text-lg text-muted-foreground leading-relaxed">
-            De la primera idea a la escritura, una compra atraviesa seis
+            De la primera idea a la escritura, una compra atraviesa siete
             etapas. Cada una tiene sus documentos, sus plazos y sus
             decisiones.
           </p>

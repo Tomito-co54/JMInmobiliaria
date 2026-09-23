@@ -280,27 +280,44 @@ export const PROCESS_STEPS: ProcessStep[] = [
   },
   {
     number: 5,
+    // The slug predates the split into boleto (5) and escritura (6). It stays
+    // because search_profiles.current_stage has a CHECK on these values
+    // (migration 00010) and the legacy advisor reads it; renaming it is a
+    // migration for a card only the admin ever sees.
     slug: "boleto-y-escritura",
-    title: "Boleto y escritura",
-    subtitle: "La firma",
+    title: "Boleto de compraventa",
+    subtitle: "El compromiso",
     what:
-      "El boleto compromete a las partes; la escritura transfiere la propiedad. Entre uno y otra suelen pasar un mínimo de 20 a 30 días, el tiempo que el escribano necesita para preparar el acto.",
+      "El boleto compromete a las partes: fija el precio, las condiciones de pago y el plazo para escriturar. Desde su firma, el escribano suele necesitar un mínimo de 20 a 30 días para preparar la escritura.",
     process: [
+      "Se fijan por escrito el precio, la forma de pago y la fecha de escritura.",
       "Facilitamos la elección del escribano.",
       "La documentación pasa al escribano, que redacta la escritura.",
+    ],
+    considerations: [],
+    documentSlugs: ["boleto_compraventa"],
+  },
+  {
+    number: 6,
+    slug: "escritura",
+    title: "Escritura",
+    subtitle: "La firma",
+    what:
+      "La escritura transfiere la propiedad. Es el acto en que se entrega el saldo del precio, se firma ante escribano y el comprador pasa a ser el titular.",
+    process: [
       "Antes de firmar se confirma que los informes sigan vigentes.",
       "En la escritura se entregan el saldo del precio y la posesión.",
     ],
     considerations: [
       "El saldo del precio tiene que estar disponible el día de la escritura.",
     ],
-    documentSlugs: ["boleto_compraventa", "escritura"],
+    documentSlugs: ["escritura"],
     warnings: [
       "No se entrega dinero sin instrumento firmado, ni se firma sin que el dinero esté disponible.",
     ],
   },
   {
-    number: 6,
+    number: 7,
     slug: "post-escritura",
     title: "Post-escritura",
     subtitle: "Después de la firma",

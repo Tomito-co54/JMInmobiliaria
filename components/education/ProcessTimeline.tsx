@@ -7,7 +7,7 @@ import {
 import { DocumentCard } from "./DocumentCard";
 
 /**
- * Vertical timeline of the 6 steps in the buying process.
+ * Vertical timeline of the steps in the buying process.
  *
  * Each step is a card with a big numbered circle, title, subtitle,
  * expandable detail (acciones + documentos + warnings).
