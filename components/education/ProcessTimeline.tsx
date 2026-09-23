@@ -10,7 +10,7 @@ import { DocumentCard } from "./DocumentCard";
  * Vertical timeline of the 6 steps in the buying process.
  *
  * Each step is a card with a big numbered circle, title, subtitle,
- * duration, expandable detail (acciones + documentos + warnings).
+ * expandable detail (acciones + documentos + warnings).
  * Connected by a vertical line on the left.
  *
  * Mobile-first — the numbered circle is the visual hook that ties
@@ -60,7 +60,7 @@ export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
                 className="text-xs uppercase tracking-[0.18em] font-medium"
                 style={{ color: "var(--brand-gold)" }}
               >
-                Etapa {step.number} · {step.duration}
+                Etapa {step.number}
               </p>
               <h3
                 className="text-xl sm:text-2xl font-bold font-heading leading-tight"

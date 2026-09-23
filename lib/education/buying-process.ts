@@ -38,7 +38,6 @@ export interface ProcessStep {
   slug: string;
   title: string;
   subtitle: string;
-  duration: string;
   what: string;
   /**
    * How the stage unfolds, stated impersonally.
@@ -238,7 +237,6 @@ export const PROCESS_STEPS: ProcessStep[] = [
     slug: "pre-busqueda",
     title: "Pre-búsqueda",
     subtitle: "Antes de la primera visita",
-    duration: "1 a 3 meses",
     what:
       "Toda compra empieza por una idea de cómo se quiere vivir: el barrio, el espacio, el momento. Darle forma a esa idea es lo que convierte una búsqueda en una decisión.",
     process: [
@@ -255,7 +253,6 @@ export const PROCESS_STEPS: ProcessStep[] = [
     slug: "busqueda",
     title: "Búsqueda y visitas",
     subtitle: "Conocer el lugar",
-    duration: "Semanas a meses",
     what:
       "Las fotos muestran una propiedad; la visita la pone en contexto. El entorno, los accesos, su estado real: lo que decide una compra —para vivir, invertir o trabajar— rara vez entra en una publicación.",
     process: [
@@ -272,9 +269,8 @@ export const PROCESS_STEPS: ProcessStep[] = [
     slug: "reserva",
     title: "Reserva",
     subtitle: "El primer compromiso",
-    duration: "1 a 4 semanas (vigencia de la reserva)",
     what:
-      "La reserva aparta la propiedad por un plazo acordado. Se entrega una seña a cuenta del precio y, mientras dura, la propiedad deja de ofrecerse a otros interesados.",
+      "La reserva aparta la propiedad por un plazo acordado, a modo de oferta: mientras dura, la propiedad deja de ofrecerse a otros interesados. Si la compra se confirma, se entrega una seña a cuenta del precio.",
     process: [
       "Se acuerdan el precio y las condiciones de pago.",
       "Se firma la reserva, con un plazo suficiente para reunir la documentación.",
@@ -285,7 +281,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
     ],
     documentSlugs: ["reserva"],
     warnings: [
-      "Si quien reserva desiste, pierde la seña; si desiste el vendedor, la devuelve duplicada.",
+      "Reserva y seña no son lo mismo. Si quien reserva desiste, pierde la reserva; la seña, en cambio, compromete a concretar la compra.",
     ],
   },
   {
@@ -293,7 +289,6 @@ export const PROCESS_STEPS: ProcessStep[] = [
     slug: "due-diligence",
     title: "Due diligence",
     subtitle: "Los informes antes del boleto",
-    duration: "2 a 4 semanas",
     what:
       "Antes del boleto se reúnen los informes que confirman la situación de la propiedad y de quien la vende: titularidad, gravámenes, deudas y datos catastrales. Es la etapa más técnica del proceso, y la que le da certeza a todo lo que sigue.",
     process: [
@@ -323,7 +318,6 @@ export const PROCESS_STEPS: ProcessStep[] = [
     slug: "boleto-y-escritura",
     title: "Boleto y escritura",
     subtitle: "La firma",
-    duration: "30 a 60 días desde el boleto hasta la escritura",
     what:
       "El boleto compromete a las partes; la escritura transfiere la propiedad. Entre uno y otra suelen pasar de 30 a 60 días, el tiempo que el escribano necesita para preparar el acto.",
     process: [
@@ -345,7 +339,6 @@ export const PROCESS_STEPS: ProcessStep[] = [
     slug: "post-escritura",
     title: "Post-escritura",
     subtitle: "Después de la firma",
-    duration: "Primeros 30 a 60 días",
     what:
       "Con la escritura firmada, la propiedad ya es del comprador. Quedan la inscripción en el Registro y el cambio de titularidad de impuestos y servicios.",
     process: [
