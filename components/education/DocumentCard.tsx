@@ -10,12 +10,19 @@ import {
   Banknote,
 } from "lucide-react";
 import type { DocumentInfo, DocumentSlug } from "@/lib/education/buying-process";
+import { cn } from "@/lib/utils";
+
+/** Static class names so Tailwind can see them. */
+const SM_COLS: Record<number, string> = {
+  1: "",
+  2: "sm:grid-cols-2",
+  3: "sm:grid-cols-3",
+};
 
 const ICONS: Record<DocumentSlug, typeof FileText> = {
   reserva: PenLine,
   informe_dominio: ShieldCheck,
   informe_inhibiciones: ShieldCheck,
-  certificado_catastral: Ruler,
   estado_parcelario: Ruler,
   libre_deuda_municipal: Receipt,
   libre_deuda_provincial: Banknote,
@@ -33,6 +40,12 @@ const ICONS: Record<DocumentSlug, typeof FileText> = {
  */
 export function DocumentCard({ doc }: { doc: DocumentInfo }) {
   const Icon = ICONS[doc.slug] ?? FileText;
+  // Cost and timeframe are optional: some documents are part of the
+  // personal conversation, not a figure printed on the page.
+  const facts: [string, string][] = [];
+  facts.push(["Quién lo emite", doc.issuedBy]);
+  if (doc.cost) facts.push(["Costo aprox.", doc.cost]);
+  if (doc.timeframe) facts.push(["Plazo", doc.timeframe]);
 
   return (
     <details className="group rounded-lg border bg-card transition-all hover:border-primary/30 hover:shadow-sm open:border-primary/40 open:shadow-md">
@@ -86,25 +99,15 @@ export function DocumentCard({ doc }: { doc: DocumentInfo }) {
           <p className="text-sm leading-relaxed">{doc.why}</p>
         </div>
 
-        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-          <div className="rounded-md bg-muted/40 p-3">
-            <dt className="text-[0.65rem] uppercase tracking-wider text-muted-foreground mb-1">
-              Quién lo emite
-            </dt>
-            <dd className="text-xs leading-snug">{doc.issuedBy}</dd>
-          </div>
-          <div className="rounded-md bg-muted/40 p-3">
-            <dt className="text-[0.65rem] uppercase tracking-wider text-muted-foreground mb-1">
-              Costo aprox.
-            </dt>
-            <dd className="text-xs leading-snug">{doc.cost}</dd>
-          </div>
-          <div className="rounded-md bg-muted/40 p-3">
-            <dt className="text-[0.65rem] uppercase tracking-wider text-muted-foreground mb-1">
-              Plazo
-            </dt>
-            <dd className="text-xs leading-snug">{doc.timeframe}</dd>
-          </div>
+        <dl className={cn("grid grid-cols-1 gap-3 pt-2", SM_COLS[facts.length])}>
+          {facts.map(([label, value]) => (
+            <div key={label} className="rounded-md bg-muted/40 p-3">
+              <dt className="text-[0.65rem] uppercase tracking-wider text-muted-foreground mb-1">
+                {label}
+              </dt>
+              <dd className="text-xs leading-snug">{value}</dd>
+            </div>
+          ))}
         </dl>
 
         {doc.notes && (

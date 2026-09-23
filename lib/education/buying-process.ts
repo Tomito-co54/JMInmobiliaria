@@ -13,7 +13,6 @@ export type DocumentSlug =
   | "reserva"
   | "informe_dominio"
   | "informe_inhibiciones"
-  | "certificado_catastral"
   | "estado_parcelario"
   | "libre_deuda_municipal"
   | "libre_deuda_provincial"
@@ -28,8 +27,8 @@ export interface DocumentInfo {
   what: string;
   why: string;
   issuedBy: string;
-  cost: string;
-  timeframe: string;
+  cost?: string;
+  timeframe?: string;
   notes?: string;
 }
 
@@ -52,6 +51,8 @@ export interface ProcessStep {
   /** Points the buyer weighs at this stage, kept abstract on purpose. */
   considerations: string[];
   documentSlugs: DocumentSlug[];
+  /** The list shows the main documents only, and the heading says so. */
+  mainDocumentsOnly?: boolean;
   warnings?: string[];
 }
 
@@ -87,11 +88,6 @@ export const DOCUMENTS: Record<DocumentSlug, DocumentInfo> = {
       "Sin esto, no sabés si quien te está vendiendo es realmente el dueño, ni si la propiedad arrastra deudas o restricciones. Es el cero absoluto del due diligence.",
     issuedBy:
       "Registro de la Propiedad Inmueble de la provincia (en PBA: La Plata).",
-    cost:
-      "Aproximadamente $30.000 - $50.000 ARS (varía según jurisdicción y urgencia).",
-    timeframe: "3-7 días hábiles (regular) o 24-48hs (urgente, con sobrecosto).",
-    notes:
-      "El informe tiene vigencia de 30 días desde la emisión. Si la firma se atrasa, hay que pedir uno nuevo. El escribano normalmente pide uno fresco antes de escriturar.",
   },
 
   informe_inhibiciones: {
@@ -104,28 +100,6 @@ export const DOCUMENTS: Record<DocumentSlug, DocumentInfo> = {
     why:
       "Una persona inhibida no puede vender. Si firmás un boleto con alguien inhibido, después no podés escriturar. El informe te lo confirma antes del boleto.",
     issuedBy: "Registro de la Propiedad Inmueble.",
-    cost: "Aproximadamente $15.000 - $25.000 ARS.",
-    timeframe: "1-3 días hábiles.",
-    notes:
-      "Se pide uno por cada titular. Si son cónyuges y la propiedad es ganancial, los dos. Si es una sociedad, sobre la sociedad y sus administradores.",
-  },
-
-  certificado_catastral: {
-    slug: "certificado_catastral",
-    title: "Certificado Catastral",
-    shortDescription:
-      "La identidad oficial de la propiedad: partida, nomenclatura, superficie, polígono.",
-    what:
-      "Documento emitido por ARBA (en provincia) o la dirección de catastro local. Confirma los datos catastrales del inmueble: partida inmobiliaria, nomenclatura catastral (partido-circunscripción-sección-manzana-parcela), superficie del lote, linderos.",
-    why:
-      "Sin estos datos, el escribano no puede armar la escritura. También sirve para detectar diferencias entre lo que dice el aviso y la realidad catastral (por ejemplo, superficie declarada vs ARBA).",
-    issuedBy: "ARBA (Provincia) o catastro municipal según jurisdicción.",
-    cost:
-      "ARBA: $12.000 - $18.000 ARS para certificado oficial; el informe básico es gratis vía consulta pública.",
-    timeframe:
-      "Informe básico: inmediato. Certificado oficial firmado: 5-10 días hábiles.",
-    notes:
-      "El certificado oficial para escrituración lo pide el escribano más adelante.",
   },
 
   estado_parcelario: {
@@ -136,12 +110,8 @@ export const DOCUMENTS: Record<DocumentSlug, DocumentInfo> = {
     what:
       "Relevamiento topográfico de la parcela firmado por agrimensor. Confirma que las dimensiones y la posición del inmueble en la realidad coinciden con el plano registrado.",
     why:
-      "Si construiste algo que no está en el plano (ampliación, pileta), o si los límites cambiaron en el tiempo, el escribano no puede escriturar sin un estado parcelario vigente. Es el documento que más demora si está vencido.",
+      "Verifica estado y corrobora límites de parcela, el escribano no puede escriturar sin un estado parcelario vigente. Es el documento que más demora si está vencido.",
     issuedBy: "Agrimensor matriculado.",
-    cost: "$80.000 - $200.000 ARS según tamaño y complejidad.",
-    timeframe: "10-25 días hábiles (incluye visita al lote).",
-    notes:
-      "Vigencia 5 años en la mayoría de los partidos. Si tiene menos antigüedad y la propiedad no se modificó, vale igual.",
   },
 
   libre_deuda_municipal: {
@@ -301,9 +271,9 @@ export const PROCESS_STEPS: ProcessStep[] = [
     documentSlugs: [
       "informe_dominio",
       "informe_inhibiciones",
-      "certificado_catastral",
       "estado_parcelario",
     ],
+    mainDocumentsOnly: true,
     warnings: [
       "Las deudas registradas siguen al inmueble, no a su titular anterior. Su cancelación se acuerda antes del boleto.",
     ],

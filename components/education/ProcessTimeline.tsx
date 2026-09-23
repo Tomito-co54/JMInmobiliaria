@@ -153,6 +153,7 @@ export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
               <div className="space-y-2.5 pt-2">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
                   Documentos involucrados
+                  {step.mainDocumentsOnly && " · los más importantes"}
                 </p>
                 <div className="space-y-2">
                   {step.documentSlugs.map((slug) => (
