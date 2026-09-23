@@ -284,14 +284,14 @@ export const PROCESS_STEPS: ProcessStep[] = [
     title: "Boleto y escritura",
     subtitle: "La firma",
     what:
-      "El boleto compromete a las partes; la escritura transfiere la propiedad. Entre uno y otra suelen pasar de 30 a 60 días, el tiempo que el escribano necesita para preparar el acto.",
+      "El boleto compromete a las partes; la escritura transfiere la propiedad. Entre uno y otra suelen pasar un mínimo de 20 a 30 días, el tiempo que el escribano necesita para preparar el acto.",
     process: [
+      "Facilitamos la elección del escribano.",
       "La documentación pasa al escribano, que redacta la escritura.",
       "Antes de firmar se confirma que los informes sigan vigentes.",
       "En la escritura se entregan el saldo del precio y la posesión.",
     ],
     considerations: [
-      "La elección del escribano se acuerda entre las partes.",
       "El saldo del precio tiene que estar disponible el día de la escritura.",
     ],
     documentSlugs: ["boleto_compraventa", "escritura"],
