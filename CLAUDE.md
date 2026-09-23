@@ -392,12 +392,17 @@ propias **primero** y como protagonistas.
   card y arriba a la derecha de la ficha; la ficha no imprime el link de
   origen ni "Datos oficiales"; `ownFirst` pone lo propio adelante y le da los
   empates de match; `/edificios` no los lista.
-- **Las rebajas de su sitio NO se importan como `oferta`** (25): tantas cintas
-  doradas le sacarían protagonismo a las propias. Decisión de Code, a
-  confirmar por Tomy — es una línea en `normalizeListing`.
-- **Pendiente de Tomy**: el bloque "Cómo trabajamos" de la home sigue diciendo
-  "Las propiedades son nuestras y las cargamos a mano… Publicamos los
-  papeles"; con el catálogo de un colega ya no es cierto.
+- **Las rebajas de su sitio SÍ son `oferta`** (Tomy: *"ponéselas, las mías en
+  portada y como preferenciales igual"*): 25 cintas. La protagonista sigue
+  siendo la oferta propia más barata (`getFeaturedProperty` lee sólo
+  `OWNER_PROPERTY_SOURCES`) y lo propio sigue primero (`ownFirst`).
+- **"Dúplex/Tríplex" → departamento**, confirmado por Tomy.
+- **Se fue el bloque "Cómo trabajamos" de la home** (el manifiesto, "Publicamos
+  los papeles…" y el mapa de cobertura): era de la versión vieja y con un
+  colega ya no era cierto. Queda el panel del match. Se llevó el lugar de la
+  **matrícula** (`hasMatricula`): cuando llegue el número, hay que darle otro.
+  `HomeGuaranteesClient.tsx` (el dibujo de la cobertura y un `ScoreRingViz`
+  huérfano) se borró; `lib/zona-sur/coverage.ts` queda, sin uso.
 
 ### El editor no tiene botón de guardar, y eso confunde (19-sep)
 

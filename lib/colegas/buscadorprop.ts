@@ -403,7 +403,11 @@ export function normalizeListing(raw: RawListing, placeNames: readonly string[] 
       photos: raw.photos,
       lat: raw.lat,
       lng: raw.lng,
-      tags: age.brandNew ? ["a_estrenar"] : [],
+      // A price cut on their site is an offer here (Tomy, 23-sep-2026). It
+      // wears the same ribbon as the family's, but the home's protagonist is
+      // still the family's cheapest offer — getFeaturedProperty reads owner
+      // rows only.
+      tags: [...(raw.reduced ? ["oferta"] : []), ...(age.brandNew ? ["a_estrenar"] : [])],
     },
     errors,
     warnings,

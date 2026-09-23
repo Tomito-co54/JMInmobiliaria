@@ -95,7 +95,8 @@ describe("normalizeListing", () => {
       surface_covered: 94,
       surface_total: 108,
       year_built: 2011,
-      tags: [],
+      // The fixture is marked "Precio rebajado".
+      tags: ["oferta"],
     });
   });
 
