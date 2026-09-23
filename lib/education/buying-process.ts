@@ -69,7 +69,7 @@ export const DOCUMENTS: Record<DocumentSlug, DocumentInfo> = {
     what:
       "Es una oferta de compra acompañada de un anticipo que la inmobiliaria retiene en garantía. Mientras se piden informes y revisa la documentación, el vendedor no puede venderle a otra persona.",
     why:
-      "Te da tiempo para verificar la propiedad sin perderla. Si te arrepentís, perdés la reserva. Si el vendedor no la acepta, se te devuelve completa.",
+      "Te da tiempo para verificar la propiedad sin perderla. Si te arrepentís, perdés la reserva. Si el vendedor la acepta, inicia la operación. Si luego se retracta, te devuelve el doble.",
     issuedBy: "Inmobiliaria; es entre partes.",
     cost:
       "Sin costo de emisión. El monto que ponés (5% típicamente) se computa después contra el precio final.",
