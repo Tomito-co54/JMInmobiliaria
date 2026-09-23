@@ -4,7 +4,7 @@ import {
   DOCUMENTS,
   type ProcessStep,
 } from "@/lib/education/buying-process";
-import { DocumentCard } from "./DocumentCard";
+import { DocumentCard, DocumentDetails } from "./DocumentCard";
 
 /**
  * Vertical timeline of the steps in the buying process.
@@ -147,6 +147,13 @@ export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
                   </div>
                 ))}
               </div>
+            )}
+
+            {step.inlineDocument && (
+              <DocumentDetails
+                doc={DOCUMENTS[step.inlineDocument]}
+                showWhat={false}
+              />
             )}
 
             {step.documentSlugs.length > 0 && (

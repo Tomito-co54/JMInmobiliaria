@@ -17,6 +17,7 @@ const SM_COLS: Record<number, string> = {
   1: "",
   2: "sm:grid-cols-2",
   3: "sm:grid-cols-3",
+  4: "sm:grid-cols-2",
 };
 
 const ICONS: Record<DocumentSlug, typeof FileText> = {
@@ -36,16 +37,10 @@ const ICONS: Record<DocumentSlug, typeof FileText> = {
  * <details>/<summary> for accordion behavior — no JS required.
  *
  * The summary always shows: icon + title + short description + chevron.
- * Expanded: what, why, who issues it, cost, timeframe and notes.
+ * Expanded: the document's details (see DocumentDetails).
  */
 export function DocumentCard({ doc }: { doc: DocumentInfo }) {
   const Icon = ICONS[doc.slug] ?? FileText;
-  // Cost and timeframe are optional: some documents are part of the
-  // personal conversation, not a figure printed on the page.
-  const facts: [string, string][] = [];
-  facts.push(["Quién lo emite", doc.issuedBy]);
-  if (doc.cost) facts.push(["Costo aprox.", doc.cost]);
-  if (doc.timeframe) facts.push(["Plazo", doc.timeframe]);
 
   return (
     <details className="group rounded-lg border bg-card transition-all hover:border-primary/30 hover:shadow-sm open:border-primary/40 open:shadow-md">
@@ -84,49 +79,83 @@ export function DocumentCard({ doc }: { doc: DocumentInfo }) {
         </div>
       </summary>
 
-      <div className="px-4 pb-4 pt-1 space-y-4 border-t border-border/60">
-        <div className="space-y-1 pt-3">
+      <div className="px-4 pb-4 pt-1 border-t border-border/60">
+        <DocumentDetails doc={doc} className="pt-3" />
+      </div>
+    </details>
+  );
+}
+
+interface DocumentDetailsProps {
+  doc: DocumentInfo;
+  /** Off when the surrounding text already says what the document is. */
+  showWhat?: boolean;
+  className?: string;
+}
+
+/**
+ * The body of a document: what it is, what it is for, the facts row and the
+ * note. Shared by the accordion card and by a stage that shows its document
+ * inline instead of behind a click.
+ */
+export function DocumentDetails({
+  doc,
+  showWhat = true,
+  className,
+}: DocumentDetailsProps) {
+  // Cost and timeframe are optional: some documents are part of the
+  // personal conversation, not a figure printed on the page.
+  const facts: [string, string][] = [];
+  facts.push([doc.issuedByLabel ?? "Quién lo emite", doc.issuedBy]);
+  if (doc.cost) facts.push(["Costo aprox.", doc.cost]);
+  if (doc.timeframe) facts.push(["Plazo", doc.timeframe]);
+  if (doc.fees) facts.push(["Honorarios", doc.fees]);
+
+  return (
+    <div className={cn("space-y-4", className)}>
+      {showWhat && (
+        <div className="space-y-1">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">
             Qué es
           </p>
           <p className="text-sm leading-relaxed">{doc.what}</p>
         </div>
+      )}
 
-        <div className="space-y-1">
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            Para qué sirve
-          </p>
-          <p className="text-sm leading-relaxed">{doc.why}</p>
-        </div>
-
-        <dl className={cn("grid grid-cols-1 gap-3 pt-2", SM_COLS[facts.length])}>
-          {facts.map(([label, value]) => (
-            <div key={label} className="rounded-md bg-muted/40 p-3">
-              <dt className="text-[0.65rem] uppercase tracking-wider text-muted-foreground mb-1">
-                {label}
-              </dt>
-              <dd className="text-xs leading-snug">{value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        {doc.notes && (
-          <div
-            className="flex items-start gap-2 rounded-md p-3"
-            style={{
-              backgroundColor:
-                "color-mix(in srgb, var(--brand-gold) 12%, transparent)",
-              borderLeft: "3px solid var(--brand-gold)",
-            }}
-          >
-            <Landmark
-              className="size-4 shrink-0 mt-0.5"
-              style={{ color: "var(--brand-gold)" }}
-            />
-            <p className="text-xs leading-relaxed">{doc.notes}</p>
-          </div>
-        )}
+      <div className="space-y-1">
+        <p className="text-xs uppercase tracking-wider text-muted-foreground">
+          Para qué sirve
+        </p>
+        <p className="text-sm leading-relaxed">{doc.why}</p>
       </div>
-    </details>
+
+      <dl className={cn("grid grid-cols-1 gap-3 pt-2", SM_COLS[facts.length])}>
+        {facts.map(([label, value]) => (
+          <div key={label} className="rounded-md bg-muted/40 p-3">
+            <dt className="text-[0.65rem] uppercase tracking-wider text-muted-foreground mb-1">
+              {label}
+            </dt>
+            <dd className="text-xs leading-snug">{value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {doc.notes && (
+        <div
+          className="flex items-start gap-2 rounded-md p-3"
+          style={{
+            backgroundColor:
+              "color-mix(in srgb, var(--brand-gold) 12%, transparent)",
+            borderLeft: "3px solid var(--brand-gold)",
+          }}
+        >
+          <Landmark
+            className="size-4 shrink-0 mt-0.5"
+            style={{ color: "var(--brand-gold)" }}
+          />
+          <p className="text-xs leading-relaxed">{doc.notes}</p>
+        </div>
+      )}
+    </div>
   );
 }

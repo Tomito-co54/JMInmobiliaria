@@ -27,8 +27,12 @@ export interface DocumentInfo {
   what: string;
   why: string;
   issuedBy: string;
+  /** Overrides "Quién lo emite" when the question is a different one. */
+  issuedByLabel?: string;
   cost?: string;
   timeframe?: string;
+  /** Broker fees paid at this document, stated plainly without figures. */
+  fees?: string;
   notes?: string;
 }
 
@@ -53,6 +57,11 @@ export interface ProcessStep {
   documentSlugs: DocumentSlug[];
   /** The list shows the main documents only, and the heading says so. */
   mainDocumentsOnly?: boolean;
+  /**
+   * A document shown open inside the stage instead of as a card, for a stage
+   * that is essentially that one document. `what` then carries its "qué es".
+   */
+  inlineDocument?: DocumentSlug;
   warnings?: string[];
 }
 
@@ -167,11 +176,10 @@ export const DOCUMENTS: Record<DocumentSlug, DocumentInfo> = {
       "Contrato firmado entre comprador y vendedor donde se establecen el precio, las condiciones, los plazos para escriturar, y las penalidades por incumplimiento. No transfiere propiedad — eso lo hace recién la escritura — pero genera obligaciones recíprocas.",
     why:
       "Cuando firmás boleto y entregás el primer pago fuerte (suele ser 30% del precio), las dos partes quedan comprometidas legalmente. Es el momento donde la operación se vuelve seria.",
-    issuedBy:
-      "Entre las partes; suele redactarlo el escribano o un abogado. Se firma ante escribano para fecha cierta.",
-    cost:
-      "El boleto en sí no tiene costo de emisión; los gastos asociados (sellado de boleto en algunas jurisdicciones, certificación de firmas) suman entre $50.000 - $150.000 ARS.",
+    issuedByLabel: "¿Quién lo redacta?",
+    issuedBy: "Nosotros.",
     timeframe: "Se firma cuando todos los informes están OK, típicamente 2-4 semanas después de la reserva.",
+    fees: "Es el momento en que se abonan los honorarios del martillero.",
     notes:
       "Cláusulas a mirar con lupa: plazo para escriturar, lugar de la escritura, qué pasa si no se consigue crédito, gastos de cada parte, fecha de entrega de posesión.",
   },
@@ -288,14 +296,15 @@ export const PROCESS_STEPS: ProcessStep[] = [
     title: "Boleto de compraventa",
     subtitle: "El compromiso",
     what:
-      "El boleto compromete a las partes: fija el precio, las condiciones de pago y el plazo para escriturar. Desde su firma, el escribano suele necesitar un mínimo de 20 a 30 días para preparar la escritura.",
+      "Contrato firmado entre comprador y vendedor donde se establecen el precio, las condiciones, los plazos para escriturar, y las penalidades por incumplimiento. No transfiere propiedad — eso lo hace recién la escritura — pero genera obligaciones recíprocas. Desde su firma, el escribano suele necesitar un mínimo de 20 a 30 días para preparar la escritura.",
     process: [
       "Se fijan por escrito el precio, la forma de pago y la fecha de escritura.",
       "Facilitamos la elección del escribano.",
       "La documentación pasa al escribano, que redacta la escritura.",
     ],
     considerations: [],
-    documentSlugs: ["boleto_compraventa"],
+    documentSlugs: [],
+    inlineDocument: "boleto_compraventa",
   },
   {
     number: 6,
