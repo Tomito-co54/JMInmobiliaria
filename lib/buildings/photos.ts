@@ -31,6 +31,10 @@ const BY_PARCEL: Record<string, string> = {
   // balconies of all four units, the ground-floor door. Uploaded with unit
   // 1°A, which is why it is addressed through that unit's folder.
   "063030B00000000000000000000000150000027000": `${BUCKET}/70809970-2ed3-431e-90ee-657d0d064e6c/9bc6b6e8-bb3a-46ad-ba43-4131d6a1e5df.jpg`,
+  // Cabrera 205, Banfield. The corner from across the street, from the
+  // photos of its Trezza listing (09-UF2.jpg in the maestra's folder), picked
+  // by Tomy on 23-sep. Uploaded with UF 2.
+  "063030A0000000000000000000000045000002600A": `${BUCKET}/37cbc884-0c38-4616-adcc-1d549cbb8340/73cfde53-3762-42fe-9a57-11b2f9e8ced3.jpg`,
 };
 
 /**
