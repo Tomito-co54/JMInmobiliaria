@@ -65,17 +65,15 @@ export const DOCUMENTS: Record<DocumentSlug, DocumentInfo> = {
     slug: "reserva",
     title: "Reserva ad referéndum",
     shortDescription:
-      "Documento privado que te aparta la propiedad por unos días mientras hacés la due diligence.",
+      "Oferta de compra que aparta la propiedad por un plazo acordado mientras se revisa la documentación.",
     what:
-      "Es una oferta de compra acompañada de un anticipo (típicamente 5% del precio), que la inmobiliaria retiene en garantía. Mientras vos pedís informes y revisás todo, el vendedor no puede venderle a otra persona.",
+      "Es una oferta de compra acompañada de un anticipo que la inmobiliaria retiene en garantía. Mientras se piden informes y revisa la documentación, el vendedor no puede venderle a otra persona.",
     why:
-      "Te da tiempo para verificar la propiedad sin perderla. Si te arrepentís, perdés la reserva. Si el vendedor se retracta, te devuelve el doble.",
-    issuedBy: "Inmobiliaria o entre partes (con escribano si querés más respaldo).",
+      "Te da tiempo para verificar la propiedad sin perderla. Si te arrepentís, perdés la reserva. Si el vendedor no la acepta, se te devuelve completa.",
+    issuedBy: "Inmobiliaria; es entre partes.",
     cost:
       "Sin costo de emisión. El monto que ponés (5% típicamente) se computa después contra el precio final.",
     timeframe: "Se firma el mismo día que querés reservar.",
-    notes:
-      "Leé bien las cláusulas — algunas reservas tienen condicionales raros (por ejemplo, sujeto a tasación bancaria). Si no las entendés, frená.",
   },
 
   informe_dominio: {
