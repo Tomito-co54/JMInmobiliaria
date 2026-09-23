@@ -177,7 +177,7 @@ export const DOCUMENTS: Record<DocumentSlug, DocumentInfo> = {
     why:
       "Cuando firmás boleto y entregás el primer pago fuerte (suele ser 30% del precio), las dos partes quedan comprometidas legalmente. Es el momento donde la operación se vuelve seria.",
     issuedByLabel: "¿Quién lo redacta?",
-    issuedBy: "Nosotros.",
+    issuedBy: "Ese es nuestro trabajo, y consta de envíos previos para confirmación.",
     timeframe: "Se firma cuando todos los informes están OK, típicamente 2-4 semanas después de la reserva.",
     fees: "Es el momento en que se abonan los honorarios del martillero.",
     notes:
@@ -312,7 +312,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
     title: "Escritura",
     subtitle: "La firma",
     what:
-      "La escritura transfiere la propiedad. Es el acto en que se entrega el saldo del precio, se firma ante escribano y el comprador pasa a ser el titular.",
+      "Documento solemne redactado y firmado por un escribano público. Es lo que transfiere la propiedad del vendedor al comprador. Antes de esto, sos dueño contractual; recién con la escritura sos dueño legalmente.",
     process: [
       "Antes de firmar se confirma que los informes sigan vigentes.",
       "En la escritura se entregan el saldo del precio y la posesión.",
@@ -320,7 +320,8 @@ export const PROCESS_STEPS: ProcessStep[] = [
     considerations: [
       "El saldo del precio tiene que estar disponible el día de la escritura.",
     ],
-    documentSlugs: ["escritura"],
+    documentSlugs: [],
+    inlineDocument: "escritura",
     warnings: [
       "No se entrega dinero sin instrumento firmado, ni se firma sin que el dinero esté disponible.",
     ],
