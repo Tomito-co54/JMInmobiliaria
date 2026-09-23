@@ -102,7 +102,7 @@ function toGroup(key: string, units: Row[]): BuildingGroupData {
     // interior — at Belgrano 1287 it is a kitchen — and an interior is a poor
     // way to recognise a building.
     coverPhoto:
-      buildingPhoto(key) ??
+      buildingPhoto(key, units) ??
       ordered.find((u) => u.photos?.[0])?.photos?.[0] ??
       null,
     partido: units.find((u) => u.partido)?.partido ?? null,

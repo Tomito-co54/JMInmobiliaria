@@ -8,40 +8,52 @@
  * The obvious guess — the cover of its first unit — is wrong in practice. At
  * Belgrano 1287 that is a kitchen counter, because the cover of a listing is
  * chosen to sell the unit, not to identify the block it sits in. Nothing in
- * the data distinguishes a façade from a living room, and picking "the last
- * photo" would encode the order one upload happened to use.
+ * the data distinguishes a façade from a living room. So the choice is made
+ * here, by a person who looked at the picture.
  *
- * So the choice is made once, here, by a person who looked at the picture.
- * The URL points at the same `property-photos` bucket as everything else —
- * this is not a second copy of the image, it is a second reference to one the
- * building already had.
+ * It is written as "photo N of unit X", the way Tomy and Cowork name it ("la
+ * 09 de la UF 2"), and resolved against that unit's CURRENT gallery. It used
+ * to be a fixed Storage URL, and that broke: the maestra sync with --fotos
+ * deletes a gallery and uploads it again under new names, so the Belgrano
+ * cover pointed at a file that no longer existed and the page showed its alt
+ * text (Tomy, 23-sep-2026). The number is the file's number in
+ * `Publicación/<Unidad>/fotos/` (09-UF2.jpg → 9), which is also its position
+ * in the gallery, and it survives a re-upload.
  *
  * This is a stopgap with a known successor: the module doc in ./index.ts
  * already describes the `buildings` table that arrives when a building earns
- * an identity of its own (a name, common-area photos, amenities). When it
- * does, this map is what it replaces, and `buildingPhoto` is the only caller
- * that has to learn about it.
+ * an identity of its own. When it does, this map is what it replaces.
  */
 
-const BUCKET =
-  "https://cjnaxxidigdylnwlpyab.supabase.co/storage/v1/object/public/property-photos";
+interface CoverRef {
+  /** The unit whose gallery holds the photo, by its address on the site. */
+  unit: string;
+  /** 1-based, as numbered in the unit's folder. */
+  photo: number;
+}
 
-const BY_PARCEL: Record<string, string> = {
+const BY_PARCEL: Record<string, CoverRef> = {
   // RUMAH — Belgrano 1287, Banfield. The common courtyard: the stair, the
-  // balconies of all four units, the ground-floor door. Uploaded with unit
-  // 1°A, which is why it is addressed through that unit's folder.
-  "063030B00000000000000000000000150000027000": `${BUCKET}/70809970-2ed3-431e-90ee-657d0d064e6c/9bc6b6e8-bb3a-46ad-ba43-4131d6a1e5df.jpg`,
+  // balconies, the ground-floor door (18-1A.jpg).
+  "063030B00000000000000000000000150000027000": { unit: "Belgrano 1287 1°A", photo: 18 },
   // Cabrera 205, Banfield. The corner from across the street, from the
-  // photos of its Trezza listing (09-UF2.jpg in the maestra's folder), picked
-  // by Tomy on 23-sep. Uploaded with UF 2.
-  "063030A0000000000000000000000045000002600A": `${BUCKET}/37cbc884-0c38-4616-adcc-1d549cbb8340/73cfde53-3762-42fe-9a57-11b2f9e8ced3.jpg`,
+  // photos of its Trezza listing (09-UF2.jpg), picked by Tomy on 23-sep.
+  "063030A0000000000000000000000045000002600A": { unit: "Cabrera 205 UF 2", photo: 9 },
 };
 
 /**
- * The registered photo for a building, or null to fall back to whatever the
- * caller uses when a building has no picture of itself.
+ * The registered photo for a building, looked up in the gallery of the unit
+ * that holds it, or null to fall back to whatever the caller uses when a
+ * building has no picture of itself — including when that unit is not
+ * published or its gallery is shorter than the number (never a broken image).
  */
-export function buildingPhoto(parcel: string | null | undefined): string | null {
+export function buildingPhoto(
+  parcel: string | null | undefined,
+  units: readonly { address: string | null; photos?: string[] | null }[],
+): string | null {
   if (!parcel) return null;
-  return BY_PARCEL[parcel.trim()] ?? null;
+  const ref = BY_PARCEL[parcel.trim()];
+  if (!ref) return null;
+  const unit = units.find((u) => u.address === ref.unit);
+  return unit?.photos?.[ref.photo - 1] ?? null;
 }
