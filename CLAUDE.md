@@ -57,8 +57,8 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status (16-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **499 tests passing** (+7 skipped a propósito),
+**Status (23-sep-2026):** Deployado y funcionando en producción, con
+auto-deploy desde `main`. **522 tests passing** (+7 skipped a propósito),
 `npm run build` verde, **33 rutas**.
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
@@ -273,6 +273,80 @@ la compare con la maestra, y la memoria de Claude la marca como reemplazada.
 revalida la caché pública** (`PUBLIC_CATALOG_TAG`); sólo publicar lo hace. El
 header y los pins muestran el precio viejo hasta 5 minutos. Anotado, no
 arreglado.
+
+### La guía de compra, reescrita con Tomy (23-sep)
+
+Tomy la recorrió etapa por etapa y la dictó. El diagnóstico suyo: *"muy
+teórico y poco real… genérico y amigable como inmobiliaria recién iniciada"*.
+El sitio es una base para publicar, exponer y compartir, no una agencia que
+acompaña al comprador.
+
+- **Informa, no acompaña.** `weHandle`/`youDo` pasaron a `process`/
+  `considerations`, y los recuadros a **"El proceso"** y **"A considerar"**.
+  Salió todo lo de agencia compradora: filtrar el mercado, negociar el precio
+  "con comparables" (el vendedor es Tomy), frenar la operación, el tercero
+  independiente, "lo caminamos con vos".
+- **Los costos se nombran sin porcentajes** en las etapas: son parte de la
+  atención personal. La excepción la pidió él: la escritura dice "Entre el 3%
+  y el 5% del precio" y el boleto "entre el 25% y el 30%".
+- **Siete etapas, no seis:** boleto (5) y escritura (6) se separaron. El slug
+  de la 5 **sigue siendo `boleto-y-escritura`** a propósito: lo guarda
+  `search_profiles.current_stage` bajo el CHECK de la 00010 y lo lee el asesor
+  legacy. La etapa 6 (`escritura`) **no existe en ese CHECK**: nadie puede
+  marcarse ahí hasta que se migre, y sólo lo ve Tomy.
+- **Boleto y escritura van abiertos dentro de su etapa** (`inlineDocument` +
+  `DocumentDetails`), sin desplegable. El boleto: *"¿Quién lo redacta? Ese es
+  nuestro trabajo, y consta de envíos previos para confirmación"* y
+  *"Es el momento en que se abonan los honorarios del martillero"*.
+- **Reserva ≠ seña**, y está escrito así en la etapa, la ficha y el glosario:
+  la reserva es una oferta (desistir cuesta la reserva; si el vendedor la
+  acepta inicia la operación y si luego se retracta devuelve el doble); la
+  seña compromete a comprar.
+- Sin duración por etapa; fuera el Certificado Catastral y los tres libres
+  deuda de los desplegables; los que quedan no muestran costo ni plazo.
+- **Se fue el último resto de los servicios pagos** (`serviceId` y el sello
+  "Disponible como servicio en Jotaeme"). La pestaña de servicios que viene
+  es otra cosa: agrimensura y arquitectura, y va a funcionar distinto.
+- La guía usa **la cabecera pública común** (`PublicHeader active="guia"`,
+  que estaba prevista y nadie usaba).
+- **Pendiente:** el asesor de compra de la ficha (sólo con sesión) sigue con
+  la voz vieja — "Negociamos el precio…". Tomy: *"hay que cambiar todo al
+  nuevo tono"*.
+
+### El buscador entra en tres pasos (23-sep)
+
+Pedido de Tomy: una entrada *"decorativa e intuitiva"* antes del catálogo —
+¿qué operación? → ¿qué tipo? → ¿qué ubicación? — que lleve al resultado con
+el match al costado diciendo qué falta para afinar; y ordenar por precio y por
+antigüedad. Decisiones suyas: la intro vive en `/propiedades`, **las
+respuestas dejan afuera** (no sólo ordenan), las opciones son **sólo las que
+hay publicadas**, y la ubicación es **por localidad**, no por partido.
+
+- **`CatalogIntro`**: una pregunta por vez, opciones acotadas por las
+  respuestas anteriores (`narrowedOptions`), y un paso con una sola opción se
+  saltea. Por eso hoy "Compra" va directo a "¿En qué ubicación?" (en venta
+  sólo hay departamentos) y "Alquiler" al resultado. Dice "Paso N" sin total:
+  cuántos quedan depende de lo que se conteste.
+- **Se abre sólo con `/propiedades` pelado**, decidido en el servidor; toda
+  búsqueda escribe la URL (`?op=&tipo=&loc=&orden=`) y "ver todas" escribe
+  `?ver=todas`, para que volver desde una ficha no reabra la intro. Ofrece
+  retomar la última búsqueda de la visita (`sessionStorage`).
+- **`CatalogSearchBoard`**: "Tu búsqueda" (los tres filtros, cambiables) y
+  "Afiná con el match" con los criterios que faltan dichos en voz alta.
+  Plegado en el celular, pegajoso al costado desde `lg`. **Operación y tipo se
+  copian al match** para que la cabecera y las cards no discrepen;
+  `dropStaleAnswers` limpia lo que deja de encajar al cambiar la operación.
+- **Orden** (`sortCatalog`): menor/mayor precio —dólares antes que pesos,
+  nunca mezclados— y más nuevas; sin dato va al final. Va en la URL.
+- **Localidad** (migración **00022**): texto nullable, vocabulario cerrado en
+  `lib/zona-sur/localidades.ts` (por partido; mayúsculas y tildes se
+  perdonan). Viene de la columna **`Localidad` de la hoja `Propiedades`** de
+  la maestra (col. M, Cowork, 23-sep): Belgrano, Alsina, Cabrera, Vergara y
+  Talcahuano = Banfield; Portela 95 = Lomas de Zamora. Talcahuano se escribió
+  directo porque la sync no la toca (no tiene `Publicación/`).
+- **Tipos nuevos** (migración **00023**): depósito, oficina, galpón y campo.
+  **"Terreno" no**: la sync ya lo lee como `lote` y Tomy confirmó que se queda
+  "Lote".
 
 ### El editor no tiene botón de guardar, y eso confunde (19-sep)
 
@@ -668,6 +742,8 @@ visual.
 | Fase 50 — Las fotos del aviso, y los precios del aviso | Paso 6 del protocolo: una unidad con `Link Zonaprop` y sin galería toma las fotos del aviso, por `Publicación/` y nunca directo al sitio (`scripts/bajar-fotos-aviso.mjs`). Cuatro altas —Alsina 3°Q, 4°S, 4°X y Cabrera 205 UF 2— y los precios nuevos de Portela UF 8 (57.000) y Vergara UF 9 (62.000 + cochera 6.000). **El catálogo queda en 14.** | `3620652` |
 | Fase 51 — El precio es de la marca, y el de oferta va en placa | Los precios pasan al navy (`--price`, con su variante clara para el modo oscuro) y el sello de oferta al dorado con texto navy. El precio en oferta va **sobre la misma placa dorada** (`OfferPrice`): el tachado gris del precio de lista se probó y Tomy lo descartó en la misma sesión, así que el de lista no se muestra. La columna **00021** `price_list_amount` queda llenándose desde la maestra, fuera de las consultas públicas. **493 → 496 tests.** | `723a648` y el siguiente |
 | Fase 52 — La tercera corrida del protocolo | Alsina 3°O con fotos propias, la 3°Q en oferta (58.000 → 53.000) y Belgrano 1°A a 69.500: **15 publicadas** y la portada pasa a la 3°Q, que es la oferta más barata. Dos arreglos: la columna `Cochera` puede nombrar otro extra (la 3°O traía "terraza 05-01") y el diff ahora lee `price_list_amount` del sitio. **496 → 499 tests.** | `ea4b3e9` |
+| Fase 53 — La guía de compra, en la voz del sitio | Siete etapas dictadas por Tomy: impersonal, sobria, sin porcentajes salvo los que él pidió; boleto y escritura separados y abiertos en su etapa; reserva distinta de seña; se van los restos de servicios pagos y la voz de agencia compradora; la guía usa `PublicHeader`. | `34d77d5` … `77f9479` |
+| Fase 54 — El buscador entra en tres pasos | `CatalogIntro` (operación → tipo → localidad, filtran), `CatalogSearchBoard` con el match y lo que falta, orden por precio y antigüedad. Migraciones **00022** (`localidad`, desde la maestra) y **00023** (depósito, oficina, galpón, campo). **499 → 522 tests.** | `4dd292c` `9ad09c5` `e70b0bc` |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
 **Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
@@ -1885,7 +1961,7 @@ Management API (config de auth, settings de proyecto). Reglas:
 │                                 #   la base. Sin esto la funcion corre en Washington
 │                                 #   y cada consulta cruza el continente (~375ms)
 ├── supabase/
-│   ├── migrations/               # 00001..00021 + 00015b (00011+ son del fork).
+│   ├── migrations/               # 00001..00023 + 00015b (00011+ son del fork).
 │   │                             #   00015b es compañera de 00015: indexa
 │   │                             #   arba_lookups por partida, que es la clave de
 │   │                             #   las propias. La tabla solo tenía (lat, lng)
@@ -1929,7 +2005,8 @@ Columnas clave:
 | `nomenclatura_catastral` | text | Desde ARBA |
 | `address` | text | Dirección (obligatoria para publicar) |
 | `lat`, `lng` | numeric | Geocoded (solo scrapeadas, mías no geocodean — entran por partida) |
-| `property_type` | enum | casa / departamento / ph / lote / local / **cochera** (00019: la unidad complementaria que se vende sola) |
+| `property_type` | enum | casa / departamento / ph / lote / local / **cochera** (00019: la unidad complementaria que se vende sola) / **deposito / oficina / galpon / campo** (00023). "Terreno" es `lote` |
+| `localidad` | text | **NEW** (00022): Banfield, Temperley… dentro del partido. Vocabulario cerrado en `lib/zona-sur/localidades.ts` (no hay CHECK: sumar una es una línea). Viene de la hoja `Propiedades` de la maestra, columna `Localidad` |
 | `operation_type` | enum | venta / alquiler |
 | `price_amount`, `price_currency` | numeric / enum | |
 | `surface_total`, `surface_covered`, `surface_arba` | numeric | Declaradas + ARBA real |
@@ -2053,6 +2130,8 @@ servicios pagos el 2-sep.)
 52. **Fase 50 — Las fotos del aviso, y los precios del aviso** ✅ 18-sep (14 publicadas)
 53. **Fase 51 — El precio de la marca y la placa de la oferta** ✅ 18-sep (migración 00021)
 54. **Fase 52 — La tercera corrida del protocolo** ✅ 18-sep (15 publicadas)
+55. **Fase 53 — La guía de compra, en la voz del sitio** ✅ 23-sep
+56. **Fase 54 — El buscador entra en tres pasos** ✅ 23-sep (migraciones 00022 y 00023)
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -2475,6 +2554,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.39 | Sep 23, 2026 | **La guía habla como el sitio, y el catálogo se entra en tres pasos.** Tomy reescribió la guía de compra etapa por etapa: sobria, informativa, sin la voz de agencia que acompaña al comprador ni los restos de los servicios pagos; boleto y escritura pasan a ser dos etapas, y reserva y seña dejan de confundirse. En `/propiedades`, una intro de tres preguntas (operación → tipo → ubicación) que filtra, un tablero al costado con el match y lo que falta para afinar, y orden por precio y antigüedad. Para que la ubicación sirva hizo falta un dato que no existía: **la localidad** (00022), que llega desde la maestra; y entraron cuatro tipos (00023). Cuarta corrida del protocolo: 14 sin diferencias, Vergara UF 3 queda en 58.500 (la maestra se corrigió al sitio, no al revés). Una trampa nueva de herramienta: un `\b` escrito desde Python dentro de un string no crudo se guardó como el carácter de retroceso, y la regex de "campo" no matcheaba — lo agarró un test. **499 → 522 tests.** |
 | 2.38 | Sep 19, 2026 | **El editor guarda solo, y conviene decirlo.** Tomy buscó el botón de guardar en `/admin` y no existe: cada sección se guarda sola con `useAutoSave` y lo anuncia el cartelito al lado del título ("Guardando…" → "Guardado"). Confirmó que aparece, así que no había bug; queda escrito porque la ausencia de botón se lee como función rota, y con el recordatorio de que **la sincronización pisa lo editado a mano**: el panel es para lo que la maestra no tiene, un precio se corrige en la maestra. Sin cambios de código. |
 | 2.37 | Sep 18, 2026 | **Tercera corrida del protocolo: 15 publicadas, y dos ofertas.** (Cerrado después: la 3°O tomó los m² de la 4°Y —40 cubiertos, 42 totales— por `provisorio.json`, a dicho de Tomy.) Entró **Alsina 1639 3°O** con las seis fotos propias de Tomy (88.000), la **3°Q pasó a oferta** (lista 58.000, oferta 53.000) y **Belgrano 1°A bajó a 69.500**; como la portada muestra la oferta más barata, la protagonista pasó a ser la 3°Q. Dos arreglos que salieron de la corrida: la columna `Cochera` de la 3°O decía **"terraza 05-01"** y se publicaba como cochera —ahora la celda puede nombrar otro extra, y sólo cuando abre con su nombre—, y el diff no leía `price_list_amount` del sitio, así que reportaba una diferencia inexistente en cada corrida. **496 → 499 tests.** |
 | 2.36 | Sep 18, 2026 | **El precio de oferta va en placa; el de lista no se muestra.** Tomy vio el tachado gris y lo descartó en la misma sesión: *"mejor hacele un recuadro como el de oferta al precio"*, y **"al de oferta, el de lista desaparece directamente"**. Ahora el número en oferta va sobre la misma placa dorada del sello (`OfferPrice`, sin inclinación) en las cuatro superficies, y un precio sin oferta sigue siendo navy pelado. La columna `price_list_amount` se queda llenándose desde la maestra pero salió de las consultas públicas: que la base lo guarde no obliga a mostrarlo. 496 tests, build verde. |
