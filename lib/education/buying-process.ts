@@ -194,12 +194,9 @@ export const DOCUMENTS: Record<DocumentSlug, DocumentInfo> = {
     why:
       "Hasta que no escriturás, no figurás como titular en el Registro de la Propiedad — y eso es lo que prueba que sos dueño ante terceros (bancos, embargantes, herederos).",
     issuedBy: "Escribano público matriculado.",
-    cost:
-      "Honorarios del escribano: 1.5% - 3% del precio. Impuesto de sellos: 1.2% - 2.5% (suele dividirse 50/50). Otros gastos (testimonios, certificados, gastos de inscripción): 0.5% - 1%. Total para el comprador: típicamente 3-5% del precio.",
+    cost: "Entre el 3% y el 5% del precio.",
     timeframe:
-      "El día de la firma se hace todo: se entrega el saldo del precio, se firma la escritura, se entregan llaves. La inscripción en el RPI la hace el escribano y demora 30-60 días después.",
-    notes:
-      "En CABA el comprador suele elegir escribano; en PBA, vendedor (negociable). Pedí presupuesto a 2-3 escribanos — los honorarios son negociables.",
+      "El día de la firma se hace todo: se entrega el saldo del precio y se firma la escritura. La inscripción en el RPI la hace el escribano y demora 30-60 días después.",
   },
 };
 
@@ -315,7 +312,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
       "Documento solemne redactado y firmado por un escribano público. Es lo que transfiere la propiedad del vendedor al comprador. Antes de esto, sos dueño contractual; recién con la escritura sos dueño legalmente.",
     process: [
       "Antes de firmar se confirma que los informes sigan vigentes.",
-      "En la escritura se entregan el saldo del precio y la posesión.",
+      "En la escritura se entregan el saldo del precio al vendedor y la titularidad al comprador.",
     ],
     considerations: [
       "El saldo del precio tiene que estar disponible el día de la escritura.",
@@ -336,11 +333,9 @@ export const PROCESS_STEPS: ProcessStep[] = [
     process: [
       "El escribano inscribe la escritura en el Registro de la Propiedad y entrega el testimonio una vez inscripto.",
       "En propiedad horizontal, el cambio de titular se notifica al consorcio.",
+      "Los servicios —luz, gas, agua— deben pasar a nombre del nuevo titular.",
     ],
-    considerations: [
-      "Los servicios —luz, gas, agua— pasan a nombre del nuevo titular.",
-      "La mudanza.",
-    ],
+    considerations: [],
     documentSlugs: [],
   },
 ];
