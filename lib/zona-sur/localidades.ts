@@ -75,10 +75,42 @@ export const LOCALIDADES_POR_PARTIDO: Record<PartidoZonaSur, readonly string[]> 
   Ezeiza: ["Ezeiza", "Tristán Suárez", "Carlos Spegazzini", "La Unión", "Canning"],
 };
 
+/**
+ * Localidades outside the seven Zona Sur partidos that a published listing
+ * can still be in. A partner's catalog (lib/colegas) has a few: Guernica, San
+ * Vicente, and two on the coast. They are places the site publishes, not
+ * places it covers: the partido list above, with its ARBA codes, does not
+ * grow for them.
+ */
+export const LOCALIDADES_FUERA_DE_ZONA_SUR: Record<string, readonly string[]> = {
+  "Presidente Perón": ["Guernica"],
+  "San Vicente": ["San Vicente"],
+  "La Costa": ["Santa Teresita"],
+  Pinamar: ["Valeria del Mar"],
+};
+
+const ALL_BY_PARTIDO: Record<string, readonly string[]> = {
+  ...LOCALIDADES_POR_PARTIDO,
+  ...LOCALIDADES_FUERA_DE_ZONA_SUR,
+};
+
 /** Every known localidad, once, sorted for display. */
 export const LOCALIDADES: readonly string[] = [
-  ...new Set(Object.values(LOCALIDADES_POR_PARTIDO).flat()),
+  ...new Set(Object.values(ALL_BY_PARTIDO).flat()),
 ].sort((a, b) => a.localeCompare(b, "es"));
+
+/**
+ * The partido a localidad belongs to, or null when it straddles two (Gerli,
+ * San José, San Francisco Solano, Canning) or is unknown. Callers that know
+ * better — a source that says "Canning - Esteban Echeverría" — resolve those
+ * themselves.
+ */
+export function partidoOfLocalidad(localidad: string): string | null {
+  const owners = Object.entries(ALL_BY_PARTIDO)
+    .filter(([, list]) => list.includes(localidad))
+    .map(([partido]) => partido);
+  return owners.length === 1 ? owners[0] : null;
+}
 
 const fold = (s: string) =>
   s
@@ -98,9 +130,6 @@ const fold = (s: string) =>
 export function canonicalLocalidad(value: string, partido?: string | null): string | null {
   const key = fold(value);
   if (!key) return null;
-  const pool =
-    partido && partido in LOCALIDADES_POR_PARTIDO
-      ? LOCALIDADES_POR_PARTIDO[partido as PartidoZonaSur]
-      : LOCALIDADES;
+  const pool = partido && partido in ALL_BY_PARTIDO ? ALL_BY_PARTIDO[partido] : LOCALIDADES;
   return pool.find((l) => fold(l) === key) ?? null;
 }

@@ -1,0 +1,50 @@
+name: Catálogo de colegas
+
+# Mantiene al día las propiedades de los colegas que el sitio publica como
+# propias (source = 'colega', lib/colegas): hoy Laudani & Cía. Trae las nuevas,
+# actualiza precios y fotos, y baja del sitio lo que ya no está en el suyo.
+#
+# A diferencia del pipeline de mercado, este SÍ corre solo, y puede: el sitio
+# del colega es de una inmobiliaria amiga sobre BuscadorProp, sin bloqueo por
+# IP, y se lee con pedidos simples (sin navegador).
+#
+# Si algún día el sitio no contesta, la corrida no baja nada: las bajas
+# exigen haber recorrido el listado hasta el final y haber visto al menos la
+# mitad de lo publicado (decideDeactivation). Un colega caído no vacía el
+# catálogo.
+
+on:
+  schedule:
+    # 09:00 UTC = 06:00 en Buenos Aires. GitHub suele arrancar los cron
+    # gratuitos con horas de atraso; no importa para esto.
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: colegas
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync partner catalogs
+        run: npm run sincronizar-colegas -- --aplicar

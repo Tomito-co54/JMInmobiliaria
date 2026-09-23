@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PARTIDOS_ZONA_SUR } from "./partidos";
-import { LOCALIDADES, LOCALIDADES_POR_PARTIDO, canonicalLocalidad } from "./localidades";
+import { LOCALIDADES, LOCALIDADES_POR_PARTIDO, canonicalLocalidad, partidoOfLocalidad } from "./localidades";
 
 describe("LOCALIDADES_POR_PARTIDO", () => {
   it("covers every partido the site knows", () => {
@@ -33,5 +33,22 @@ describe("canonicalLocalidad", () => {
   it("falls back to the whole list for an unknown partido", () => {
     expect(canonicalLocalidad("Adrogué", null)).toBe("Adrogué");
     expect(canonicalLocalidad("Adrogué", "Mar del Plata")).toBe("Adrogué");
+  });
+});
+
+describe("localidades outside Zona Sur and partidoOfLocalidad", () => {
+  it("knows the partner's four places outside the seven partidos", () => {
+    expect(canonicalLocalidad("Valeria Del Mar")).toBe("Valeria del Mar");
+    expect(canonicalLocalidad("Guernica", "Presidente Perón")).toBe("Guernica");
+  });
+
+  it("names the partido of a localidad that has only one", () => {
+    expect(partidoOfLocalidad("Adrogué")).toBe("Almirante Brown");
+    expect(partidoOfLocalidad("Santa Teresita")).toBe("La Costa");
+  });
+
+  it("refuses to guess for a localidad in two partidos", () => {
+    expect(partidoOfLocalidad("San José")).toBeNull();
+    expect(partidoOfLocalidad("Canning")).toBeNull();
   });
 });

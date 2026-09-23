@@ -220,12 +220,16 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               />
             )}
 
-            <EditorialSection
-              title="Datos oficiales"
-              subtitle="Los datos registrales de esta propiedad, como figuran en el catastro."
-            >
-              <VerifiedDataList property={property} arbaLookup={arbaLookup} />
-            </EditorialSection>
+            {/* Not on a partner's listing: its empty state says "todavía no
+                cargamos la partida", a claim about the family's own loading. */}
+            {property.source !== "colega" && (
+              <EditorialSection
+                title="Datos oficiales"
+                subtitle="Los datos registrales de esta propiedad, como figuran en el catastro."
+              >
+                <VerifiedDataList property={property} arbaLookup={arbaLookup} />
+              </EditorialSection>
+            )}
 
             {buildingUnits.length > 0 && (
               <EditorialSection
