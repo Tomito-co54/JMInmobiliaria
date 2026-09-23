@@ -188,6 +188,10 @@ export function parseTipo(tipo: string | null): TipoParse {
   if (/\bph\b/.test(t)) out.propertyType = "ph";
   else if (/cochera/.test(t) && !/ambiente|loft|casa|depto|departamento/.test(t)) out.propertyType = "cochera";
   else if (/local/.test(t)) out.propertyType = "local";
+  else if (/dep[óo]sito/.test(t)) out.propertyType = "deposito";
+  else if (/oficina/.test(t)) out.propertyType = "oficina";
+  else if (/galp[óo]n/.test(t)) out.propertyType = "galpon";
+  else if (/\bcampo\b|hect[áa]rea|\d\s*ha\b/.test(t)) out.propertyType = "campo";
   else if (/terreno|lote|bald/.test(t)) out.propertyType = "lote";
   else if (/casa/.test(t)) out.propertyType = "casa";
   else if (/loft|ambiente|depto|departamento|d[úu]plex/.test(t)) out.propertyType = "departamento";

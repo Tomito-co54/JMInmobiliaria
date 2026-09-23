@@ -12,7 +12,18 @@
  * is an extra (lib/property/extras.ts).
  */
 
-export const PROPERTY_TYPES = ["casa", "departamento", "ph", "lote", "local", "cochera"] as const;
+export const PROPERTY_TYPES = [
+  "casa",
+  "departamento",
+  "ph",
+  "lote",
+  "local",
+  "cochera",
+  "deposito",
+  "oficina",
+  "galpon",
+  "campo",
+] as const;
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
 
 const LABELS: Record<PropertyType, string> = {
@@ -22,6 +33,10 @@ const LABELS: Record<PropertyType, string> = {
   lote: "Lote",
   local: "Local",
   cochera: "Cochera",
+  deposito: "Depósito",
+  oficina: "Oficina",
+  galpon: "Galpón",
+  campo: "Campo",
 };
 
 export function isPropertyType(value: unknown): value is PropertyType {

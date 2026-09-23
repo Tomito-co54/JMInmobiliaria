@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  Briefcase,
   Building,
   Building2,
   Car,
@@ -13,6 +14,8 @@ import {
   LandPlot,
   MapPin,
   Store,
+  Tractor,
+  Warehouse,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -62,6 +65,10 @@ const TYPE_ICONS: Record<string, LucideIcon> = {
   lote: LandPlot,
   local: Store,
   cochera: Car,
+  deposito: Warehouse,
+  oficina: Briefcase,
+  galpon: Warehouse,
+  campo: Tractor,
 };
 
 const EMPTY_ANSWERS: Answers = { operation: null, type: null, localidad: null };

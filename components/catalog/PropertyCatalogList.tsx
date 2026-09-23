@@ -237,7 +237,13 @@ export function PropertyCatalogList({
         >
           {searchLabel ?? heading}
         </h2>
-        <p className="mt-3 text-sm sm:text-base text-muted-foreground">{intro}</p>
+        <p className="mt-3 text-sm sm:text-base text-muted-foreground" aria-live="polite">
+          {/* The count follows the search: "15 publicadas" over a list of 14
+              would be the heading disagreeing with the page under it. */}
+          {filtered.length === properties.length
+            ? intro
+            : `${filtered.length} ${filtered.length === 1 ? "propiedad coincide" : "propiedades coinciden"} con tu búsqueda, cada una revisada antes de publicarse.`}
+        </p>
       </Reveal>
 
       {/* A column on a phone (board folded above the list), two on a wide

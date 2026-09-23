@@ -476,3 +476,16 @@ describe("buildFicha: localidad", () => {
     expect(build(null).ficha.localidad).toBeUndefined();
   });
 });
+
+describe("parseTipo: the types added on 23-sep", () => {
+  it("reads depósito, oficina, galpón and campo from the Tipo text", () => {
+    expect(parseTipo("Depósito con oficina al frente").propertyType).toBe("deposito");
+    expect(parseTipo("Oficina en planta alta").propertyType).toBe("oficina");
+    expect(parseTipo("Galpón 400 m²").propertyType).toBe("galpon");
+    expect(parseTipo("Campo 14 ha").propertyType).toBe("campo");
+  });
+
+  it("still reads terreno as a lote", () => {
+    expect(parseTipo("Terreno 10 x 30").propertyType).toBe("lote");
+  });
+});

@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PROPERTY_TYPE_OPTIONS } from "@/lib/property/types";
 
 interface PropertiesFiltersProps {
   partidos: string[];
@@ -101,12 +102,11 @@ export function PropertiesFilters({ partidos }: PropertiesFiltersProps) {
           disabled={isPending}
         >
           <option value="">Todos</option>
-          <option value="casa">Casa</option>
-          <option value="departamento">Departamento</option>
-          <option value="ph">PH</option>
-          <option value="lote">Lote</option>
-          <option value="local">Local</option>
-          <option value="cochera">Cochera</option>
+          {PROPERTY_TYPE_OPTIONS.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
+          ))}
         </select>
       </div>
 
