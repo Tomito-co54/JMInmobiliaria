@@ -257,14 +257,12 @@ export const PROCESS_STEPS: ProcessStep[] = [
     subtitle: "Conocer el lugar",
     duration: "Semanas a meses",
     what:
-      "Las fotos muestran una propiedad; la visita muestra cómo se vive en ella. La luz a distintas horas, el ruido de la calle, el camino hasta el transporte: lo que decide una compra rara vez entra en una publicación.",
+      "Las fotos muestran una propiedad; la visita la pone en contexto. El entorno, los accesos, su estado real: lo que decide una compra —para vivir, invertir o trabajar— rara vez entra en una publicación.",
     process: [
-      "Cada publicación reúne los datos de la propiedad, su ubicación en la parcela y la documentación disponible.",
       "Indicar qué se busca permite ordenar el catálogo según lo que mejor se ajusta.",
-      "Las visitas se coordinan en el horario que convenga, y pueden repetirse.",
+      "Las visitas se coordinan en el horario que convenga.",
     ],
     considerations: [
-      "Volver en distintos momentos del día.",
       "Las dudas que aparecen en la visita son las que conviene resolver antes de avanzar.",
     ],
     documentSlugs: [],
