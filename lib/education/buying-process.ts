@@ -288,7 +288,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
     title: "Due diligence",
     subtitle: "Los informes antes del boleto",
     what:
-      "Antes del boleto se reúnen los informes que confirman la situación de la propiedad y de quien la vende: titularidad, gravámenes, deudas y datos catastrales. Es la etapa más técnica del proceso, y la que le da certeza a todo lo que sigue.",
+      "Antes del boleto se reúnen los informes que confirman la situación de la propiedad —Informe de dominio— y de quien la vende —Informe de inhibiciones—, para confirmar la titularidad, gravámenes, deudas y datos catastrales. Es la etapa más técnica del proceso, y la que le da certeza y orden a todo lo que sigue.",
     process: [
       "Informes de dominio y de inhibiciones, emitidos por el Registro de la Propiedad.",
       "Datos catastrales: partida, nomenclatura y superficie de la parcela.",
@@ -303,9 +303,6 @@ export const PROCESS_STEPS: ProcessStep[] = [
       "informe_inhibiciones",
       "certificado_catastral",
       "estado_parcelario",
-      "libre_deuda_municipal",
-      "libre_deuda_provincial",
-      "libre_deuda_expensas",
     ],
     warnings: [
       "Las deudas registradas siguen al inmueble, no a su titular anterior. Su cancelación se acuerda antes del boleto.",
