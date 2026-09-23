@@ -90,11 +90,11 @@ export const DOCUMENTS: Record<DocumentSlug, DocumentInfo> = {
     slug: "informe_dominio",
     title: "Informe de Dominio",
     shortDescription:
-      "El documento más importante de todos: te dice quién es el dueño real y si la propiedad tiene problemas legales.",
+      "El documento más importante: confirma quién es el titular y si la propiedad tiene gravámenes.",
     what:
       "Emitido por el Registro de la Propiedad Inmueble (RPI) de la provincia. Resume el historial registral: titular actual, transferencias anteriores, y gravámenes vigentes — embargos, hipotecas, usufructos, restricciones, prohibiciones de innovar, etc.",
     why:
-      "Sin esto, no sabés si quien te está vendiendo es realmente el dueño, ni si la propiedad arrastra deudas o restricciones. Es el cero absoluto del due diligence.",
+      "Confirma que quien vende es el titular y que la propiedad no arrastra deudas ni restricciones. Es la base de toda la verificación.",
     issuedBy:
       "Registro de la Propiedad Inmueble de la provincia (en PBA: La Plata).",
   },
@@ -175,13 +175,11 @@ export const DOCUMENTS: Record<DocumentSlug, DocumentInfo> = {
     what:
       "Contrato firmado entre comprador y vendedor donde se establecen el precio, las condiciones, los plazos para escriturar, y las penalidades por incumplimiento. No transfiere propiedad — eso lo hace recién la escritura — pero genera obligaciones recíprocas.",
     why:
-      "Cuando firmás boleto y entregás el primer pago fuerte (suele ser 30% del precio), las dos partes quedan comprometidas legalmente. Es el momento donde la operación se vuelve seria.",
+      "Cuando firmás boleto y entregás el primer pago fuerte (suele ser entre el 25% y el 30% del precio), las dos partes quedan comprometidas legalmente. Es el momento donde la operación se vuelve seria.",
     issuedByLabel: "¿Quién lo redacta?",
     issuedBy: "Ese es nuestro trabajo, y consta de envíos previos para confirmación.",
     timeframe: "Se firma cuando todos los informes están OK, típicamente 2-4 semanas después de la reserva.",
     fees: "Es el momento en que se abonan los honorarios del martillero.",
-    notes:
-      "Cláusulas a mirar con lupa: plazo para escriturar, lugar de la escritura, qué pasa si no se consigue crédito, gastos de cada parte, fecha de entrega de posesión.",
   },
 
   escritura: {
@@ -211,7 +209,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
     title: "Pre-búsqueda",
     subtitle: "Antes de la primera visita",
     what:
-      "Toda compra empieza por una idea de cómo se quiere vivir: el barrio, el espacio, el momento. Darle forma a esa idea es lo que convierte una búsqueda en una decisión.",
+      "Toda compra empieza por una idea: dónde, para qué y en qué momento. Darle forma es lo que convierte una búsqueda en una decisión.",
     process: [
       "El costo de una compra no es el precio publicado: a él se suman la escritura, los honorarios y el impuesto de sellos.",
       "Distinguir lo indispensable de lo deseable define el alcance de la búsqueda.",
@@ -266,7 +264,7 @@ export const PROCESS_STEPS: ProcessStep[] = [
       "Antes del boleto se reúnen los informes que confirman la situación de la propiedad —Informe de dominio— y de quien la vende —Informe de inhibiciones—, para confirmar la titularidad, gravámenes, deudas y datos catastrales. Es la etapa más técnica del proceso, y la que le da certeza y orden a todo lo que sigue.",
     process: [
       "Informes de dominio y de inhibiciones, emitidos por el Registro de la Propiedad.",
-      "Datos catastrales: partida, nomenclatura y superficie de la parcela.",
+      "Datos catastrales: partida y superficie de la parcela.",
       "Libres deuda municipal, provincial y, en propiedad horizontal, de expensas.",
       "Estado parcelario, cuando la antigüedad del plano lo requiere.",
     ],
@@ -418,7 +416,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     term: "Nomenclatura catastral",
     definition:
-      "Identificador único de una parcela compuesto por: Partido - Circunscripción - Sección - Manzana - Parcela. Ejemplo: 065-25-7-7-50. Es lo que ARBA usa para diferenciar parcelas.",
+      "Identificador único de una parcela compuesto por: Partido - Circunscripción - Sección - Manzana - Parcela. Ejemplo: Partido 063 · Circ. II · Secc. B · Manz. 15 · Parc. 8. Es lo que ARBA usa para diferenciar parcelas.",
   },
   {
     term: "Partida inmobiliaria",
@@ -438,12 +436,17 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     term: "Reserva ad referéndum",
     definition:
-      "Oferta de compra acompañada de un anticipo retenido en garantía. Te aparta la propiedad mientras hacés due diligence. Si te arrepentís, la perdés.",
+      "Oferta de compra acompañada de un anticipo retenido en garantía. Aparta la propiedad mientras se revisa la documentación. Si quien reserva se arrepiente, pierde la reserva; si el vendedor no la acepta, se devuelve.",
   },
   {
     term: "Sellos",
     definition:
       "Impuesto provincial al acto jurídico (compraventa, locación). En PBA es del 1.2%-2.5% del precio, suele dividirse 50/50 entre comprador y vendedor.",
+  },
+  {
+    term: "Seña",
+    definition:
+      "Pago a cuenta del precio que se entrega cuando se confirma la compra. No es lo mismo que la reserva: la reserva es una oferta, la seña compromete a concretar la operación.",
   },
   {
     term: "Testimonio",

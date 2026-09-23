@@ -185,8 +185,8 @@ export default function GuiaDeCompraPage() {
               Términos que vas a escuchar
             </h2>
             <p className="text-sm text-muted-foreground">
-              Los más comunes — los que te van a tirar inmobiliaria, escribano,
-              banco o el contrato del boleto. Click en cada uno para ver la
+              Los más comunes en una operación: los que aparecen en la reserva,
+              el boleto, la escritura y los informes. Tocá cada uno para ver la
               definición.
             </p>
           </header>
@@ -205,8 +205,8 @@ export default function GuiaDeCompraPage() {
             ¿Ya estás buscando?
           </h2>
           <p className="text-sm text-muted-foreground">
-            Decinos qué buscás y te decimos cuánto encaja cada propiedad, con
-            los datos ya verificados. Sin cuenta y sin dejar tus datos.
+            Decinos qué buscás y te guiamos. Es automático: sin necesidad de
+            hacerte una cuenta ni dejar tus datos.
           </p>
           <div className="flex justify-center pt-2">
             <Link href="/propiedades" className={buttonVariants({ size: "lg" })}>
