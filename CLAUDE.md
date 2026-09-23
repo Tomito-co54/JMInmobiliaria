@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (23-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **522 tests passing** (+7 skipped a propósito),
+auto-deploy desde `main`. **544 tests passing** (+7 skipped a propósito),
 `npm run build` verde, **33 rutas**.
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
@@ -347,6 +347,57 @@ hay publicadas**, y la ubicación es **por localidad**, no por partido.
 - **Tipos nuevos** (migración **00023**): depósito, oficina, galpón y campo.
   **"Terreno" no**: la sync ya lo lee como `lote` y Tomy confirmó que se queda
   "Lote".
+
+### El catálogo de un colega: Laudani & Cía (23-sep)
+
+Luciano Laudani (Laudani & Cía, Adrogué, matrícula 3162 del Colegio de
+Martilleros de Lomas de Zamora) le dio a Tomy **todo su catálogo**:
+*"tomalo como tuyo, cualquier operación que surja vamos a medias"*. El acuerdo
+está en un audio; Tomy lo da por firme. Decisiones de Tomy: conexión directa y
+estandarizada, **todas** (113), **mezcladas en el catálogo con un sello chico
+del logo**, el contacto es **su** WhatsApp, **ningún link a Laudani**, y las
+propias **primero** y como protagonistas.
+
+- **`source = 'colega'`** (00024) + columna **`partner`** (00025, `'laudani'`).
+  Pasa el filtro público (`PUBLIC_PROPERTY_SOURCES`) pero **no** es propio:
+  `OWNER_PROPERTY_SOURCES` sigue siendo `owner_direct`/`agency`, y es lo que
+  leen la sync de la maestra, el editor y la protagonista. **No ensanchar
+  OWNER a colega**: la sync de la maestra busca filas propias por dirección y
+  podría pisar una del colega. `/admin/mercado` excluye a los colegas
+  (`NON_MARKET_SOURCES`); el panel de propiedades tiene el origen "Colegas".
+- **El lector** (`lib/colegas/buscadorprop.ts`, puro, 17 tests): el sitio es
+  **BuscadorProp** (Grupo Todo, lo mismo que Trezza), renderizado en el
+  servidor — pedidos HTTP simples, sin navegador. Listado:
+  `/propiedades?infinito=1&pagina=N` (JSON de cards, 12 por página, `[]` al
+  final). Ficha: `#caracteristicas`, `#comodidades`, `#acercade`, JSON-LD con
+  coordenadas, galería numerada en `staticbp.com`.
+- **Estandarizar** quiere decir: tipos y localidades a nuestro vocabulario
+  (cuatro localidades fuera de zona sur con su partido, sin tocar
+  `PARTIDOS_ZONA_SUR`); descripciones en mayúsculas → oraciones; **se borra
+  toda oración con teléfono, mail, web o "laudani"**; cocheras desde las
+  comodidades; antigüedad → `year_built`. Lo que no se sabe traducir **no se
+  publica** (se reporta).
+- **Si la dirección nombra una localidad, le gana a la clasificación del
+  aviso** (San Rafael 731 decía Turdera y estaba en Adrogué).
+- **`npm run sincronizar-colegas`**: en seco por defecto, `--aplicar` escribe.
+  Las bajas (`listing_status = 'borrador'`) pasan por `decideDeactivation`:
+  recorrido hasta la página vacía **y** al menos la mitad de lo publicado. Una
+  ficha que no carga queda como está. Segunda corrida: cero cambios.
+- **Corre solo** todos los días (`.github/workflows/colegas.yml`, 06:00 de
+  Buenos Aires). A diferencia de Zonaprop, este sitio no bloquea por IP.
+- **Fotos directo de staticbp, sin el optimizador de Vercel**
+  (`skipsOptimizer`): son ~1.640 y la cuota gratuita, agotada, corta también
+  las fotos propias.
+- **En pantalla**: `PartnerSeal` (logo servido desde `/public/partners`) en la
+  card y arriba a la derecha de la ficha; la ficha no imprime el link de
+  origen ni "Datos oficiales"; `ownFirst` pone lo propio adelante y le da los
+  empates de match; `/edificios` no los lista.
+- **Las rebajas de su sitio NO se importan como `oferta`** (25): tantas cintas
+  doradas le sacarían protagonismo a las propias. Decisión de Code, a
+  confirmar por Tomy — es una línea en `normalizeListing`.
+- **Pendiente de Tomy**: el bloque "Cómo trabajamos" de la home sigue diciendo
+  "Las propiedades son nuestras y las cargamos a mano… Publicamos los
+  papeles"; con el catálogo de un colega ya no es cierto.
 
 ### El editor no tiene botón de guardar, y eso confunde (19-sep)
 
@@ -744,6 +795,7 @@ visual.
 | Fase 52 — La tercera corrida del protocolo | Alsina 3°O con fotos propias, la 3°Q en oferta (58.000 → 53.000) y Belgrano 1°A a 69.500: **15 publicadas** y la portada pasa a la 3°Q, que es la oferta más barata. Dos arreglos: la columna `Cochera` puede nombrar otro extra (la 3°O traía "terraza 05-01") y el diff ahora lee `price_list_amount` del sitio. **496 → 499 tests.** | `ea4b3e9` |
 | Fase 53 — La guía de compra, en la voz del sitio | Siete etapas dictadas por Tomy: impersonal, sobria, sin porcentajes salvo los que él pidió; boleto y escritura separados y abiertos en su etapa; reserva distinta de seña; se van los restos de servicios pagos y la voz de agencia compradora; la guía usa `PublicHeader`. | `34d77d5` … `77f9479` |
 | Fase 54 — El buscador entra en tres pasos | `CatalogIntro` (operación → tipo → localidad, filtran), `CatalogSearchBoard` con el match y lo que falta, orden por precio y antigüedad. Migraciones **00022** (`localidad`, desde la maestra) y **00023** (depósito, oficina, galpón, campo). **499 → 522 tests.** | `4dd292c` `9ad09c5` `e70b0bc` |
+| Fase 55 — El catálogo de un colega | Laudani & Cía: 113 propiedades sincronizadas cada día desde su sitio BuscadorProp, estandarizadas, con sello y sin links. Migraciones **00024** (`colega`) y **00025** (`partner`, CHECKs). **522 → 544 tests.** | `18e04ce` `e7879fe` |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
 **Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
@@ -1961,7 +2013,7 @@ Management API (config de auth, settings de proyecto). Reglas:
 │                                 #   la base. Sin esto la funcion corre en Washington
 │                                 #   y cada consulta cruza el continente (~375ms)
 ├── supabase/
-│   ├── migrations/               # 00001..00023 + 00015b (00011+ son del fork).
+│   ├── migrations/               # 00001..00025 + 00015b (00011+ son del fork).
 │   │                             #   00015b es compañera de 00015: indexa
 │   │                             #   arba_lookups por partida, que es la clave de
 │   │                             #   las propias. La tabla solo tenía (lat, lng)
@@ -1998,7 +2050,8 @@ Columnas clave:
 |---|---|---|
 | `id` | uuid PK | |
 | `external_id` | text | ID en la fuente (zonaprop, trezza) — null para mías |
-| `source` | enum | `owner_direct` / `agency` = MÍAS · `zonaprop` / `trezza` / etc. = scrapeadas |
+| `source` | enum | `owner_direct` / `agency` = MÍAS · **`colega`** = de un colega, publicada como propia (00024) · `zonaprop` / `trezza` / etc. = scrapeadas |
+| `partner` | text | **NEW** (00025): de qué colega es (`laudani`). Obligatorio en `colega`, prohibido en el resto |
 | `url` | text | Link al listing original (solo scrapeadas) |
 | `partido` | text | Nombre del partido (mapeado a `arbaCode` en `lib/zona-sur`) |
 | `partida` | text | ARBA tax ID (9 dígitos, primeros 3 = código de partido) |
@@ -2132,6 +2185,7 @@ servicios pagos el 2-sep.)
 54. **Fase 52 — La tercera corrida del protocolo** ✅ 18-sep (15 publicadas)
 55. **Fase 53 — La guía de compra, en la voz del sitio** ✅ 23-sep
 56. **Fase 54 — El buscador entra en tres pasos** ✅ 23-sep (migraciones 00022 y 00023)
+57. **Fase 55 — El catálogo de un colega (Laudani & Cía)** ✅ 23-sep (00024, 00025; 128 publicadas)
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -2554,6 +2608,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.40 | Sep 23, 2026 | **El catálogo de un colega.** Luciano (Laudani & Cía) le dio a Tomy todo su catálogo, operaciones a medias. Su sitio es BuscadorProp y se lee sin navegador: 113 propiedades entran estandarizadas —tipos, localidades, descripciones sin gritos y sin sus teléfonos— con un sello chico de su logo, el WhatsApp de Tomy y ningún link a su sitio. Un origen nuevo, `colega`, que es público pero no propio: la sync de la maestra y la protagonista siguen viendo sólo lo de la familia, y el mercado no lo cuenta. Sincronización diaria en GitHub Actions con la misma guarda de bajas que costó tres catálogos aprenderla. El catálogo pasa de 15 a **128**. **522 → 544 tests.** |
 | 2.39 | Sep 23, 2026 | **La guía habla como el sitio, y el catálogo se entra en tres pasos.** Tomy reescribió la guía de compra etapa por etapa: sobria, informativa, sin la voz de agencia que acompaña al comprador ni los restos de los servicios pagos; boleto y escritura pasan a ser dos etapas, y reserva y seña dejan de confundirse. En `/propiedades`, una intro de tres preguntas (operación → tipo → ubicación) que filtra, un tablero al costado con el match y lo que falta para afinar, y orden por precio y antigüedad. Para que la ubicación sirva hizo falta un dato que no existía: **la localidad** (00022), que llega desde la maestra; y entraron cuatro tipos (00023). Cuarta corrida del protocolo: 14 sin diferencias, Vergara UF 3 queda en 58.500 (la maestra se corrigió al sitio, no al revés). Una trampa nueva de herramienta: un `\b` escrito desde Python dentro de un string no crudo se guardó como el carácter de retroceso, y la regex de "campo" no matcheaba — lo agarró un test. **499 → 522 tests.** |
 | 2.38 | Sep 19, 2026 | **El editor guarda solo, y conviene decirlo.** Tomy buscó el botón de guardar en `/admin` y no existe: cada sección se guarda sola con `useAutoSave` y lo anuncia el cartelito al lado del título ("Guardando…" → "Guardado"). Confirmó que aparece, así que no había bug; queda escrito porque la ausencia de botón se lee como función rota, y con el recordatorio de que **la sincronización pisa lo editado a mano**: el panel es para lo que la maestra no tiene, un precio se corrige en la maestra. Sin cambios de código. |
 | 2.37 | Sep 18, 2026 | **Tercera corrida del protocolo: 15 publicadas, y dos ofertas.** (Cerrado después: la 3°O tomó los m² de la 4°Y —40 cubiertos, 42 totales— por `provisorio.json`, a dicho de Tomy.) Entró **Alsina 1639 3°O** con las seis fotos propias de Tomy (88.000), la **3°Q pasó a oferta** (lista 58.000, oferta 53.000) y **Belgrano 1°A bajó a 69.500**; como la portada muestra la oferta más barata, la protagonista pasó a ser la 3°Q. Dos arreglos que salieron de la corrida: la columna `Cochera` de la 3°O decía **"terraza 05-01"** y se publicaba como cochera —ahora la celda puede nombrar otro extra, y sólo cuando abre con su nombre—, y el diff no leía `price_list_amount` del sitio, así que reportaba una diferencia inexistente en cada corrida. **496 → 499 tests.** |
