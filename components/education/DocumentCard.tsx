@@ -29,8 +29,7 @@ const ICONS: Record<DocumentSlug, typeof FileText> = {
  * <details>/<summary> for accordion behavior — no JS required.
  *
  * The summary always shows: icon + title + short description + chevron.
- * Expanded: what, why, who issues it, cost, timeframe, notes, and a
- * CTA to Jotaeme's service if we offer it (serviceId set).
+ * Expanded: what, why, who issues it, cost, timeframe and notes.
  */
 export function DocumentCard({ doc }: { doc: DocumentInfo }) {
   const Icon = ICONS[doc.slug] ?? FileText;
@@ -122,19 +121,6 @@ export function DocumentCard({ doc }: { doc: DocumentInfo }) {
               style={{ color: "var(--brand-gold)" }}
             />
             <p className="text-xs leading-relaxed">{doc.notes}</p>
-          </div>
-        )}
-
-        {doc.serviceId && (
-          <div className="pt-1">
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full"
-              style={{
-                backgroundColor: "var(--brand-icon-bg)",
-                color: "var(--brand-icon-fg)",
-              }}
-            >
-              ✓ Disponible como servicio en Jotaeme
-            </span>
           </div>
         )}
       </div>

@@ -124,11 +124,11 @@ export default function GuiaDeCompraPage() {
                   href={`#etapa-${s.slug}`}
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
-                    "h-8 text-xs",
+                    "h-11 text-xs",
                   )}
                 >
                   <span
-                    className="inline-block size-5 rounded-full text-[0.65rem] font-bold grid place-items-center mr-1.5"
+                    className="inline-grid size-5 shrink-0 place-items-center rounded-full text-[0.65rem] font-bold leading-none mr-1.5"
                     style={{
                       backgroundColor: "var(--brand-circle-bg)",
                       color: "var(--brand-circle-fg)",
@@ -143,7 +143,7 @@ export default function GuiaDeCompraPage() {
                 href="#glosario"
                 className={cn(
                   buttonVariants({ variant: "outline", size: "sm" }),
-                  "h-8 text-xs gap-1.5",
+                  "h-11 text-xs gap-1.5",
                 )}
               >
                 <ScrollText className="size-3.5" />

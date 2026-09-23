@@ -171,21 +171,7 @@ export function BuyingProcessAdvisor({
                     className="size-3.5 shrink-0 mt-0.5"
                     style={{ color: "var(--brand-accent)" }}
                   />
-                  <span>
-                    {doc.title}
-                    {doc.serviceId && (
-                      <span
-                        className="ml-1.5 text-[0.65rem] font-medium px-1.5 py-0.5 rounded"
-                        style={{
-                          backgroundColor:
-                            "color-mix(in srgb, var(--brand-gold) 18%, transparent)",
-                          color: "var(--brand-icon-fg)",
-                        }}
-                      >
-                        Lo pedimos nosotros
-                      </span>
-                    )}
-                  </span>
+                  <span>{doc.title}</span>
                 </li>
               ))}
               {currentDocs.length > 5 && (

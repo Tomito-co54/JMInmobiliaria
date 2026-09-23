@@ -31,9 +31,6 @@ export interface DocumentInfo {
   cost: string;
   timeframe: string;
   notes?: string;
-  /** If we offer this as a paid service, the catalog id. Cross-link
-   * back to /p/[id]/servicios when the user is on a property. */
-  serviceId?: string;
 }
 
 export interface ProcessStep {
@@ -133,8 +130,7 @@ export const DOCUMENTS: Record<DocumentSlug, DocumentInfo> = {
     timeframe:
       "Informe básico: inmediato. Certificado oficial firmado: 5-10 días hábiles.",
     notes:
-      "Jotaeme te entrega el informe básico al instante a un costo simbólico. El certificado oficial para escrituración lo pide el escribano más adelante.",
-    serviceId: "cadastral_report",
+      "El certificado oficial para escrituración lo pide el escribano más adelante.",
   },
 
   estado_parcelario: {
@@ -289,7 +285,6 @@ export const PROCESS_STEPS: ProcessStep[] = [
     weHandle: [
       "Negociamos el precio con comparables del mercado como argumento, no con intuición.",
       "Redactamos la reserva y fijamos un plazo que alcance para los informes — nunca menos de 21 días.",
-      "Retenemos la seña en garantía, como martillero matriculado, y te damos el recibo.",
       "Le pedimos al vendedor título, partida y datos personales el mismo día que se firma.",
     ],
     youDo: [
