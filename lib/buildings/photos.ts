@@ -25,12 +25,25 @@
  * an identity of its own. When it does, this map is what it replaces.
  */
 
-interface CoverRef {
-  /** The unit whose gallery holds the photo, by its address on the site. */
-  unit: string;
-  /** 1-based, as numbered in the unit's folder. */
-  photo: number;
-}
+/**
+ * Either a photo in a unit's gallery, or a cover of the building's own —
+ * a façade from the street that belongs to no unit — uploaded once with
+ * `npm run subir-portada` to `edificios/`, a folder the sync never touches.
+ */
+type CoverRef =
+  | {
+      /** The unit whose gallery holds the photo, by its address on the site. */
+      unit: string;
+      /** 1-based, as numbered in the unit's folder. */
+      photo: number;
+    }
+  | {
+      /** Path inside the property-photos bucket. */
+      file: string;
+    };
+
+const BUCKET =
+  "https://cjnaxxidigdylnwlpyab.supabase.co/storage/v1/object/public/property-photos";
 
 const BY_PARCEL: Record<string, CoverRef> = {
   // RUMAH — Belgrano 1287, Banfield. The common courtyard: the stair, the
@@ -39,6 +52,12 @@ const BY_PARCEL: Record<string, CoverRef> = {
   // Cabrera 205, Banfield. The corner from across the street, from the
   // photos of its Trezza listing (09-UF2.jpg), picked by Tomy on 23-sep.
   "063030A0000000000000000000000045000002600A": { unit: "Cabrera 205 UF 2", photo: 9 },
+  // Portela 95, Lomas de Zamora. The whole façade from the opposite
+  // sidewalk, picked by Tomy on 23-sep; source in the building's
+  // Publicación/_edificio/.
+  "063020B00000000000000000000000080000011000": {
+    file: "edificios/063020B00000000000000000000000080000011000.jpg",
+  },
 };
 
 /**
@@ -54,6 +73,7 @@ export function buildingPhoto(
   if (!parcel) return null;
   const ref = BY_PARCEL[parcel.trim()];
   if (!ref) return null;
+  if ("file" in ref) return `${BUCKET}/${ref.file}`;
   const unit = units.find((u) => u.address === ref.unit);
   return unit?.photos?.[ref.photo - 1] ?? null;
 }

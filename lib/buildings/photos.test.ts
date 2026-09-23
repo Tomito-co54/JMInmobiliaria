@@ -20,3 +20,11 @@ describe("buildingPhoto", () => {
     expect(buildingPhoto(null, [])).toBeNull();
   });
 });
+
+describe("buildingPhoto, a cover of the building's own", () => {
+  it("returns the stable URL of the file, whatever the units hold", () => {
+    expect(buildingPhoto("063020B00000000000000000000000080000011000", [])).toMatch(
+      /property-photos\/edificios\/063020B00000000000000000000000080000011000\.jpg$/,
+    );
+  });
+});
