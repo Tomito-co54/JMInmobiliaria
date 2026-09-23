@@ -4,76 +4,160 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Reveal } from "@/components/shared/Reveal";
 import { buildingKey, type BuildingSummary } from "@/lib/buildings";
 import { useMatchPreferences } from "@/hooks/use-match-preferences";
-import { hasAnyPreference } from "@/lib/matching/preferences";
+import { hasAnyPreference, type MatchPreferences } from "@/lib/matching/preferences";
 import {
   EMPTY_CATALOG_FILTERS,
   applyFilters,
   catalogOptions,
+  dropStaleAnswers,
   filtersFromParams,
   filtersToParams,
+  narrowedOptions,
   orderByMatch,
+  sortCatalog,
+  sortFromParams,
+  sortToParams,
   type CatalogFilters as Filters,
   type CatalogProperty,
+  type CatalogSort,
 } from "@/lib/catalog/filters";
 import { CatalogFilters } from "./CatalogFilters";
+import { CatalogIntro, describeSearch } from "./CatalogIntro";
 import { CatalogMap } from "./CatalogMap";
+import { CatalogSearchBoard } from "./CatalogSearchBoard";
 import { PropertyPremiumCard } from "./PropertyPremiumCard";
 
 const MAP_PARAM = "mapa";
+/**
+ * Marks a catalog the visitor asked to see whole. Without it an unfiltered
+ * catalog and "nobody has searched yet" are the same URL, and the back button
+ * from a listing would land on the three questions again.
+ */
+const ALL_PARAM = "ver";
+/** The last search of the visit, offered back by the intro. */
+const LAST_SEARCH_KEY = "jm.catalog-search.v1";
+
+function readLastSearch(): Filters | null {
+  try {
+    const raw = window.sessionStorage.getItem(LAST_SEARCH_KEY);
+    if (!raw) return null;
+    return filtersFromParams(new URLSearchParams(raw));
+  } catch {
+    return null;
+  }
+}
+
+function saveLastSearch(f: Filters) {
+  try {
+    if (f.operation || f.type || f.localidad) {
+      window.sessionStorage.setItem(LAST_SEARCH_KEY, filtersToParams(f).toString());
+    }
+  } catch {
+    /* storage refused: the intro just will not offer to resume */
+  }
+}
 
 /**
- * The catalog's list, in the browser: filtered by the bar above it and
- * ordered by the visitor's match when they have one.
+ * The catalog, in the browser: the three-question intro, then the results
+ * with the search board beside them, filtered and ordered.
  *
  * Client-side because the match has to be — the preferences live in
  * `sessionStorage` and never reach the server — and once the order is
  * decided here, the filters may as well be too: the page ships the whole
  * published list regardless.
  *
+ * The intro opens when the page is reached with no query string at all, which
+ * the server decides (`startWithIntro`) so the first paint is already the
+ * right one. Any search, or "ver todas", writes the URL, so a shared link and
+ * the back button land on results.
+ *
  * The filters are mirrored into the query string with
- * `history.replaceState`, which Next's router picks up without a round trip,
- * so a filtered catalog can be sent to someone and survives the back button.
+ * `history.replaceState`, which Next's router picks up without a round trip.
  * They are read back from `window.location` after mount rather than through
  * `useSearchParams`: that hook needs a Suspense boundary, and in the dev
  * server the boundary it created never hydrated — the bar rendered and no
  * chip answered a tap. The match order is NOT in the URL: it is a property
- * of the visitor, not of the page.
- *
- * Server and first client render agree because both start unfiltered and
- * the preferences hook reports `ready: false` until it has read storage;
- * URL filters and the match order arrive together after mount.
+ * of the visitor, not of the page. A chosen order (price, age) is.
  */
 export function PropertyCatalogList({
   properties,
   buildings,
+  startWithIntro,
+  eyebrow,
+  heading,
+  intro,
 }: {
   properties: CatalogProperty[];
   /** Keyed by parcel; a plain object because it crosses to the client. */
   buildings: Record<string, BuildingSummary>;
+  startWithIntro: boolean;
+  eyebrow: string;
+  heading: string;
+  intro: string;
 }) {
+  const [introOpen, setIntroOpen] = useState(startWithIntro);
   const [filters, setFilters] = useState<Filters>(EMPTY_CATALOG_FILTERS);
+  const [sort, setSort] = useState<CatalogSort | null>(null);
   // `?mapa=1` opens the map. It travels with the filters so a link from the
   // landing, or a shared one, lands with the map already open.
   const [mapOpen, setMapOpen] = useState(false);
+  const [lastSearch, setLastSearch] = useState<Filters | null>(null);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setFilters(filtersFromParams(params));
+    setSort(sortFromParams(params));
     setMapOpen(params.get(MAP_PARAM) === "1");
+    setLastSearch(readLastSearch());
   }, []);
-  const { preferences, ready } = useMatchPreferences();
+  const { preferences, setPreferences, ready } = useMatchPreferences();
 
-  const writeUrl = useCallback((next: Filters, open: boolean) => {
+  const writeUrl = useCallback((next: Filters, open: boolean, order: CatalogSort | null) => {
     const params = filtersToParams(next);
+    sortToParams(order, params);
     if (open) params.set(MAP_PARAM, "1");
-    const qs = params.toString();
-    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+    if (params.toString() === "") params.set(ALL_PARAM, "todas");
+    window.history.replaceState(null, "", `?${params.toString()}`);
+    saveLastSearch(next);
   }, []);
+
+  /**
+   * Operation and type are both a filter here and a question of the match,
+   * and the two must not disagree: the header's "tu mejor match" and each
+   * card's score read the match. So the filter is copied into it. A change of
+   * operation also drops the budget, which was a ceiling in the other
+   * currency (lib/matching/preferences, priceScaleFor).
+   */
+  const mirrorIntoMatch = useCallback(
+    (next: Filters) => {
+      const types = next.type ? [next.type] : [];
+      const sameTypes =
+        types.length === preferences.propertyTypes.length &&
+        types.every((t) => preferences.propertyTypes.includes(t));
+      if (next.operation === preferences.operation && sameTypes) return;
+      setPreferences({
+        ...preferences,
+        operation: next.operation,
+        propertyTypes: types,
+        priceMax: next.operation === preferences.operation ? preferences.priceMax : null,
+      });
+    },
+    [preferences, setPreferences],
+  );
+
   const update = useCallback(
     (next: Filters) => {
       setFilters(next);
-      writeUrl(next, mapOpen);
+      writeUrl(next, mapOpen, sort);
+      mirrorIntoMatch(next);
     },
-    [mapOpen, writeUrl],
+    [mapOpen, sort, writeUrl, mirrorIntoMatch],
+  );
+  const changeSort = useCallback(
+    (next: CatalogSort | null) => {
+      setSort(next);
+      writeUrl(filters, mapOpen, next);
+    },
+    [filters, mapOpen, writeUrl],
   );
   const toggleMap = useCallback(() => {
     const open = !mapOpen;
@@ -82,16 +166,35 @@ export function PropertyCatalogList({
     // keep narrowing a list with nothing on screen to explain why.
     const next = open ? filters : { ...filters, area: null };
     setFilters(next);
-    writeUrl(next, open);
-  }, [filters, mapOpen, writeUrl]);
+    writeUrl(next, open, sort);
+  }, [filters, mapOpen, sort, writeUrl]);
 
-  const options = useMemo(() => catalogOptions(properties), [properties]);
+  const finishIntro = useCallback(
+    (answers: Pick<Filters, "operation" | "type" | "localidad">) => {
+      const next = { ...EMPTY_CATALOG_FILTERS, operation: answers.operation, type: answers.type, localidad: answers.localidad };
+      setIntroOpen(false);
+      update(next);
+      setLastSearch(next);
+      document.getElementById("catalogo")?.scrollIntoView({ block: "start" });
+    },
+    [update],
+  );
+
+  // The board's chips are narrowed answer by answer, like the intro's, so
+  // none of them leads to an empty list.
+  const options = useMemo(
+    () => ({ ...catalogOptions(properties), ...narrowedOptions(properties, filters) }),
+    [properties, filters],
+  );
   const filtered = useMemo(() => applyFilters(properties, filters), [properties, filters]);
   const byMatch = ready && hasAnyPreference(preferences);
   const order = useCallback(
     (list: CatalogProperty[]) =>
-      byMatch ? orderByMatch(list, preferences) : list.map((property) => ({ property, score: null })),
-    [byMatch, preferences],
+      sortCatalog(
+        byMatch ? orderByMatch(list, preferences) : list.map((property) => ({ property, score: null })),
+        sort,
+      ),
+    [byMatch, preferences, sort],
   );
   const ordered = useMemo(() => order(filtered), [order, filtered]);
   // The map shows everything the OTHER filters keep, so the visitor can see
@@ -105,72 +208,120 @@ export function PropertyCatalogList({
     document.getElementById(`prop-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
+  if (introOpen) {
+    const resumeLabel = lastSearch ? describeSearch(lastSearch) : null;
+    return (
+      <CatalogIntro
+        properties={properties}
+        resume={lastSearch && resumeLabel ? { label: resumeLabel, filters: lastSearch } : null}
+        onDone={finishIntro}
+        onSkip={() => {
+          setIntroOpen(false);
+          update(EMPTY_CATALOG_FILTERS);
+        }}
+      />
+    );
+  }
+
+  const searchLabel = describeSearch(filters);
+
   return (
     <div className="space-y-8 sm:space-y-10">
-      <CatalogFilters
-        filters={filters}
-        options={options}
-        onChange={update}
-        shown={filtered.length}
-        total={properties.length}
-        mapOpen={mapOpen}
-        onToggleMap={toggleMap}
-      />
-
-      {mapOpen && (
-        <CatalogMap
-          items={mapItems}
-          selection={filters.area}
-          onSelectionChange={(area) => update({ ...filters, area })}
-          onPointClick={scrollToCard}
-        />
-      )}
-
-      {byMatch && ordered.length > 0 && (
-        <p className="text-sm text-muted-foreground" aria-live="polite">
-          Ordenadas por <span className="font-medium text-foreground">tu match</span>: las que mejor
-          encajan con lo que buscás van primero.
+      <Reveal className="max-w-2xl">
+        <p className="text-xs uppercase tracking-[0.2em] font-medium" style={{ color: "var(--brand-gold)" }}>
+          {eyebrow}
         </p>
-      )}
+        <h2
+          className="mt-3 font-heading font-medium text-3xl sm:text-4xl tracking-tight"
+          style={{ color: "var(--brand-heading)" }}
+        >
+          {searchLabel ?? heading}
+        </h2>
+        <p className="mt-3 text-sm sm:text-base text-muted-foreground">{intro}</p>
+      </Reveal>
 
-      {ordered.length === 0 ? (
-        <div className="rounded-3xl border bg-card p-8 text-center text-sm text-muted-foreground">
-          Ninguna propiedad coincide con esos filtros.{" "}
-          <button
-            type="button"
-            onClick={() => update(EMPTY_CATALOG_FILTERS)}
-            className="font-medium text-foreground underline underline-offset-4"
-          >
-            Ver todas
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-8 sm:space-y-12">
-          {ordered.map(({ property, score }, i) => {
-            const flip = i % 2 === 1;
-            return (
-              // Each card swings in from its photo side (flip → from the
-              // right, else from the left) with a small per-card stagger,
-              // so scrolling the catalog has rhythm instead of a flat fade
-              // (§2.4). Keyed by id, so reordering by match moves cards
-              // rather than repainting them.
-              <Reveal
-                key={property.id}
-                id={`prop-${property.id}`}
-                delayMs={60}
-                direction={flip ? "right" : "left"}
+      {/* A column on a phone (board folded above the list), two on a wide
+          screen (list, then the board following the scroll). */}
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-10">
+        <CatalogSearchBoard
+          className="lg:sticky lg:top-6 lg:order-last lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto"
+          filters={filters}
+          options={options}
+          onFiltersChange={(next) => update(dropStaleAnswers(properties, next))}
+          preferences={preferences}
+          onPreferencesChange={(next: MatchPreferences) => setPreferences(next)}
+          onRestart={() => setIntroOpen(true)}
+        />
+
+        <div className="min-w-0 space-y-8 sm:space-y-10">
+          <CatalogFilters
+            filters={filters}
+            onChange={update}
+            sort={sort}
+            onSortChange={changeSort}
+            byMatch={byMatch}
+            shown={filtered.length}
+            total={properties.length}
+            mapOpen={mapOpen}
+            onToggleMap={toggleMap}
+          />
+
+          {mapOpen && (
+            <CatalogMap
+              items={mapItems}
+              selection={filters.area}
+              onSelectionChange={(area) => update({ ...filters, area })}
+              onPointClick={scrollToCard}
+            />
+          )}
+
+          {byMatch && sort === null && ordered.length > 0 && (
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              Ordenadas por <span className="font-medium text-foreground">tu match</span>: las que mejor
+              encajan con lo que buscás van primero.
+            </p>
+          )}
+
+          {ordered.length === 0 ? (
+            <div className="rounded-3xl border bg-card p-8 text-center text-sm text-muted-foreground">
+              Ninguna propiedad coincide con esa búsqueda.{" "}
+              <button
+                type="button"
+                onClick={() => update(EMPTY_CATALOG_FILTERS)}
+                className="font-medium text-foreground underline underline-offset-4"
               >
-                <PropertyPremiumCard
-                  property={property}
-                  flip={flip}
-                  building={buildings[buildingKey(property) ?? ""]}
-                  matchScore={score}
-                />
-              </Reveal>
-            );
-          })}
+                Ver todas
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-8 sm:space-y-12">
+              {ordered.map(({ property, score }, i) => {
+                const flip = i % 2 === 1;
+                return (
+                  // Each card swings in from its photo side (flip → from the
+                  // right, else from the left) with a small per-card stagger,
+                  // so scrolling the catalog has rhythm instead of a flat fade
+                  // (§2.4). Keyed by id, so reordering moves cards rather than
+                  // repainting them.
+                  <Reveal
+                    key={property.id}
+                    id={`prop-${property.id}`}
+                    delayMs={60}
+                    direction={flip ? "right" : "left"}
+                  >
+                    <PropertyPremiumCard
+                      property={property}
+                      flip={flip}
+                      building={buildings[buildingKey(property) ?? ""]}
+                      matchScore={score}
+                    />
+                  </Reveal>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

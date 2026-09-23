@@ -1,42 +1,47 @@
 "use client";
 
-import { Map as MapIcon, Search, X } from "lucide-react";
+import { ArrowUpDown, Map as MapIcon, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { propertyTypeLabel } from "@/lib/property/types";
 import {
   EMPTY_CATALOG_FILTERS,
   hasAnyFilter,
   type CatalogFilters as Filters,
-  type CatalogOperation,
-  type CatalogOptions,
+  type CatalogSort,
 } from "@/lib/catalog/filters";
 
 /**
- * The catalog's filter bar: a search box and three selectors — zone, buy or
- * rent, type.
+ * The bar above the results: a search box, the map switch, and the order.
  *
- * Each selector is drawn only when the catalog gives it more than one
- * position; a control with a single answer is not a question (the rule the
- * match form already follows for "Comprar / Alquilar"). The options come
- * from the catalog itself, so the bar cannot offer a zone with nothing in it.
- *
- * Chips rather than dropdowns for the short lists: the same 44px pills the
- * match form uses, so the two ways of narrowing the catalog look like one
- * vocabulary (§2.5). Tapping the active chip clears it. Zone falls back to a
- * <select> once it has more partidos than fit a row on a phone.
+ * Operation, type and place used to live here as chips. They moved to the
+ * search board beside the list (CatalogSearchBoard), which is where the
+ * intro's answers are shown and changed — two places to set the same filter
+ * would be two answers to one question.
  */
+
+const SORT_LABELS: Record<CatalogSort, string> = {
+  "precio-asc": "Menor precio",
+  "precio-desc": "Mayor precio",
+  nuevas: "Más nuevas",
+};
+
 export function CatalogFilters({
   filters,
-  options,
   onChange,
+  sort,
+  onSortChange,
+  byMatch,
   shown,
   total,
   mapOpen,
   onToggleMap,
 }: {
   filters: Filters;
-  options: CatalogOptions;
   onChange: (next: Filters) => void;
+  /** Null is the default order: best match first, or the catalog's own. */
+  sort: CatalogSort | null;
+  onSortChange: (next: CatalogSort | null) => void;
+  /** Whether the default order is the visitor's match. Names the option. */
+  byMatch: boolean;
   /** How many listings survive the filters, and how many there are. */
   shown: number;
   total: number;
@@ -46,9 +51,6 @@ export function CatalogFilters({
 }) {
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
   const active = hasAnyFilter(filters);
-  const showOperation = options.operations.length > 1;
-  const showType = options.types.length > 1;
-  const showPartido = options.partidos.length > 1;
 
   return (
     <div className="rounded-3xl border bg-card p-4 sm:p-5 space-y-4">
@@ -87,63 +89,23 @@ export function CatalogFilters({
         </button>
       </div>
 
-      {(showOperation || showType || showPartido) && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-x-8">
-          {showOperation && (
-            <Group label="Operación">
-              {options.operations.map((op) => (
-                <Chip
-                  key={op}
-                  on={filters.operation === op}
-                  onClick={() => set({ operation: filters.operation === op ? null : op })}
-                >
-                  {OPERATION_LABELS[op]}
-                </Chip>
-              ))}
-            </Group>
-          )}
 
-          {showType && (
-            <Group label="Tipo">
-              {options.types.map((t) => (
-                <Chip key={t} on={filters.type === t} onClick={() => set({ type: filters.type === t ? null : t })}>
-                  {propertyTypeLabel(t) ?? t}
-                </Chip>
-              ))}
-            </Group>
-          )}
-
-          {showPartido && (
-            <Group label="Ubicación">
-              {options.partidos.length <= 4 ? (
-                options.partidos.map((z) => (
-                  <Chip
-                    key={z}
-                    on={filters.partido === z}
-                    onClick={() => set({ partido: filters.partido === z ? null : z })}
-                  >
-                    {z}
-                  </Chip>
-                ))
-              ) : (
-                <select
-                  aria-label="Ubicación"
-                  value={filters.partido ?? ""}
-                  onChange={(e) => set({ partido: e.target.value || null })}
-                  className="h-11 rounded-full border bg-background px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <option value="">Todas las zonas</option>
-                  {options.partidos.map((z) => (
-                    <option key={z} value={z}>
-                      {z}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </Group>
-          )}
-        </div>
-      )}
+      <label className="flex items-center gap-2 text-sm">
+        <ArrowUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="text-muted-foreground">Ordenar por</span>
+        <select
+          value={sort ?? ""}
+          onChange={(e) => onSortChange((e.target.value || null) as CatalogSort | null)}
+          className="h-11 min-w-0 flex-1 rounded-full border bg-background px-4 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-none"
+        >
+          <option value="">{byMatch ? "Mejor match" : "Recomendadas"}</option>
+          {(Object.keys(SORT_LABELS) as CatalogSort[]).map((k) => (
+            <option key={k} value={k}>
+              {SORT_LABELS[k]}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
         <p aria-live="polite">
@@ -166,48 +128,5 @@ export function CatalogFilters({
         )}
       </div>
     </div>
-  );
-}
-
-const OPERATION_LABELS: Record<CatalogOperation, string> = {
-  venta: "Venta",
-  alquiler: "Alquiler",
-};
-
-function Group({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <fieldset className="min-w-0">
-      <legend className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </legend>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </fieldset>
-  );
-}
-
-function Chip({
-  on,
-  onClick,
-  children,
-}: {
-  on: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onClick}
-      className={cn(
-        "min-h-11 rounded-full border px-4 text-sm font-medium transition-all duration-200",
-        "active:scale-90 motion-safe:hover:scale-[1.04]",
-        on
-          ? "border-transparent bg-primary text-primary-foreground shadow-sm"
-          : "bg-background text-muted-foreground hover:border-primary/40",
-      )}
-    >
-      {children}
-    </button>
   );
 }

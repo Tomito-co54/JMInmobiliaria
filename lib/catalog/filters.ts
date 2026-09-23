@@ -24,7 +24,12 @@ import { isInside, type Bounds } from "@/lib/market/geo";
  * is — the position the ARBA bridge wrote from the parcel centre.
  */
 export type CatalogProperty = PremiumCardProperty &
-  MatchableProperty & { lat?: number | null; lng?: number | null };
+  MatchableProperty & {
+    lat?: number | null;
+    lng?: number | null;
+    /** Town within the partido (migration 00022). Null until the maestra says. */
+    localidad?: string | null;
+  };
 
 export type CatalogOperation = "venta" | "alquiler";
 
@@ -32,6 +37,8 @@ export interface CatalogFilters {
   /** Free text — address, zone, a word from the description. */
   q: string;
   partido: string | null;
+  /** Town within the partido — what the search intro asks as "ubicación". */
+  localidad: string | null;
   operation: CatalogOperation | null;
   type: string | null;
   /** A rectangle on the map. Null = anywhere. */
@@ -41,6 +48,7 @@ export interface CatalogFilters {
 export const EMPTY_CATALOG_FILTERS: CatalogFilters = {
   q: "",
   partido: null,
+  localidad: null,
   operation: null,
   type: null,
   area: null,
@@ -48,7 +56,12 @@ export const EMPTY_CATALOG_FILTERS: CatalogFilters = {
 
 export function hasAnyFilter(f: CatalogFilters): boolean {
   return (
-    f.q.trim() !== "" || f.partido !== null || f.operation !== null || f.type !== null || f.area !== null
+    f.q.trim() !== "" ||
+    f.partido !== null ||
+    f.localidad !== null ||
+    f.operation !== null ||
+    f.type !== null ||
+    f.area !== null
   );
 }
 
@@ -82,17 +95,25 @@ export function normalizeText(text: string): string {
 
 // --- URL <-> filters --------------------------------------------------------
 //
-// The filters live in the query string (?q=&partido=&op=&tipo=) so a filtered
-// catalog can be sent to someone and survives the back button. Empty values
-// are omitted: a clean URL for a clean catalog.
+// The filters live in the query string (?q=&partido=&loc=&op=&tipo=) so a
+// filtered catalog can be sent to someone and survives the back button. Empty
+// values are omitted: a clean URL for a clean catalog.
 
-const PARAM = { q: "q", partido: "partido", operation: "op", type: "tipo", area: "area" } as const;
+const PARAM = {
+  q: "q",
+  partido: "partido",
+  localidad: "loc",
+  operation: "op",
+  type: "tipo",
+  area: "area",
+} as const;
 
 export function filtersFromParams(params: URLSearchParams): CatalogFilters {
   const op = params.get(PARAM.operation);
   return {
     q: params.get(PARAM.q) ?? "",
     partido: params.get(PARAM.partido) || null,
+    localidad: params.get(PARAM.localidad) || null,
     operation: op === "venta" || op === "alquiler" ? op : null,
     type: params.get(PARAM.type) || null,
     area: boundsFromParam(params.get(PARAM.area)),
@@ -103,6 +124,7 @@ export function filtersToParams(f: CatalogFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (f.q.trim()) params.set(PARAM.q, f.q.trim());
   if (f.partido) params.set(PARAM.partido, f.partido);
+  if (f.localidad) params.set(PARAM.localidad, f.localidad);
   if (f.operation) params.set(PARAM.operation, f.operation);
   if (f.type) params.set(PARAM.type, f.type);
   if (f.area) params.set(PARAM.area, boundsToParam(f.area));
@@ -113,6 +135,7 @@ export function filtersToParams(f: CatalogFilters): URLSearchParams {
 
 export interface CatalogOptions {
   partidos: string[];
+  localidades: string[];
   operations: CatalogOperation[];
   types: string[];
 }
@@ -125,15 +148,18 @@ export interface CatalogOptions {
  */
 export function catalogOptions(list: readonly CatalogProperty[]): CatalogOptions {
   const partidos = new Set<string>();
+  const localidades = new Set<string>();
   const operations = new Set<CatalogOperation>();
   const types = new Set<string>();
   for (const p of list) {
     if (p.partido) partidos.add(p.partido);
+    if (p.localidad) localidades.add(p.localidad);
     if (p.operation_type === "venta" || p.operation_type === "alquiler") operations.add(p.operation_type);
     if (p.property_type) types.add(p.property_type);
   }
   return {
     partidos: [...partidos].sort((a, b) => a.localeCompare(b, "es")),
+    localidades: [...localidades].sort((a, b) => a.localeCompare(b, "es")),
     operations: (["venta", "alquiler"] as const).filter((o) => operations.has(o)),
     types: [...types].sort((a, b) => a.localeCompare(b, "es")),
   };
@@ -154,6 +180,7 @@ export function applyFilters<T extends CatalogProperty>(
   const words = normalizeText(f.q).split(/\s+/).filter(Boolean);
   return list.filter((p) => {
     if (f.partido && p.partido !== f.partido) return false;
+    if (f.localidad && p.localidad !== f.localidad) return false;
     if (f.operation && p.operation_type !== f.operation) return false;
     if (f.type && p.property_type !== f.type) return false;
     // A listing with no position cannot be inside any area. It is left out
@@ -165,7 +192,7 @@ export function applyFilters<T extends CatalogProperty>(
     }
     if (words.length === 0) return true;
     const haystack = normalizeText(
-      [p.address, p.partido, propertyTypeLabel(p.property_type), p.description]
+      [p.address, p.localidad, p.partido, propertyTypeLabel(p.property_type), p.description]
         .filter(Boolean)
         .join(" "),
     );
@@ -219,4 +246,118 @@ export function orderByMatch<T extends MatchableProperty>(
     })
     .sort((a, b) => a.tier - b.tier || (b.score ?? 0) - (a.score ?? 0) || a.index - b.index)
     .map(({ property, score }) => ({ property, score }));
+}
+
+// --- ordering by the visitor's choice ----------------------------------------
+
+/**
+ * The orders the catalog offers besides its default. `null` is the default:
+ * best match first when the visitor has criteria, otherwise the order the
+ * page arrived in.
+ *
+ * Unlike the match order, a chosen order IS in the URL (?orden=): "the
+ * cheapest first" is a property of the page someone sends, not of the visitor.
+ */
+export const CATALOG_SORTS = ["precio-asc", "precio-desc", "nuevas"] as const;
+export type CatalogSort = (typeof CATALOG_SORTS)[number];
+
+const SORT_PARAM = "orden";
+
+export function sortFromParams(params: URLSearchParams): CatalogSort | null {
+  const raw = params.get(SORT_PARAM) ?? "";
+  return (CATALOG_SORTS as readonly string[]).includes(raw) ? (raw as CatalogSort) : null;
+}
+
+export function sortToParams(sort: CatalogSort | null, params: URLSearchParams): void {
+  if (sort) params.set(SORT_PARAM, sort);
+}
+
+/**
+ * Dollars before pesos. A price order never compares across currencies: a
+ * rent of 1.900.000 pesos a month is not "more expensive" than a sale of
+ * 69.900 dollars, it is another scale (the rule lib/property/offers.ts
+ * follows for the protagonista). So the list is grouped by currency first,
+ * which in this catalog means sales, then rentals.
+ */
+const CURRENCY_RANK: Record<string, number> = { USD: 0, ARS: 1 };
+
+/**
+ * Re-orders an already scored list. Scores travel with their property, so a
+ * card keeps its "Tu match" badge when sorted by price. Listings without the
+ * sort key (no price, no year) go last rather than pretending to be zero,
+ * and ties keep the order they came in.
+ */
+export function sortCatalog<T extends CatalogProperty>(
+  list: readonly ScoredProperty<T>[],
+  sort: CatalogSort | null,
+): ScoredProperty<T>[] {
+  if (!sort) return [...list];
+  const indexed = list.map((item, index) => ({ item, index }));
+  const missingLast = (a: number | null, b: number | null) =>
+    a === null ? (b === null ? 0 : 1) : b === null ? -1 : 0;
+
+  if (sort === "nuevas") {
+    const year = (p: CatalogProperty) => (typeof p.year_built === "number" ? p.year_built : null);
+    return indexed
+      .sort((a, b) => {
+        const ya = year(a.item.property);
+        const yb = year(b.item.property);
+        return missingLast(ya, yb) || (yb ?? 0) - (ya ?? 0) || a.index - b.index;
+      })
+      .map(({ item }) => item);
+  }
+
+  const dir = sort === "precio-asc" ? 1 : -1;
+  const price = (p: CatalogProperty) =>
+    typeof p.price_amount === "number" && p.price_amount > 0 ? p.price_amount : null;
+  const rank = (p: CatalogProperty) => CURRENCY_RANK[p.price_currency ?? ""] ?? 2;
+  return indexed
+    .sort((a, b) => {
+      const pa = a.item.property;
+      const pb = b.item.property;
+      const xa = price(pa);
+      const xb = price(pb);
+      return (
+        missingLast(xa, xb) ||
+        rank(pa) - rank(pb) ||
+        dir * ((xa ?? 0) - (xb ?? 0)) ||
+        a.index - b.index
+      );
+    })
+    .map(({ item }) => item);
+}
+
+// --- the search, answer by answer ---------------------------------------------
+
+/**
+ * The options for operation, type and localidad, each narrowed by the answers
+ * before it: the types on offer for the chosen operation, the localidades for
+ * the chosen operation and type. The order is the intro's (operation → type →
+ * place), and the search board uses the same one, so no chip on either leads
+ * to an empty list.
+ */
+export function narrowedOptions(
+  list: readonly CatalogProperty[],
+  f: Pick<CatalogFilters, "operation" | "type">,
+): Pick<CatalogOptions, "operations" | "types" | "localidades"> {
+  const all = catalogOptions(list);
+  const byOp = catalogOptions(applyFilters(list, { ...EMPTY_CATALOG_FILTERS, operation: f.operation }));
+  const byOpType = catalogOptions(
+    applyFilters(list, { ...EMPTY_CATALOG_FILTERS, operation: f.operation, type: f.type }),
+  );
+  return { operations: all.operations, types: byOp.types, localidades: byOpType.localidades };
+}
+
+/**
+ * Drops the later answers that no longer fit after an earlier one changed:
+ * switching to "Alquiler" with "Departamento" picked leaves a type with
+ * nothing for rent, so the type goes back to "cualquiera" instead of
+ * silently emptying the list.
+ */
+export function dropStaleAnswers(list: readonly CatalogProperty[], f: CatalogFilters): CatalogFilters {
+  const types = narrowedOptions(list, { operation: f.operation, type: null }).types;
+  const type = f.type && types.includes(f.type) ? f.type : null;
+  const localidades = narrowedOptions(list, { operation: f.operation, type }).localidades;
+  const localidad = f.localidad && localidades.includes(f.localidad) ? f.localidad : null;
+  return type === f.type && localidad === f.localidad ? f : { ...f, type, localidad };
 }

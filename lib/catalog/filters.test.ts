@@ -6,8 +6,12 @@ import {
   filtersFromParams,
   filtersToParams,
   hasAnyFilter,
+  narrowedOptions,
+  dropStaleAnswers,
   normalizeText,
   orderByMatch,
+  sortCatalog,
+  sortFromParams,
   type CatalogProperty,
 } from "./filters";
 import { EMPTY_MATCH_PREFERENCES } from "@/lib/matching/preferences";
@@ -80,6 +84,7 @@ describe("applyFilters", () => {
     const out = applyFilters(all, {
       q: "belgrano",
       partido: "Lomas de Zamora",
+      localidad: null,
       operation: "venta",
       type: "departamento",
       area: null,
@@ -134,7 +139,7 @@ describe("catalogOptions", () => {
 
 describe("filters <-> URL", () => {
   it("round-trips, omitting what is empty", () => {
-    const f = { q: "belgrano", partido: null, operation: "venta" as const, type: null, area: null };
+    const f = { q: "belgrano", partido: null, localidad: null, operation: "venta" as const, type: null, area: null };
     const params = filtersToParams(f);
     expect(params.toString()).toBe("q=belgrano&op=venta");
     expect(filtersFromParams(params)).toEqual(f);
@@ -185,5 +190,99 @@ describe("orderByMatch", () => {
   it("keeps arrival order among ties", () => {
     const out = orderByMatch([VENTA_LOMAS, VENTA_LANUS], { ...EMPTY_MATCH_PREFERENCES, operation: "venta" });
     expect(out.map((s) => s.property.id)).toEqual(["a", "c"]);
+  });
+});
+
+describe("localidad", () => {
+  const banfield = row({ id: "l1", localidad: "Banfield" });
+  const temperley = row({ id: "l2", localidad: "Temperley" });
+  const unknown = row({ id: "l3", localidad: null });
+  const list = [banfield, temperley, unknown];
+
+  it("offers only the localidades the catalog has", () => {
+    expect(catalogOptions(list).localidades).toEqual(["Banfield", "Temperley"]);
+  });
+
+  it("filters by it, leaving out the listings that have none", () => {
+    expect(applyFilters(list, { ...EMPTY_CATALOG_FILTERS, localidad: "Banfield" }).map((p) => p.id)).toEqual(["l1"]);
+  });
+
+  it("travels in the URL as loc", () => {
+    const params = filtersToParams({ ...EMPTY_CATALOG_FILTERS, localidad: "Banfield" });
+    expect(params.toString()).toBe("loc=Banfield");
+    expect(filtersFromParams(params).localidad).toBe("Banfield");
+  });
+
+  it("is found by the search box", () => {
+    expect(applyFilters(list, { ...EMPTY_CATALOG_FILTERS, q: "temperley" }).map((p) => p.id)).toEqual(["l2"]);
+  });
+});
+
+describe("sortCatalog", () => {
+  const scored = (...rows: CatalogProperty[]) => rows.map((property) => ({ property, score: null }));
+  const ids = (list: { property: CatalogProperty }[]) => list.map((x) => x.property.id);
+
+  const cheap = row({ id: "cheap", price_amount: 53000 });
+  const pricey = row({ id: "pricey", price_amount: 126000 });
+  const rent = row({ id: "rent", operation_type: "alquiler", price_amount: 1900000, price_currency: "ARS" });
+  const noPrice = row({ id: "noprice", price_amount: null });
+
+  it("leaves the order alone without a sort", () => {
+    expect(ids(sortCatalog(scored(pricey, cheap), null))).toEqual(["pricey", "cheap"]);
+  });
+
+  it("orders by price both ways, never mixing pesos with dollars", () => {
+    const list = scored(rent, pricey, noPrice, cheap);
+    expect(ids(sortCatalog(list, "precio-asc"))).toEqual(["cheap", "pricey", "rent", "noprice"]);
+    expect(ids(sortCatalog(list, "precio-desc"))).toEqual(["pricey", "cheap", "rent", "noprice"]);
+  });
+
+  it("puts the newest first and the ones without a year last", () => {
+    const old = row({ id: "old", year_built: 1998 });
+    const brandNew = row({ id: "new", year_built: 2026 });
+    const unknownYear = row({ id: "unknown", year_built: null });
+    expect(ids(sortCatalog(scored(old, unknownYear, brandNew), "nuevas"))).toEqual(["new", "old", "unknown"]);
+  });
+
+  it("keeps each score with its property", () => {
+    const out = sortCatalog(
+      [
+        { property: pricey, score: 90 },
+        { property: cheap, score: 40 },
+      ],
+      "precio-asc",
+    );
+    expect(out).toEqual([
+      { property: cheap, score: 40 },
+      { property: pricey, score: 90 },
+    ]);
+  });
+
+  it("reads only known orders from the URL", () => {
+    expect(sortFromParams(new URLSearchParams("orden=precio-asc"))).toBe("precio-asc");
+    expect(sortFromParams(new URLSearchParams("orden=barato"))).toBeNull();
+  });
+});
+
+describe("narrowedOptions and dropStaleAnswers", () => {
+  const depto = row({ id: "d", operation_type: "venta", property_type: "departamento", localidad: "Banfield" });
+  const casaAlq = row({ id: "c", operation_type: "alquiler", property_type: "casa", localidad: "Temperley" });
+  const casaVenta = row({ id: "v", operation_type: "venta", property_type: "casa", localidad: "Lomas de Zamora" });
+  const list = [depto, casaAlq, casaVenta];
+
+  it("offers only the types for the chosen operation, and the places for both", () => {
+    expect(narrowedOptions(list, { operation: "alquiler", type: null }).types).toEqual(["casa"]);
+    expect(narrowedOptions(list, { operation: "venta", type: "casa" }).localidades).toEqual(["Lomas de Zamora"]);
+    expect(narrowedOptions(list, { operation: null, type: null }).operations).toEqual(["venta", "alquiler"]);
+  });
+
+  it("clears a type and a place that the new operation does not have", () => {
+    const f = { ...EMPTY_CATALOG_FILTERS, operation: "alquiler" as const, type: "departamento", localidad: "Banfield" };
+    expect(dropStaleAnswers(list, f)).toMatchObject({ type: null, localidad: null });
+  });
+
+  it("keeps answers that still fit, and returns the same object", () => {
+    const f = { ...EMPTY_CATALOG_FILTERS, operation: "venta" as const, type: "casa", localidad: "Lomas de Zamora" };
+    expect(dropStaleAnswers(list, f)).toBe(f);
   });
 });

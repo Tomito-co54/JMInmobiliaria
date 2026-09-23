@@ -36,6 +36,9 @@ const TYPE_LABELS: Record<string, string> = {
 
 const ROOM_OPTIONS = [1, 2, 3, 4] as const;
 
+/** The questions, by name, so a surface can leave some out (`omit`). */
+export type MatchField = "operation" | "zone" | "price" | "rooms" | "type" | "surface" | "age";
+
 const AGE_LABELS: Record<number, string> = {
   0: "A estrenar",
   10: "Hasta 10 años",
@@ -102,10 +105,18 @@ export function MatchPreferencesForm({
   onChange,
   className,
   operations,
+  omit = [],
 }: {
   value: MatchPreferences;
   onChange: (next: MatchPreferences) => void;
   className?: string;
+  /**
+   * Questions this surface does not ask, because something next to it already
+   * does. The catalog's search board answers operation, type and place with
+   * its own controls — which filter, not just score — so asking them again
+   * here would be two answers to one question.
+   */
+  omit?: readonly MatchField[];
   /**
    * The operations present in the catalog this form is shown beside.
    *
@@ -126,7 +137,9 @@ export function MatchPreferencesForm({
   const distinctOperations = new Set(
     (operations ?? []).filter((o): o is string => o === "venta" || o === "alquiler"),
   );
-  const showOperation = distinctOperations.size > 1 || value.operation !== null;
+  const asks = (field: MatchField) => !omit.includes(field);
+  const showOperation =
+    asks("operation") && (distinctOperations.size > 1 || value.operation !== null);
 
   // The slider's top notch means "no ceiling", not its literal value — a
   // buyer who pushes it to the end is saying price is not their constraint,
@@ -179,121 +192,133 @@ export function MatchPreferencesForm({
         </Field>
       ) : null}
 
-      <Field label="Zona">
-        <div className="flex flex-wrap gap-2">
-          {PARTIDOS_ZONA_SUR.map((p) => (
-            <Chip
-              key={p}
-              on={value.partidos.includes(p)}
-              onClick={() =>
-                onChange({ ...value, partidos: toggle(value.partidos, p) })
-              }
-            >
-              {p}
-            </Chip>
-          ))}
-        </div>
-      </Field>
+      {asks("zone") && (
+        <Field label="Zona">
+          <div className="flex flex-wrap gap-2">
+            {PARTIDOS_ZONA_SUR.map((p) => (
+              <Chip
+                key={p}
+                on={value.partidos.includes(p)}
+                onClick={() =>
+                  onChange({ ...value, partidos: toggle(value.partidos, p) })
+                }
+              >
+                {p}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+      )}
 
-      <Field label="Presupuesto" hint={priceLabel}>
-        <input
-          type="range"
-          min={scale.floor}
-          max={scale.ceiling}
-          step={scale.step}
-          value={sliderValue}
-          aria-label={
-            scale.currency === "ARS"
-              ? "Alquiler máximo por mes en pesos"
-              : "Presupuesto máximo en dólares"
-          }
-          aria-valuetext={priceLabel}
-          onChange={(e) => {
-            const n = Number(e.target.value);
-            onChange({
-              ...value,
-              priceMax: n >= scale.ceiling ? null : n,
-            });
-          }}
-          className="w-full accent-[var(--brand-gold)] h-11 cursor-pointer"
-        />
-      </Field>
+      {asks("price") && (
+        <Field label="Presupuesto" hint={priceLabel}>
+          <input
+            type="range"
+            min={scale.floor}
+            max={scale.ceiling}
+            step={scale.step}
+            value={sliderValue}
+            aria-label={
+              scale.currency === "ARS"
+                ? "Alquiler máximo por mes en pesos"
+                : "Presupuesto máximo en dólares"
+            }
+            aria-valuetext={priceLabel}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              onChange({
+                ...value,
+                priceMax: n >= scale.ceiling ? null : n,
+              });
+            }}
+            className="w-full accent-[var(--brand-gold)] h-11 cursor-pointer"
+          />
+        </Field>
+      )}
 
-      <Field label="Ambientes" hint="mínimo">
-        <div className="flex flex-wrap gap-2">
-          {ROOM_OPTIONS.map((n) => (
-            <Chip
-              key={n}
-              on={value.roomsMin === n}
-              label={`${n} ambientes o más`}
-              onClick={() =>
-                onChange({ ...value, roomsMin: value.roomsMin === n ? null : n })
-              }
-            >
-              {n === 4 ? "4+" : n}
-            </Chip>
-          ))}
-        </div>
-      </Field>
+      {asks("rooms") && (
+        <Field label="Ambientes" hint="mínimo">
+          <div className="flex flex-wrap gap-2">
+            {ROOM_OPTIONS.map((n) => (
+              <Chip
+                key={n}
+                on={value.roomsMin === n}
+                label={`${n} ambientes o más`}
+                onClick={() =>
+                  onChange({ ...value, roomsMin: value.roomsMin === n ? null : n })
+                }
+              >
+                {n === 4 ? "4+" : n}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+      )}
 
-      <Field label="Tipo">
-        <div className="flex flex-wrap gap-2">
-          {MATCH_PROPERTY_TYPES.map((t) => (
-            <Chip
-              key={t}
-              on={value.propertyTypes.includes(t)}
-              onClick={() =>
-                onChange({
-                  ...value,
-                  propertyTypes: toggle(value.propertyTypes, t),
-                })
-              }
-            >
-              {TYPE_LABELS[t] ?? t}
-            </Chip>
-          ))}
-        </div>
-      </Field>
+      {asks("type") && (
+        <Field label="Tipo">
+          <div className="flex flex-wrap gap-2">
+            {MATCH_PROPERTY_TYPES.map((t) => (
+              <Chip
+                key={t}
+                on={value.propertyTypes.includes(t)}
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    propertyTypes: toggle(value.propertyTypes, t),
+                  })
+                }
+              >
+                {TYPE_LABELS[t] ?? t}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+      )}
 
-      <Field label="Superficie" hint={surfaceLabel}>
-        <input
-          type="range"
-          min={SURFACE_MIN_FLOOR}
-          max={SURFACE_MIN_CEILING}
-          step={SURFACE_MIN_STEP}
-          value={surfaceValue}
-          aria-label="Superficie mínima en metros cuadrados"
-          aria-valuetext={surfaceLabel}
-          onChange={(e) => {
-            const n = Number(e.target.value);
-            onChange({
-              ...value,
-              surfaceMin: n <= SURFACE_MIN_FLOOR ? null : n,
-            });
-          }}
-          className="w-full accent-[var(--brand-gold)] h-11 cursor-pointer"
-        />
-      </Field>
+      {asks("surface") && (
+        <Field label="Superficie" hint={surfaceLabel}>
+          <input
+            type="range"
+            min={SURFACE_MIN_FLOOR}
+            max={SURFACE_MIN_CEILING}
+            step={SURFACE_MIN_STEP}
+            value={surfaceValue}
+            aria-label="Superficie mínima en metros cuadrados"
+            aria-valuetext={surfaceLabel}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              onChange({
+                ...value,
+                surfaceMin: n <= SURFACE_MIN_FLOOR ? null : n,
+              });
+            }}
+            className="w-full accent-[var(--brand-gold)] h-11 cursor-pointer"
+          />
+        </Field>
+      )}
 
-      <Field label="Antigüedad" hint="de la construcción">
-        <div className="flex flex-wrap gap-2">
-          {AGE_MAX_OPTIONS.map((n) => (
-            <Chip
-              key={n}
-              on={value.maxAgeYears === n}
-              label={n === 0 ? "A estrenar" : `Hasta ${n} años de antigüedad`}
-              onClick={() =>
-                onChange({
-                  ...value,
-                  maxAgeYears: value.maxAgeYears === n ? null : n,
-                })
-              }
-            >
-              {AGE_LABELS[n] ?? `${n}`}
-            </Chip>
-          ))}
-        </div>
-      </Field>
+      {asks("age") && (
+        <Field label="Antigüedad" hint="de la construcción">
+          <div className="flex flex-wrap gap-2">
+            {AGE_MAX_OPTIONS.map((n) => (
+              <Chip
+                key={n}
+                on={value.maxAgeYears === n}
+                label={n === 0 ? "A estrenar" : `Hasta ${n} años de antigüedad`}
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    maxAgeYears: value.maxAgeYears === n ? null : n,
+                  })
+                }
+              >
+                {AGE_LABELS[n] ?? `${n}`}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+      )}
     </div>
   );
 }

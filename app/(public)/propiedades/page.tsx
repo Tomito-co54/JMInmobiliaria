@@ -28,7 +28,16 @@ export const metadata: Metadata = {
     "Propiedades en Zona Sur del Gran Buenos Aires, con los datos verificados antes de publicarse.",
 };
 
-export default async function PropiedadesPage() {
+export default async function PropiedadesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // A bare /propiedades is someone arriving: it opens on the three-question
+  // intro. Any query string — a search, "ver=todas", the map, a shared link —
+  // is someone who already knows what they want to see.
+  const startWithIntro = Object.keys(await searchParams).length === 0;
+
   // Proximity to ZONA_SUR_CENTER is the seed order for a visitor we know
   // nothing about: the most-covered part of GBA first. No limit — this is the
   // page that is supposed to show all of it.
@@ -55,6 +64,7 @@ export default async function PropiedadesPage() {
         buildings={buildings}
         eyebrow="El catálogo"
         heading={operationLabel ? `Propiedades ${operationLabel}` : "Propiedades"}
+        startWithIntro={startWithIntro}
       />
 
       <WhatsAppFloat />

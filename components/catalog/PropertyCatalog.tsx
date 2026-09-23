@@ -24,6 +24,7 @@ export function PropertyCatalog({
   heading,
   eyebrow,
   intro,
+  startWithIntro = false,
 }: {
   properties: CatalogProperty[];
   /** Total published count — drives the header copy, not the rendered slice. */
@@ -39,47 +40,61 @@ export function PropertyCatalog({
   eyebrow?: string;
   heading?: string;
   intro?: string;
+  /** Open on the three-question intro instead of the results. */
+  startWithIntro?: boolean;
 }) {
+  const eyebrowText = eyebrow ?? "El catálogo";
+  const headingText = heading ?? "Propiedades disponibles";
+  const introText =
+    intro ??
+    (totalProperties > 0
+      ? `${totalProperties} ${
+          totalProperties === 1 ? "propiedad publicada" : "propiedades publicadas"
+        } en Zona Sur GBA, cada una revisada antes de publicarse.`
+      : "Estamos cargando las primeras propiedades.");
+
   return (
     <section
       id="catalogo"
       className="px-4 pb-20 sm:pb-28 border-t bg-muted/30 scroll-mt-16 pt-14 sm:pt-20"
     >
-      <div className="max-w-5xl mx-auto">
-        <Reveal className="max-w-2xl mb-10 sm:mb-14">
-          <p
-            className="text-xs uppercase tracking-[0.2em] font-medium"
-            style={{ color: "var(--brand-gold)" }}
-          >
-            {eyebrow ?? "El catálogo"}
-          </p>
-          <h2
-            className="mt-3 font-heading font-medium text-3xl sm:text-4xl tracking-tight"
-            style={{ color: "var(--brand-heading)" }}
-          >
-            {heading ?? "Propiedades disponibles"}
-          </h2>
-          <p className="mt-3 text-sm sm:text-base text-muted-foreground">
-            {intro ??
-              (totalProperties > 0
-                ? `${totalProperties} ${
-                    totalProperties === 1
-                      ? "propiedad publicada"
-                      : "propiedades publicadas"
-                  } en Zona Sur GBA, cada una revisada antes de publicarse.`
-                : "Estamos cargando las primeras propiedades.")}
-          </p>
-        </Reveal>
-
+      {/* Wider than the landing's 5xl: the results share the row with the
+          search board on a wide screen. */}
+      <div className="max-w-6xl mx-auto">
         {properties.length === 0 ? (
-          <div className="rounded-3xl border bg-card p-8 text-center text-sm text-muted-foreground">
-            Todavía no hay propiedades publicadas. Volvé pronto.
-          </div>
+          <>
+            <Reveal className="max-w-2xl mb-10 sm:mb-14">
+              <p
+                className="text-xs uppercase tracking-[0.2em] font-medium"
+                style={{ color: "var(--brand-gold)" }}
+              >
+                {eyebrowText}
+              </p>
+              <h2
+                className="mt-3 font-heading font-medium text-3xl sm:text-4xl tracking-tight"
+                style={{ color: "var(--brand-heading)" }}
+              >
+                {headingText}
+              </h2>
+              <p className="mt-3 text-sm sm:text-base text-muted-foreground">{introText}</p>
+            </Reveal>
+            <div className="rounded-3xl border bg-card p-8 text-center text-sm text-muted-foreground">
+              Todavía no hay propiedades publicadas. Volvé pronto.
+            </div>
+          </>
         ) : (
-          // The list itself is a client island: it is filtered by the bar it
-          // draws and ordered by the visitor's match, which only exists in
-          // the browser.
-          <PropertyCatalogList properties={properties} buildings={buildings ?? {}} />
+          // The list itself is a client island: it opens on the intro, is
+          // filtered by the board and the bar it draws, and is ordered by the
+          // visitor's match, which only exists in the browser. It draws its
+          // own heading because the intro replaces it.
+          <PropertyCatalogList
+            properties={properties}
+            buildings={buildings ?? {}}
+            startWithIntro={startWithIntro}
+            eyebrow={eyebrowText}
+            heading={headingText}
+            intro={introText}
+          />
         )}
       </div>
     </section>
