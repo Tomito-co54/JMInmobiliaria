@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft, BookOpen, FileText, ScrollText } from "lucide-react";
+import { BookOpen, FileText, ScrollText } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { BrandLogo } from "@/components/shared/BrandLogo";
-import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { PublicHeader } from "@/components/shared/PublicHeader";
 import {
   GLOSSARY,
   PROCESS_STEPS,
@@ -19,7 +18,8 @@ export const metadata = {
 
 /**
  * /guia-de-compra — educational page that walks through the AR
- * property-buying process. Static content, no auth required.
+ * property-buying process. No auth required; the shared PublicHeader
+ * reads the session, as on every other public page.
  *
  * Structure:
  *   - Hero with intro
@@ -30,44 +30,7 @@ export const metadata = {
 export default function GuiaDeCompraPage() {
   return (
     <main className="min-h-screen flex flex-col bg-background">
-      {/* Top bar */}
-      <header className="border-b sticky top-0 z-10 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link
-            href="/"
-            aria-label="Volver al inicio"
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "-ml-2 gap-1.5",
-            )}
-          >
-            <ArrowLeft className="size-4" />
-            <span className="hidden sm:inline">Inicio</span>
-          </Link>
-
-          <Link
-            href="/"
-            aria-label="Jotaeme — inicio"
-            // Mismo acuse al toque que en PublicHeader: es el mismo logo
-            // llevando al mismo lado, y dos cabeceras que responden distinto
-            // al mismo gesto se sienten como dos sitios (§2.5).
-            className={cn(
-              "shrink-0 transition-[opacity,transform] duration-200 ease-out",
-              "hover:opacity-80 motion-safe:active:scale-[0.93] active:opacity-70",
-            )}
-          >
-            <BrandLogo variant="isotipo" size={28} />
-          </Link>
-          <ThemeToggle />
-
-          <Link
-            href="/propiedades"
-            className={cn(buttonVariants({ size: "sm" }))}
-          >
-            Ver propiedades
-          </Link>
-        </div>
-      </header>
+      <PublicHeader active="guia" />
 
       {/* Hero */}
       <section className="px-4 pt-12 pb-10 sm:pt-16 sm:pb-12">
