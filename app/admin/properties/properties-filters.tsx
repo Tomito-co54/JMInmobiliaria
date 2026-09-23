@@ -125,6 +125,7 @@ export function PropertiesFilters({ partidos }: PropertiesFiltersProps) {
         >
           <option value="">Todas</option>
           <option value="mias">Mías</option>
+          <option value="colegas">Colegas</option>
           <option value="scrapeadas">Scrapeadas</option>
         </select>
       </div>

@@ -85,6 +85,11 @@ export default async function PublicPropertyPage({ params }: PageProps) {
 
   const { property, arbaLookup } = view;
 
+  // A partner's listing is shown as ours and never points back to their
+  // site (Tomy, 23-sep-2026): the row keeps its `url` because the sync needs
+  // it, but the page does not print it. Owner rows have no url at all.
+  const publicSourceUrl = property.source === "colega" ? null : property.url;
+
   // Sibling units on the same parcel. Its own await rather than part of
   // getPropertyForPublicView because it depends on the row we just read.
   const buildingUnits = await getBuildingUnits(
@@ -173,10 +178,11 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               photos={property.photos}
               alt={altText}
               address={property.address}
-              partido={property.partido}
+              partido={property.localidad ?? property.partido}
               typeLabel={typeLabel}
               opLabel={opLabel}
               tags={property.tags}
+              partner={property.partner}
             />
 
             {/* On mobile the data panel comes right after the hero, before
@@ -201,7 +207,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
                 yearBuilt={property.year_built}
                 propertyForMatching={propertyForMatching}
                 source={property.source}
-                sourceUrl={property.url}
+                sourceUrl={publicSourceUrl}
                 isFavorited={favorited}
                 signedOut={!userId}
               />
@@ -282,7 +288,7 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               yearBuilt={property.year_built}
               propertyForMatching={propertyForMatching}
               source={property.source}
-              sourceUrl={property.url}
+              sourceUrl={publicSourceUrl}
               isFavorited={favorited}
               signedOut={!userId}
             />

@@ -11,6 +11,7 @@ import type { MatchableProperty } from "@/lib/matching";
 import {
   PUBLIC_CATALOG_TAG,
   PUBLIC_LISTING_STATUS,
+  OWNER_PROPERTY_SOURCES,
   PUBLIC_PROPERTY_SOURCES,
 } from "@/lib/db/property-sources";
 
@@ -40,6 +41,10 @@ export async function getPropertyById(id: string) {
 export interface PublicPropertyRow {
   id: string;
   source: string;
+  /** Whose listing, on a partner's row (source = 'colega'). */
+  partner: string | null;
+  /** Town within the partido (00022). */
+  localidad: string | null;
   /**
    * Editorial state — NULL for scraped properties (which never appear on
    * public surfaces anyway). Surfaced here so the admin preview can show
@@ -97,6 +102,8 @@ export interface PublicPropertyView {
 const PUBLIC_PROPERTY_COLS = [
   "id",
   "source",
+  "partner",
+  "localidad",
   "listing_status",
   "url",
   "partido",
@@ -405,14 +412,15 @@ export async function getFeaturedProperty(): Promise<FeaturedPropertyRow | null>
   const supabase = await createClient();
 
   // An offer outranks the curated pick (Tomy, 16-sep-2026): the landing's
-  // one property is the cheapest listing on offer while any exists. Same
-  // two-gate filter; the tag CHECK already limits it to owner rows. Ordered
+  // one property is the cheapest listing on offer while any exists. Owner
+  // rows only: a partner's price cut is an `oferta` too (00025), but the
+  // home's protagonist is always the family's (Tomy, 23-sep-2026). Ordered
   // by price so a tie falls to the same row every request.
   const { data: offerRows, error: offerErr } = await supabase
     .from("properties")
     .select(FEATURED_PROPERTY_COLS)
     .contains("tags", ["oferta"])
-    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+    .in("source", OWNER_PROPERTY_SOURCES as unknown as string[])
     .eq("listing_status", PUBLIC_LISTING_STATUS)
     .order("price_amount", { ascending: true, nullsFirst: false });
   if (offerErr) throw offerErr;
@@ -423,10 +431,9 @@ export async function getFeaturedProperty(): Promise<FeaturedPropertyRow | null>
     .from("properties")
     .select(FEATURED_PROPERTY_COLS)
     .eq("is_featured", true)
-    // Two-gate public filter (see lib/db/property-sources.ts) — the
-    // is_featured CHECK constraint already restricts to owner sources, but
-    // we keep the explicit gate so the rule lives in one obvious place.
-    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+    // Owner sources only — the is_featured CHECK already says so, but the
+    // rule lives here too so it is obvious (lib/db/property-sources.ts).
+    .in("source", OWNER_PROPERTY_SOURCES as unknown as string[])
     .eq("listing_status", PUBLIC_LISTING_STATUS)
     // Deterministic base order so the daily rotation index is stable.
     .order("created_at", { ascending: true });

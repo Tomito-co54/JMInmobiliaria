@@ -75,7 +75,7 @@ export default async function AdminPropertiesPage({ searchParams }: PageProps) {
       : "all";
 
   const sourceClass =
-    params.sourceClass === "mias" || params.sourceClass === "scrapeadas"
+    params.sourceClass === "mias" || params.sourceClass === "colegas" || params.sourceClass === "scrapeadas"
       ? params.sourceClass
       : "all";
 

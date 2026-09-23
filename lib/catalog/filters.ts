@@ -29,6 +29,8 @@ export type CatalogProperty = PremiumCardProperty &
     lng?: number | null;
     /** Town within the partido (migration 00022). Null until the maestra says. */
     localidad?: string | null;
+    /** 'colega' marks a partner's listing (00024); see ownFirst. */
+    source?: string | null;
   };
 
 export type CatalogOperation = "venta" | "alquiler";
@@ -360,4 +362,18 @@ export function dropStaleAnswers(list: readonly CatalogProperty[], f: CatalogFil
   const localidades = narrowedOptions(list, { operation: f.operation, type }).localidades;
   const localidad = f.localidad && localidades.includes(f.localidad) ? f.localidad : null;
   return type === f.type && localidad === f.localidad ? f : { ...f, type, localidad };
+}
+
+// --- the family's first ---------------------------------------------------------
+
+/**
+ * The family's listings ahead of a partner's, each group in the order it came
+ * (Tomy, 23-sep-2026: "que quede marcada mi prioridad"). Applied before any
+ * ordering: every order here breaks ties by arrival, so the default order
+ * shows his first, and between two listings the match scores the same, his
+ * wins. A chosen order (price, age) still sorts by what it names.
+ */
+export function ownFirst<T extends { source?: string | null }>(list: readonly T[]): T[] {
+  const isPartner = (p: T) => p.source === "colega";
+  return [...list.filter((p) => !isPartner(p)), ...list.filter(isPartner)];
 }

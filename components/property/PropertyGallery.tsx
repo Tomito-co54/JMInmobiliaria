@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { skipsOptimizer } from "@/lib/property/photo-source";
 
 /**
  * Fullscreen photo viewer for /p/[id].
@@ -92,6 +93,7 @@ export function PropertyGallery({
           <div key={src} className="relative h-full w-full shrink-0 snap-center">
             <Image
               src={src}
+              unoptimized={skipsOptimizer(src)}
               alt={`${alt} — foto ${i + 1} de ${photos.length}`}
               fill
               sizes="100vw"
@@ -179,7 +181,14 @@ export function PropertyThumbnails({
             "opacity-80 hover:opacity-100 focus-visible:opacity-100",
           )}
         >
-          <Image src={src} alt={`${alt} — miniatura ${i + 1}`} fill sizes="80px" className="object-cover" />
+          <Image
+            src={src}
+            alt={`${alt} — miniatura ${i + 1}`}
+            fill
+            sizes="80px"
+            unoptimized={skipsOptimizer(src)}
+            className="object-cover"
+          />
         </button>
       ))}
     </div>

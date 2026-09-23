@@ -119,7 +119,12 @@ export default async function EdificiosPage() {
   const proximity = await getPropertiesByProximity(ZONA_SUR_CENTER, {
     limit: Number.MAX_SAFE_INTEGER,
   });
-  const rows = proximity.data as unknown as Row[];
+  // A partner's listings (source = 'colega') are in the catalog, not here:
+  // this page groups the family's buildings, and their "no parcel" note is
+  // about the family's loading, not about somebody else's catalog.
+  const rows = (proximity.data as unknown as (Row & { source?: string })[]).filter(
+    (r) => r.source !== "colega",
+  );
 
   const grouped = groupByBuilding(rows);
   const buildings = [...grouped.entries()]

@@ -62,14 +62,16 @@ export interface AdminPropertyFilters {
   /**
    * Convenience filter by source class:
    *   - "mias"        → source IN ('owner_direct','agency')
-   *   - "scrapeadas"  → source NOT IN ('owner_direct','agency')
+   *   - "colegas"     → source = 'colega' (a partner's catalog, published)
+   *   - "scrapeadas"  → source NOT IN ('owner_direct','agency','colega')
    */
-  sourceClass?: "all" | "mias" | "scrapeadas";
+  sourceClass?: "all" | "mias" | "colegas" | "scrapeadas";
   page?: number;
   pageSize?: number;
 }
 
 const OWNER_SOURCES = ["owner_direct", "agency"];
+const NON_MARKET = ["owner_direct", "agency", "colega"];
 
 export async function getPropertiesAdmin(filters: AdminPropertyFilters = {}) {
   const supabase = await createClient();
@@ -111,8 +113,10 @@ export async function getPropertiesAdmin(filters: AdminPropertyFilters = {}) {
   }
   if (filters.sourceClass === "mias") {
     query = query.in("source", OWNER_SOURCES);
+  } else if (filters.sourceClass === "colegas") {
+    query = query.eq("source", "colega");
   } else if (filters.sourceClass === "scrapeadas") {
-    query = query.not("source", "in", `(${OWNER_SOURCES.map((s) => `"${s}"`).join(",")})`);
+    query = query.not("source", "in", `(${NON_MARKET.map((s) => `"${s}"`).join(",")})`);
   }
 
   query = query.range(from, to);

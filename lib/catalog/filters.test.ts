@@ -10,6 +10,7 @@ import {
   dropStaleAnswers,
   normalizeText,
   orderByMatch,
+  ownFirst,
   sortCatalog,
   sortFromParams,
   type CatalogProperty,
@@ -284,5 +285,24 @@ describe("narrowedOptions and dropStaleAnswers", () => {
   it("keeps answers that still fit, and returns the same object", () => {
     const f = { ...EMPTY_CATALOG_FILTERS, operation: "venta" as const, type: "casa", localidad: "Lomas de Zamora" };
     expect(dropStaleAnswers(list, f)).toBe(f);
+  });
+});
+
+describe("ownFirst", () => {
+  it("puts the family's listings ahead of a partner's, keeping each group's order", () => {
+    const list = [
+      row({ id: "p1", source: "colega" }),
+      row({ id: "o1", source: "owner_direct" }),
+      row({ id: "p2", source: "colega" }),
+      row({ id: "o2", source: "agency" }),
+    ];
+    expect(ownFirst(list).map((p) => p.id)).toEqual(["o1", "o2", "p1", "p2"]);
+  });
+
+  it("lets the family's listing win a match tie", () => {
+    const partner = row({ id: "p", source: "colega" });
+    const own = row({ id: "o", source: "owner_direct" });
+    const ordered = orderByMatch(ownFirst([partner, own]), { ...EMPTY_MATCH_PREFERENCES, roomsMin: 2 });
+    expect(ordered.map((x) => x.property.id)).toEqual(["o", "p"]);
   });
 });

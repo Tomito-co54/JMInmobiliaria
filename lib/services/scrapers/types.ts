@@ -11,7 +11,8 @@ export type PropertySource =
   | "mercadolibre"
   | "trezza"
   | "owner_direct"
-  | "agency";
+  | "agency"
+  | "colega";
 
 export type PropertyType =
   | "casa"

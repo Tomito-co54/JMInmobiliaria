@@ -33,7 +33,7 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "Jotaeme — Inmobiliaria en Zona Sur",
   description:
-    "Propiedades en venta y alquiler en Lanús, Banfield, Lomas de Zamora y Temperley. Publicamos los papeles, no solo las fotos: cada propiedad sale con su partida y su parcela.",
+    "Propiedades en venta y alquiler en Zona Sur del Gran Buenos Aires: Banfield, Lomas de Zamora, Temperley, Adrogué y alrededores.",
 };
 
 /**

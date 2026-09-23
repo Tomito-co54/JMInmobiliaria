@@ -9,6 +9,8 @@ import { PropertyGallery, PropertyThumbnails } from "./PropertyGallery";
 import { PropertyTagChips } from "./PropertyTagChips";
 import { OfferBadge } from "./OfferBadge";
 import { isOnOffer } from "@/lib/property/offers";
+import { PartnerSeal } from "@/components/property/PartnerSeal";
+import { skipsOptimizer } from "@/lib/property/photo-source";
 
 /**
  * Property detail hero (rediseño /p/[id]).
@@ -37,6 +39,8 @@ interface PropertyHeroProps {
   typeLabel: string;
   opLabel: string | null;
   tags: string[];
+  /** A partner's listing carries their seal (lib/colegas). */
+  partner?: string | null;
 }
 
 export function PropertyHero({
@@ -47,6 +51,7 @@ export function PropertyHero({
   typeLabel,
   opLabel,
   tags,
+  partner = null,
 }: PropertyHeroProps) {
   const reduced = usePrefersReducedMotion();
   const [openAt, setOpenAt] = useState<number | null>(null);
@@ -88,6 +93,7 @@ export function PropertyHero({
             alt={alt}
             fill
             sizes="(max-width: 1024px) 100vw, 720px"
+            unoptimized={skipsOptimizer(cover)}
             priority
             className={cn(
               "object-cover",
@@ -102,6 +108,10 @@ export function PropertyHero({
             </div>
           </div>
         )}
+
+        {/* Top right: the offer ribbon owns the top left and the address the
+            bottom, so the partner's seal goes where nothing else is. */}
+        <PartnerSeal partner={partner} size="md" className="absolute right-3 top-3 z-10 sm:right-4 sm:top-4" />
 
         {/* Bottom gradient so the floating text stays legible over any photo. */}
         <div

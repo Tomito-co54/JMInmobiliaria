@@ -50,7 +50,7 @@ export function PropertyCatalog({
     (totalProperties > 0
       ? `${totalProperties} ${
           totalProperties === 1 ? "propiedad publicada" : "propiedades publicadas"
-        } en Zona Sur GBA, cada una revisada antes de publicarse.`
+        } en Zona Sur GBA.`
       : "Estamos cargando las primeras propiedades.");
 
   return (

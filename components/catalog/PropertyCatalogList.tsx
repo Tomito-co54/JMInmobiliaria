@@ -14,6 +14,7 @@ import {
   filtersToParams,
   narrowedOptions,
   orderByMatch,
+  ownFirst,
   sortCatalog,
   sortFromParams,
   sortToParams,
@@ -186,7 +187,7 @@ export function PropertyCatalogList({
     () => ({ ...catalogOptions(properties), ...narrowedOptions(properties, filters) }),
     [properties, filters],
   );
-  const filtered = useMemo(() => applyFilters(properties, filters), [properties, filters]);
+  const filtered = useMemo(() => ownFirst(applyFilters(properties, filters)), [properties, filters]);
   const byMatch = ready && hasAnyPreference(preferences);
   const order = useCallback(
     (list: CatalogProperty[]) =>
@@ -200,7 +201,7 @@ export function PropertyCatalogList({
   // The map shows everything the OTHER filters keep, so the visitor can see
   // what an area leaves out; the area itself only dims, it does not remove.
   const mapItems = useMemo(
-    () => (mapOpen ? order(applyFilters(properties, { ...filters, area: null })) : []),
+    () => (mapOpen ? order(ownFirst(applyFilters(properties, { ...filters, area: null }))) : []),
     [mapOpen, order, properties, filters],
   );
 
@@ -242,7 +243,7 @@ export function PropertyCatalogList({
               would be the heading disagreeing with the page under it. */}
           {filtered.length === properties.length
             ? intro
-            : `${filtered.length} ${filtered.length === 1 ? "propiedad coincide" : "propiedades coinciden"} con tu búsqueda, cada una revisada antes de publicarse.`}
+            : `${filtered.length} ${filtered.length === 1 ? "propiedad coincide" : "propiedades coinciden"} con tu búsqueda.`}
         </p>
       </Reveal>
 

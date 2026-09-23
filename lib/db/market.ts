@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { usdPerM2, median, type MarketRow } from "@/lib/market/stats";
+import { NON_MARKET_SOURCES } from "@/lib/db/property-sources";
 
 /**
  * Market-intelligence queries (/admin/mercado). These read the COMPLEMENT
@@ -15,8 +16,9 @@ import { usdPerM2, median, type MarketRow } from "@/lib/market/stats";
  * few thousand, move the aggregation into a Postgres view / RPC.
  */
 
-const OWNER_SOURCES = ["owner_direct", "agency"];
-const NOT_OWNER = `(${OWNER_SOURCES.map((s) => `"${s}"`).join(",")})`;
+// Named NOT_OWNER for history; it excludes every published source, the
+// partner's catalog included (lib/db/property-sources, NON_MARKET_SOURCES).
+const NOT_OWNER = `(${NON_MARKET_SOURCES.map((s) => `"${s}"`).join(",")})`;
 
 const MARKET_COLS = [
   "id",

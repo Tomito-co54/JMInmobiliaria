@@ -6,6 +6,8 @@ import type { BuildingSummary } from "@/lib/buildings";
 import { formatPrice, labelWithOperation } from "@/lib/property/price";
 import { PropertyTagChips } from "@/components/property/PropertyTagChips";
 import { OfferBadge, OfferPrice } from "@/components/property/OfferBadge";
+import { PartnerSeal } from "@/components/property/PartnerSeal";
+import { skipsOptimizer } from "@/lib/property/photo-source";
 import { isOnOffer } from "@/lib/property/offers";
 import { propertyTypeLabel } from "@/lib/property/types";
 import { extrasSpecWords, readExtras } from "@/lib/property/extras";
@@ -50,6 +52,10 @@ export interface PremiumCardProperty {
   photos: string[];
   tags?: string[] | null;
   extras?: unknown;
+  /** Town within the partido; shown instead of the partido when known. */
+  localidad?: string | null;
+  /** Set on a partner's listing (source = 'colega'): whose seal to show. */
+  partner?: string | null;
 }
 
 export function PropertyPremiumCard({
@@ -88,6 +94,9 @@ export function PropertyPremiumCard({
       })
     : null;
   const typeLabel = propertyTypeLabel(property.property_type);
+  // The town reads better than the partido ("Adrogué", not "Almirante
+  // Brown"), and a partner's catalog spans several of them.
+  const place = property.localidad ?? property.partido;
   // Declared first. surface_arba is the PARCEL — for a flat it is the whole
   // building's lot, so leading with it printed "239 m²" on a 40 m² unit.
   // Same mistake as Fase 12, on the card nobody re-checked.
@@ -141,6 +150,7 @@ export function PropertyPremiumCard({
               alt={heading}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
+              unoptimized={skipsOptimizer(cover)}
               className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             />
           ) : (
@@ -148,6 +158,7 @@ export function PropertyPremiumCard({
               <ImageIcon className="size-8" />
             </div>
           )}
+          <PartnerSeal partner={property.partner} className="absolute bottom-3 right-3" />
         </div>
 
         {/* Data side. */}
@@ -156,9 +167,9 @@ export function PropertyPremiumCard({
             flip ? "md:order-1" : "md:order-2"
           }`}
         >
-          {(typeLabel || property.partido) && (
+          {(typeLabel || place) && (
             <p className="text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">
-              {[labelWithOperation(typeLabel, property.operation_type), property.partido]
+              {[labelWithOperation(typeLabel, property.operation_type), place]
                 .filter(Boolean)
                 .join(" · ")}
             </p>

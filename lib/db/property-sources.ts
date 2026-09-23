@@ -2,11 +2,13 @@
  * Two conditions gate public visibility — they mean different things and
  * BOTH are required. Neither alone is sufficient.
  *
- *   source IN ('owner_direct', 'agency')
- *     → "ES MÍA". Distinguishes the broker's own listings from scraped
- *       market-intel listings (zonaprop, trezza, etc.). Scraped properties
- *       are kept in the same table for the market-intelligence dashboard
- *       inside /admin, but never leak to public surfaces.
+ *   source IN ('owner_direct', 'agency', 'colega')
+ *     → "LA PUBLICAMOS NOSOTROS". Distinguishes what the site shows from
+ *       scraped market-intel listings (zonaprop, trezza, etc.). Scraped
+ *       properties are kept in the same table for the market-intelligence
+ *       dashboard inside /admin, but never leak to public surfaces.
+ *       'colega' (00024) is a fellow broker's catalog published as ours by
+ *       agreement: public, but NOT the family's — see OWNER_PROPERTY_SOURCES.
  *
  *   listing_status = 'publicada'
  *     → "LA DECIDÍ MOSTRAR". The broker's editorial gate. Owner properties
@@ -22,9 +24,26 @@
  * supabase/migrations/00001_initial_schema.sql, and PUBLIC_LISTING_STATUS
  * with the CHECK constraint in 00011_listing_status_and_arba_type.sql.
  */
-export const PUBLIC_PROPERTY_SOURCES = ["owner_direct", "agency"] as const;
+export const PUBLIC_PROPERTY_SOURCES = ["owner_direct", "agency", "colega"] as const;
 
 export type PublicPropertySource = (typeof PUBLIC_PROPERTY_SOURCES)[number];
+
+/**
+ * The family's own listings: what the maestra sync loads and updates, what
+ * the editor edits, and the only ones that can be the home's protagonist or
+ * its featured offer. A subset of the public sources — never widen it to
+ * include 'colega', or the sync could match a partner's listing by address
+ * and write over it.
+ */
+export const OWNER_PROPERTY_SOURCES = ["owner_direct", "agency"] as const;
+
+/**
+ * Everything that is not market intelligence. /admin/mercado reads the
+ * complement of this: a partner's catalog is published inventory, and
+ * counting it as "the market" would put one agency's asking prices into the
+ * medians twice (they are also on the portals).
+ */
+export const NON_MARKET_SOURCES = PUBLIC_PROPERTY_SOURCES;
 
 export const PUBLIC_LISTING_STATUS = "publicada" as const;
 
