@@ -404,6 +404,25 @@ propias **primero** y como protagonistas.
   `HomeGuaranteesClient.tsx` (el dibujo de la cobertura y un `ScoreRingViz`
   huérfano) se borró; `lib/zona-sur/coverage.ts` queda, sin uso.
 
+### Las portadas de los edificios (23-sep)
+
+La de Belgrano se veía rota (el texto alternativo en lugar de la foto): era
+una **URL fija del Storage**, y la sync con `--fotos` borra la galería y la
+vuelve a subir con nombres nuevos. `lib/buildings/photos.ts` ahora guarda
+**"foto N de la unidad X"** —el número del archivo en `Publicación/`, que es
+su lugar en la galería— y la resuelve contra la galería actual; si no está,
+cae a la portada de siempre, nunca a una imagen rota. Una portada que no está
+en ninguna galería (el frente desde la calle) se sube una vez con
+**`npm run subir-portada`** a `property-photos/edificios/`, una carpeta que
+la sync nunca toca, y se referencia como `{ file }`; su fuente queda en
+`Publicación/_edificio/`.
+
+Hoy: Belgrano 1287 = la 18 de la 1°A (el patio); Cabrera 205 = la 09 de la UF
+2 (la esquina, del aviso de Trezza); Portela 95 = frente propio (una captura
+de Street View que eligió Tomy — conviene reemplazarla por una foto propia).
+**Faltan Alsina 1639, Vergara 1901 y Talcahuano 258.** Si Cowork renumera una
+galería, la portada elegida puede cambiar: avisar.
+
 ### El editor no tiene botón de guardar, y eso confunde (19-sep)
 
 Tomy, probando a editar una propiedad desde `/admin`: *"no me aparece botón de
@@ -2613,6 +2632,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.41 | Sep 23, 2026 | **Las portadas de los edificios dejan de romperse.** La de Belgrano apuntaba a una URL que la sync con `--fotos` ya había borrado; ahora cada portada es "foto N de la unidad X", resuelta contra la galería de hoy, o un archivo propio en `edificios/` que la sync no toca (`npm run subir-portada`). Cabrera 205 y Portela 95 tienen la suya. Quinta corrida del protocolo y del colega: sin diferencias. |
 | 2.40 | Sep 23, 2026 | **El catálogo de un colega.** Luciano (Laudani & Cía) le dio a Tomy todo su catálogo, operaciones a medias. Su sitio es BuscadorProp y se lee sin navegador: 113 propiedades entran estandarizadas —tipos, localidades, descripciones sin gritos y sin sus teléfonos— con un sello chico de su logo, el WhatsApp de Tomy y ningún link a su sitio. Un origen nuevo, `colega`, que es público pero no propio: la sync de la maestra y la protagonista siguen viendo sólo lo de la familia, y el mercado no lo cuenta. Sincronización diaria en GitHub Actions con la misma guarda de bajas que costó tres catálogos aprenderla. El catálogo pasa de 15 a **128**. **522 → 544 tests.** |
 | 2.39 | Sep 23, 2026 | **La guía habla como el sitio, y el catálogo se entra en tres pasos.** Tomy reescribió la guía de compra etapa por etapa: sobria, informativa, sin la voz de agencia que acompaña al comprador ni los restos de los servicios pagos; boleto y escritura pasan a ser dos etapas, y reserva y seña dejan de confundirse. En `/propiedades`, una intro de tres preguntas (operación → tipo → ubicación) que filtra, un tablero al costado con el match y lo que falta para afinar, y orden por precio y antigüedad. Para que la ubicación sirva hizo falta un dato que no existía: **la localidad** (00022), que llega desde la maestra; y entraron cuatro tipos (00023). Cuarta corrida del protocolo: 14 sin diferencias, Vergara UF 3 queda en 58.500 (la maestra se corrigió al sitio, no al revés). Una trampa nueva de herramienta: un `\b` escrito desde Python dentro de un string no crudo se guardó como el carácter de retroceso, y la regex de "campo" no matcheaba — lo agarró un test. **499 → 522 tests.** |
 | 2.38 | Sep 19, 2026 | **El editor guarda solo, y conviene decirlo.** Tomy buscó el botón de guardar en `/admin` y no existe: cada sección se guarda sola con `useAutoSave` y lo anuncia el cartelito al lado del título ("Guardando…" → "Guardado"). Confirmó que aparece, así que no había bug; queda escrito porque la ausencia de botón se lee como función rota, y con el recordatorio de que **la sincronización pisa lo editado a mano**: el panel es para lo que la maestra no tiene, un precio se corrige en la maestra. Sin cambios de código. |
