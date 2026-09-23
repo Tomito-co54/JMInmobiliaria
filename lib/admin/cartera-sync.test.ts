@@ -21,8 +21,8 @@ import {
   type UnidadRow,
 } from "./cartera-sync";
 
-const NO_NEW_COLUMNS: MaestraColumns = { publicar: false, direccionReal: false, operacion: false };
-const ALL_COLUMNS: MaestraColumns = { publicar: true, direccionReal: true, operacion: true };
+const NO_NEW_COLUMNS: MaestraColumns = { publicar: false, direccionReal: false, operacion: false, localidad: false };
+const ALL_COLUMNS: MaestraColumns = { publicar: true, direccionReal: true, operacion: true, localidad: true };
 
 function row(over: Partial<UnidadRow> = {}): UnidadRow {
   return {
@@ -49,6 +49,7 @@ function row(over: Partial<UnidadRow> = {}): UnidadRow {
     etiquetas: null,
     operacion: null,
     direccionReal: null,
+    localidad: null,
     ...over,
   };
 }
@@ -449,5 +450,29 @@ describe("cocheraFromColumns cuando la celda no habla de una cochera", () => {
       detail: "00-06",
       priceDelta: null,
     });
+  });
+});
+
+describe("buildFicha: localidad", () => {
+  const photos = ["C:/x/Publicación/1A/fotos/01-1A.jpg"];
+  const build = (localidad: string | null, columns = ALL_COLUMNS) =>
+    buildFicha({ row: row({ localidad }), columns, partida: { row: MADRE, via: "madre" }, provisorio: null, photos });
+
+  it("writes the canonical spelling from the maestra", () => {
+    const b = build("banfield");
+    expect(b.errors).toEqual([]);
+    expect(b.ficha.localidad).toBe("Banfield");
+    expect(b.origen.localidad).toBe("maestra");
+  });
+
+  it("refuses a localidad that is not in the unit's partido", () => {
+    const b = build("Lanús Oeste");
+    expect(b.errors.some((e) => e.startsWith("localidad:"))).toBe(true);
+  });
+
+  it("only warns when the column exists and the cell is empty", () => {
+    expect(build(null).warnings.some((w) => w.startsWith("localidad:"))).toBe(true);
+    expect(build(null, NO_NEW_COLUMNS).warnings.some((w) => w.startsWith("localidad:"))).toBe(false);
+    expect(build(null).ficha.localidad).toBeUndefined();
   });
 });

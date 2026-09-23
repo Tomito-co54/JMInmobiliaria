@@ -2,6 +2,7 @@ import { PROPERTY_TAGS, isPropertyTag, tagLabel, type PropertyTag } from "@/lib/
 import { EXTRA_KINDS, type ExtraKind, type ExtraMode } from "@/lib/property/extras";
 import { PROPERTY_TYPES, type PropertyType } from "@/lib/property/types";
 import { normalizePartida } from "@/lib/zona-sur/partidos";
+import { canonicalLocalidad } from "@/lib/zona-sur/localidades";
 
 /**
  * The pure half of `scripts/sincronizar-cartera.ts` — the bridge between
@@ -56,6 +57,8 @@ export interface UnidadRow {
   etiquetas: string | null;
   operacion: string | null;
   direccionReal: string | null;
+  /** From the `Propiedades` sheet, one per building, like `direccionReal`. */
+  localidad: string | null;
 }
 
 /** Which of the optional columns the sheet actually has. */
@@ -63,6 +66,7 @@ export interface MaestraColumns {
   publicar: boolean;
   direccionReal: boolean;
   operacion: boolean;
+  localidad: boolean;
 }
 
 /** One row of the free-form `Partidas` sheet. */
@@ -425,7 +429,7 @@ export interface BuiltFicha {
 }
 
 const PROVISORIO_KEYS = new Set([
-  "address", "partido", "partida", "nomenclatura_catastral", "property_type", "operation_type",
+  "address", "partido", "localidad", "partida", "nomenclatura_catastral", "property_type", "operation_type",
   "price_amount", "price_list_amount", "price_currency", "surface_total", "surface_covered", "rooms", "bedrooms",
   "bathrooms", "garages", "year_built", "description", "tags", "extras", "is_featured",
 ]);
@@ -483,6 +487,23 @@ export function buildFicha(input: BuildInput): BuiltFicha {
   pick("partido", null);
   if (!ficha.partido && input.partida?.row.partido) set("partido", input.partida.row.partido, "partidas");
   if (!ficha.partido) errors.push("partido: no está en la hoja Partidas ni en provisorio.json.");
+
+  // Localidad: a closed vocabulary, checked against the partido. An unknown
+  // one is an error, not a new button in the catalog's intro; a missing one
+  // is only a warning — the listing publishes, it just cannot be picked by
+  // town until the maestra says where it is.
+  pick("localidad", row.localidad);
+  if (typeof ficha.localidad === "string") {
+    const canonical = canonicalLocalidad(ficha.localidad, (ficha.partido as string | undefined) ?? null);
+    if (canonical) ficha.localidad = canonical;
+    else {
+      errors.push(
+        `localidad: "${ficha.localidad}" no es una localidad conocida de ${ficha.partido ?? "Zona Sur"} (lib/zona-sur/localidades.ts).`,
+      );
+    }
+  } else if (columns.localidad) {
+    warnings.push('localidad: vacía en la hoja Propiedades; no aparece en el filtro de ubicación.');
+  }
 
   if (!set("partida", typeof prov.partida === "string" ? prov.partida : null, "provisorio")) {
     if (input.partida?.row.partida) {
@@ -586,7 +607,7 @@ export interface FieldDiff {
 const COMPARED_FIELDS = [
   "property_type", "operation_type", "price_amount", "price_list_amount", "price_currency", "description",
   "surface_total", "surface_covered", "rooms", "bedrooms", "bathrooms", "garages", "year_built",
-  "partida", "nomenclatura_catastral", "tags", "extras",
+  "partida", "nomenclatura_catastral", "tags", "extras", "localidad",
 ] as const;
 
 function canon(field: string, v: unknown): string {

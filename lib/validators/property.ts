@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PARTIDOS_ZONA_SUR } from "@/lib/zona-sur/partidos";
+import { canonicalLocalidad } from "@/lib/zona-sur/localidades";
 import { PROPERTY_TAGS, orderTags } from "@/lib/property/tags";
 import { PROPERTY_TYPES } from "@/lib/property/types";
 import { EXTRA_KINDS, EXTRA_MODES } from "@/lib/property/extras";
@@ -202,6 +203,26 @@ export const ownerPropertyDraftSchema = z.object({
       ),
   ),
   address: nullableString(250),
+  /**
+   * Localidad within the partido. A closed vocabulary (lib/zona-sur/
+   * localidades.ts): the catalog offers every value it finds as a button, so
+   * an unknown one is an error here, not a new button. Case and accents are
+   * forgiven and written back canonical.
+   */
+  localidad: z.preprocess(
+    (v) => {
+      if (v === "" || v === undefined || v === null) return null;
+      if (typeof v !== "string") return v;
+      return canonicalLocalidad(v) ?? v;
+    },
+    z
+      .string()
+      .nullable()
+      .refine(
+        (v) => v === null || canonicalLocalidad(v) !== null,
+        "Localidad desconocida: sumala a lib/zona-sur/localidades.ts si es real.",
+      ),
+  ),
 });
 
 export type OwnerPropertyDraft = z.infer<typeof ownerPropertyDraftSchema>;

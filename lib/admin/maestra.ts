@@ -90,6 +90,7 @@ const UNIDADES_HEADERS = {
   etiquetas: "Etiquetas",
   operacion: "Operación",
   direccionReal: "Dirección real",
+  localidad: "Localidad",
   linkAviso: "Link Zonaprop",
 } as const;
 
@@ -152,30 +153,45 @@ export async function readMaestra(path: string): Promise<Maestra> {
       etiquetas: text(row, "etiquetas"),
       operacion: text(row, "operacion"),
       direccionReal: text(row, "direccionReal"),
+      localidad: text(row, "localidad"),
     });
   });
 
-  // `Dirección real` lives on the `Propiedades` sheet (one row per building),
-  // not on `Unidades`: the folder is "Vergara y Cabrera", the street number
-  // is a fact of the building. Joined here so a unit row can read it as if
-  // it were its own; a value typed on the unit row still wins.
+  // `Dirección real` and `Localidad` live on the `Propiedades` sheet (one row
+  // per building), not on `Unidades`: the folder is "Vergara y Cabrera", the
+  // street number and the town are facts of the building. Joined here so a
+  // unit row can read them as if they were its own; a value typed on the unit
+  // row still wins.
   let hasDireccionReal = cols.direccionReal !== null;
+  let hasLocalidad = cols.localidad !== null;
   const wsProp = wb.getWorksheet("Propiedades");
   if (wsProp) {
     const { index: pIndex } = headerIndex(wsProp);
     const dirCol = pIndex.get(fold("Dirección"));
-    const realCol = pIndex.get(fold("Dirección real"));
-    if (dirCol && realCol) {
-      hasDireccionReal = true;
-      const byBuilding = new Map<string, string>();
+    const byBuilding = (header: string): Map<string, string> | null => {
+      const col = pIndex.get(fold(header));
+      if (!dirCol || !col) return null;
+      const map = new Map<string, string>();
       wsProp.eachRow((row, n) => {
         if (n === 1) return;
         const dir = cellText(row.getCell(dirCol).value);
-        const real = cellText(row.getCell(realCol).value);
-        if (dir && real) byBuilding.set(fold(dir), real);
+        const value = cellText(row.getCell(col).value);
+        if (dir && value) map.set(fold(dir), value);
       });
+      return map;
+    };
+    const reales = byBuilding("Dirección real");
+    if (reales) {
+      hasDireccionReal = true;
       for (const u of unidades) {
-        if (!u.direccionReal) u.direccionReal = byBuilding.get(fold(u.direccion)) ?? null;
+        if (!u.direccionReal) u.direccionReal = reales.get(fold(u.direccion)) ?? null;
+      }
+    }
+    const localidades = byBuilding("Localidad");
+    if (localidades) {
+      hasLocalidad = true;
+      for (const u of unidades) {
+        if (!u.localidad) u.localidad = localidades.get(fold(u.direccion)) ?? null;
       }
     }
   }
@@ -211,6 +227,7 @@ export async function readMaestra(path: string): Promise<Maestra> {
       publicar: cols.publicar !== null,
       direccionReal: hasDireccionReal,
       operacion: cols.operacion !== null,
+      localidad: hasLocalidad,
     },
     headers,
   };
