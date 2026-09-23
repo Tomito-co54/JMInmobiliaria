@@ -73,10 +73,11 @@ export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
 
             <p className="text-sm sm:text-base leading-relaxed">{step.what}</p>
 
-            {/* Our part first, and visually heavier: it is the answer to the
-                question the reader actually has — "¿de qué se encargan
-                ustedes?". The buyer's list follows, deliberately short. */}
-            {step.weHandle.length > 0 && (
+            {/* How the stage unfolds first, and visually heavier: it is what
+                the guide exists to inform. The considerations follow, short
+                and abstract — the personal side of a purchase is talked
+                through in person, not printed here. */}
+            {step.process.length > 0 && (
               <div
                 className="space-y-2 rounded-lg p-4"
                 style={{
@@ -88,10 +89,10 @@ export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
                   className="text-xs uppercase tracking-wider font-semibold"
                   style={{ color: "var(--brand-heading)" }}
                 >
-                  De esto nos encargamos nosotros
+                  El proceso
                 </p>
                 <ul className="space-y-2">
-                  {step.weHandle.map((a) => (
+                  {step.process.map((a) => (
                     <li
                       key={a}
                       className="flex items-start gap-2 text-sm leading-relaxed"
@@ -107,13 +108,13 @@ export function ProcessTimeline({ steps }: { steps: readonly ProcessStep[] }) {
               </div>
             )}
 
-            {step.youDo.length > 0 && (
+            {step.considerations.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
-                  Lo que queda de tu lado
+                  A considerar
                 </p>
                 <ul className="space-y-2">
-                  {step.youDo.map((a) => (
+                  {step.considerations.map((a) => (
                     <li
                       key={a}
                       className="flex items-start gap-2 text-sm leading-relaxed"

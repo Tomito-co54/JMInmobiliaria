@@ -41,19 +41,17 @@ export interface ProcessStep {
   duration: string;
   what: string;
   /**
-   * What the agency does at this stage.
+   * How the stage unfolds, stated impersonally.
    *
-   * Split from `youDo` because the two answer different questions, and the
-   * first one is the whole pitch. The original single `actions` list was
-   * written for the upstream buyer portal, where the reader was on their own
-   * and the site was a reference — every line started with "pedí", "conseguí",
-   * "coordiná". This is the site of a working agency now: most of that list is
-   * our job, and a guide that tells the reader to do it themselves is
-   * describing a service we are not selling.
+   * This used to be `weHandle` ("de esto nos encargamos nosotros"), and before
+   * that a single `actions` list from the upstream buyer portal that told the
+   * reader to go fetch every report. Both voices were wrong for this site: the
+   * guide informs a process, it does not sell a service or walk anyone through
+   * it. The personal part — costs in detail, negotiation — happens in person.
    */
-  weHandle: string[];
-  /** What genuinely stays with the buyer — decisions and their own money. */
-  youDo: string[];
+  process: string[];
+  /** Points the buyer weighs at this stage, kept abstract on purpose. */
+  considerations: string[];
   documentSlugs: DocumentSlug[];
   warnings?: string[];
 }
@@ -239,18 +237,16 @@ export const PROCESS_STEPS: ProcessStep[] = [
     number: 1,
     slug: "pre-busqueda",
     title: "Pre-búsqueda",
-    subtitle: "Ordenar la cabeza antes de mirar avisos",
+    subtitle: "Antes de la primera visita",
     duration: "1 a 3 meses",
     what:
-      "La etapa menos glamorosa y la más decisiva. Antes de que mires un solo aviso, sentate con nosotros: te decimos qué compra tu presupuesto en cada zona del sur con precios reales de mercado, no con el promedio que muestra un portal.",
-    weHandle: [
-      "Te mostramos qué compra tu presupuesto por zona, con la data de mercado que relevamos todos los días.",
-      "Te ayudamos a separar los no-negociables de los deseos. Es lo que después evita meses perdidos.",
-      "Te explicamos el costo real de comprar: sellos, honorarios, escritura. El precio del aviso nunca es lo que sale.",
+      "Toda compra empieza por una idea de cómo se quiere vivir: el barrio, el espacio, el momento. Darle forma a esa idea es lo que convierte una búsqueda en una decisión.",
+    process: [
+      "El costo de una compra no es el precio publicado: a él se suman la escritura, los honorarios y el impuesto de sellos.",
+      "Distinguir lo indispensable de lo deseable define el alcance de la búsqueda.",
     ],
-    youDo: [
-      "Definir cuánto tenés en mano y cuánto estarías dispuesto a financiar.",
-      "Si vas con crédito, pedir la pre-aprobación en el banco. Ese trámite es tuyo y conviene tenerlo antes de empezar.",
+    considerations: [
+      "La forma de pago —contado, crédito hipotecario o financiación directa— ordena los plazos de toda la operación.",
     ],
     documentSlugs: [],
   },
@@ -258,19 +254,18 @@ export const PROCESS_STEPS: ProcessStep[] = [
     number: 2,
     slug: "busqueda",
     title: "Búsqueda y visitas",
-    subtitle: "Filtramos nosotros, elegís vos",
+    subtitle: "Conocer el lugar",
     duration: "Semanas a meses",
     what:
-      "Acá está la mayor parte de nuestro trabajo, y es invisible: descartar. Por cada propiedad que te mostramos hay varias que miramos y no pasaron el filtro, porque la superficie no coincide con el catastro, porque el precio no se sostiene contra los comparables o porque el título tiene algo raro.",
-    weHandle: [
-      "Verificamos cada propiedad antes de mostrártela: la superficie real, la parcela y la ubicación, contra los registros oficiales.",
-      "Te decimos cuánto encaja cada propiedad con lo que buscás, y te lo mostramos abierto, criterio por criterio. Sin caja negra.",
-      "Coordinamos las visitas y vamos con vos, con la ficha catastral en la mano.",
-      "Te decimos lo que el aviso no dice: antigüedad real, gastos mensuales, expensas extraordinarias del último año.",
+      "Las fotos muestran una propiedad; la visita muestra cómo se vive en ella. La luz a distintas horas, el ruido de la calle, el camino hasta el transporte: lo que decide una compra rara vez entra en una publicación.",
+    process: [
+      "Cada publicación reúne los datos de la propiedad, su ubicación en la parcela y la documentación disponible.",
+      "Indicar qué se busca permite ordenar el catálogo según lo que mejor se ajusta.",
+      "Las visitas se coordinan en el horario que convenga, y pueden repetirse.",
     ],
-    youDo: [
-      "Ir a conocerlas. Ninguna foto reemplaza pararse en el living un martes a las siete de la tarde.",
-      "Preguntarnos todo lo que te haga ruido, sobre todo lo que parezca una pregunta tonta.",
+    considerations: [
+      "Volver en distintos momentos del día.",
+      "Las dudas que aparecen en la visita son las que conviene resolver antes de avanzar.",
     ],
     documentSlugs: [],
   },
@@ -278,41 +273,39 @@ export const PROCESS_STEPS: ProcessStep[] = [
     number: 3,
     slug: "reserva",
     title: "Reserva",
-    subtitle: "Congelamos la operación mientras verificamos",
+    subtitle: "El primer compromiso",
     duration: "1 a 4 semanas (vigencia de la reserva)",
     what:
-      "Cuando encontraste la propiedad, la reserva frena la operación para que no se la vendan a otro. Todavía no te obliga a comprar: te obliga a no arrepentirte sin costo. El plazo que pactemos es el tiempo que tenemos para verificar todo.",
-    weHandle: [
-      "Negociamos el precio con comparables del mercado como argumento, no con intuición.",
-      "Redactamos la reserva y fijamos un plazo que alcance para los informes — nunca menos de 21 días.",
-      "Le pedimos al vendedor título, partida y datos personales el mismo día que se firma.",
+      "La reserva aparta la propiedad por un plazo acordado. Se entrega una seña a cuenta del precio y, mientras dura, la propiedad deja de ofrecerse a otros interesados.",
+    process: [
+      "Se acuerdan el precio y las condiciones de pago.",
+      "Se firma la reserva, con un plazo suficiente para reunir la documentación.",
+      "La seña se computa después como parte del precio.",
     ],
-    youDo: [
-      "Decidir. Es el único paso que no podemos dar por vos: la reserva compromete tu plata.",
+    considerations: [
+      "Es el primer paso que compromete dinero: conviene llegar a él con la decisión tomada.",
     ],
     documentSlugs: ["reserva"],
     warnings: [
-      "Si te retractás de la reserva, perdés la seña. Si se retracta el vendedor, te devuelve el doble. Te lo explicamos antes de que firmes, no después.",
+      "Si quien reserva desiste, pierde la seña; si desiste el vendedor, la devuelve duplicada.",
     ],
   },
   {
     number: 4,
     slug: "due-diligence",
     title: "Due diligence",
-    subtitle: "Pedimos todos los informes antes del boleto",
+    subtitle: "Los informes antes del boleto",
     duration: "2 a 4 semanas",
     what:
-      "Es la etapa donde aparecen los problemas legales, fiscales o estructurales que justifican bajar el precio o salir de la operación. Es la parte más técnica del proceso y la hacemos nosotros: pedimos los informes, los leemos y te traducimos qué significa cada uno.",
-    weHandle: [
-      "Pedimos el Informe de Dominio y el de Inhibiciones, y los leemos. Si aparece un embargo, una hipoteca o un usufructo, te explicamos qué implica para tu operación.",
-      "El Certificado Catastral lo sacamos nosotros, al instante.",
-      "Pedimos los libres deuda: municipal, provincial y expensas si es propiedad horizontal.",
-      "Si la antigüedad lo amerita, gestionamos el Estado Parcelario actualizado con agrimensor.",
-      "Si algo no cierra, frenamos la operación antes del boleto. Para eso existe esta etapa.",
+      "Antes del boleto se reúnen los informes que confirman la situación de la propiedad y de quien la vende: titularidad, gravámenes, deudas y datos catastrales. Es la etapa más técnica del proceso, y la que le da certeza a todo lo que sigue.",
+    process: [
+      "Informes de dominio y de inhibiciones, emitidos por el Registro de la Propiedad.",
+      "Datos catastrales: partida, nomenclatura y superficie de la parcela.",
+      "Libres deuda municipal, provincial y, en propiedad horizontal, de expensas.",
+      "Estado parcelario, cuando la antigüedad del plano lo requiere.",
     ],
-    youDo: [
-      "Leer lo que te pasamos. Te lo explicamos las veces que haga falta.",
-      "Si querés una revisión estructural, contratar un arquitecto o ingeniero de tu confianza. Ahí sí conviene un tercero independiente.",
+    considerations: [
+      "Una revisión técnica del inmueble, si se desea, puede sumarse en esta etapa.",
     ],
     documentSlugs: [
       "informe_dominio",
@@ -324,49 +317,46 @@ export const PROCESS_STEPS: ProcessStep[] = [
       "libre_deuda_expensas",
     ],
     warnings: [
-      "Las deudas registradas siguen al inmueble, no al dueño anterior. Negociamos que el vendedor las cancele antes del boleto y lo dejamos por escrito.",
-      "Si un informe se demora más que el plazo de la reserva, pedimos la extensión por escrito. Nunca damos por sobreentendido que está todo bien.",
+      "Las deudas registradas siguen al inmueble, no a su titular anterior. Su cancelación se acuerda antes del boleto.",
     ],
   },
   {
     number: 5,
     slug: "boleto-y-escritura",
     title: "Boleto y escritura",
-    subtitle: "Se firma, pagás, sos dueño",
+    subtitle: "La firma",
     duration: "30 a 60 días desde el boleto hasta la escritura",
     what:
-      "Acá la operación se vuelve formal. El boleto te compromete; la escritura te hace dueño. Entre una y otra pasan típicamente 30 a 60 días, y el trabajo de coordinación es nuestro.",
-    weHandle: [
-      "Coordinamos con el escribano y le mandamos los informes vigentes.",
-      "Armamos el boleto y revisamos que no falte ninguna verificación antes de que firmes.",
-      "Controlamos que los informes sigan vigentes al momento de la escritura; algunos vencen.",
-      "Estamos en las dos firmas, con vos.",
+      "El boleto compromete a las partes; la escritura transfiere la propiedad. Entre uno y otra suelen pasar de 30 a 60 días, el tiempo que el escribano necesita para preparar el acto.",
+    process: [
+      "La documentación pasa al escribano, que redacta la escritura.",
+      "Antes de firmar se confirma que los informes sigan vigentes.",
+      "En la escritura se entregan el saldo del precio y la posesión.",
     ],
-    youDo: [
-      "Elegir escribano, si querés uno propio. Si no, trabajamos con el nuestro.",
-      "Tener el dinero disponible el día de la escritura: el saldo se entrega en ese mismo acto.",
+    considerations: [
+      "La elección del escribano se acuerda entre las partes.",
+      "El saldo del precio tiene que estar disponible el día de la escritura.",
     ],
     documentSlugs: ["boleto_compraventa", "escritura"],
     warnings: [
-      "No se entrega dinero sin instrumento firmado, ni se firma sin que el dinero esté disponible. Es la regla que no negociamos.",
+      "No se entrega dinero sin instrumento firmado, ni se firma sin que el dinero esté disponible.",
     ],
   },
   {
     number: 6,
     slug: "post-escritura",
     title: "Post-escritura",
-    subtitle: "Mudate, del resto nos ocupamos",
+    subtitle: "Después de la firma",
     duration: "Primeros 30 a 60 días",
     what:
-      "La parte legal terminó, pero quedan trámites administrativos para cerrar la transición. No desaparecemos el día de la escritura.",
-    weHandle: [
-      "Le seguimos el testimonio inscripto al escribano hasta que lo tengas en la mano.",
-      "Te dejamos la lista de cambios de titularidad hecha, con a quién llamar en cada caso.",
-      "Notificamos al consorcio el cambio de titular, si es departamento o PH.",
+      "Con la escritura firmada, la propiedad ya es del comprador. Quedan la inscripción en el Registro y el cambio de titularidad de impuestos y servicios.",
+    process: [
+      "El escribano inscribe la escritura en el Registro de la Propiedad y entrega el testimonio una vez inscripto.",
+      "En propiedad horizontal, el cambio de titular se notifica al consorcio.",
     ],
-    youDo: [
-      "Cambiar los servicios a tu nombre: luz, gas, agua, internet.",
-      "Mudarte.",
+    considerations: [
+      "Los servicios —luz, gas, agua— pasan a nombre del nuevo titular.",
+      "La mudanza.",
     ],
     documentSlugs: [],
   },
