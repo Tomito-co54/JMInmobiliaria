@@ -11,6 +11,7 @@
 
 export type DocumentSlug =
   | "reserva"
+  | "sena"
   | "informe_dominio"
   | "informe_inhibiciones"
   | "estado_parcelario"
@@ -75,15 +76,28 @@ export const DOCUMENTS: Record<DocumentSlug, DocumentInfo> = {
     slug: "reserva",
     title: "Reserva ad referéndum",
     shortDescription:
-      "Oferta de compra que aparta la propiedad por un plazo acordado mientras se revisa la documentación.",
+      "Expresa la intención de comprar: una oferta que aparta la propiedad por un plazo acordado.",
     what:
-      "Es una oferta de compra acompañada de un anticipo que la inmobiliaria retiene en garantía. Mientras se piden informes y revisa la documentación, el vendedor no puede venderle a otra persona.",
+      "Es una oferta de compra, en un precio y unas condiciones, acompañada de un anticipo que la inmobiliaria retiene en garantía. Expresa la intención de comprar: mientras el vendedor la considera y se revisa la documentación, la propiedad no se le ofrece a nadie más.",
     why:
       "Te da tiempo para verificar la propiedad sin perderla. Si te arrepentís, perdés la reserva. Si el vendedor la acepta, inicia la operación. Si luego se retracta, te devuelve el doble.",
     issuedBy: "Inmobiliaria; es entre partes.",
     cost:
       "Sin costo de emisión. El monto que ponés (5% típicamente) se computa después contra el precio final.",
     timeframe: "Se firma el mismo día que querés reservar.",
+  },
+
+  sena: {
+    slug: "sena",
+    title: "Seña",
+    shortDescription:
+      "Confirma la compra: un pago a cuenta del precio que compromete a las dos partes a concretarla.",
+    what:
+      "Es el pago que se entrega cuando la reserva fue aceptada y la decisión de comprar está tomada. Se hace a cuenta del precio: no es un gasto aparte, sino la primera parte del pago, y la reserva suele integrarse a ella.",
+    why:
+      "Confirma la compra. Con la seña la operación deja de ser una oferta y pasa a ser un compromiso de las dos partes: si alguna no cumple, la otra puede exigir que la compra se concrete. Lo que sigue es formalizarla en el boleto.",
+    issuedBy: "Inmobiliaria; es entre partes.",
+    timeframe: "Una vez aceptada la reserva, antes del boleto.",
   },
 
   informe_dominio: {
@@ -237,23 +251,22 @@ export const PROCESS_STEPS: ProcessStep[] = [
   },
   {
     number: 3,
+    // The slug stays "reserva": search_profiles.current_stage has a CHECK on
+    // it (migration 00010). Only the title and the content moved.
     slug: "reserva",
-    title: "Reserva",
-    subtitle: "El primer compromiso",
+    title: "De la reserva a la seña",
+    subtitle: "El paso a la compra",
     what:
-      "La reserva aparta la propiedad por un plazo acordado, a modo de oferta: mientras dura, la propiedad deja de ofrecerse a otros interesados. Si la compra se confirma, se entrega una seña a cuenta del precio.",
+      "Son los dos pasos con los que una búsqueda se convierte en una compra. La reserva expresa la intención: es una oferta que aparta la propiedad mientras el vendedor la considera. La seña llega cuando esa oferta fue aceptada, y confirma la compra. Una lleva a la otra: la reserva abre la operación, la seña la confirma y el boleto, después, la formaliza.",
     process: [
-      "Se acuerdan el precio y las condiciones de pago.",
-      "Se firma la reserva, con un plazo suficiente para reunir la documentación.",
-      "La seña se computa después como parte del precio.",
+      "Se acuerdan el precio y las condiciones de pago, y se firma la reserva con un plazo para su aceptación.",
+      "Aceptada la oferta, se entrega la seña a cuenta del precio.",
+      "Con la seña se fija el camino hacia el boleto.",
     ],
     considerations: [
       "Es el primer paso que compromete dinero: conviene llegar a él con la decisión tomada.",
     ],
-    documentSlugs: ["reserva"],
-    warnings: [
-      "Reserva y seña no son lo mismo. Si quien reserva desiste, pierde la reserva; la seña, en cambio, compromete a concretar la compra.",
-    ],
+    documentSlugs: ["reserva", "sena"],
   },
   {
     number: 4,
@@ -436,7 +449,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     term: "Reserva ad referéndum",
     definition:
-      "Oferta de compra acompañada de un anticipo retenido en garantía. Aparta la propiedad mientras se revisa la documentación. Si quien reserva se arrepiente, pierde la reserva; si el vendedor no la acepta, se devuelve.",
+      "Oferta de compra acompañada de un anticipo retenido en garantía: expresa la intención de comprar y aparta la propiedad mientras el vendedor la considera. Si quien reserva se arrepiente, pierde la reserva; si el vendedor no la acepta, se devuelve.",
   },
   {
     term: "Sellos",
@@ -446,7 +459,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     term: "Seña",
     definition:
-      "Pago a cuenta del precio que se entrega cuando se confirma la compra. No es lo mismo que la reserva: la reserva es una oferta, la seña compromete a concretar la operación.",
+      "Pago a cuenta del precio que confirma la compra, una vez aceptada la reserva. No es lo mismo que la reserva: la reserva expresa la intención de comprar; la seña compromete a las dos partes a concretar la operación.",
   },
   {
     term: "Testimonio",

@@ -301,7 +301,11 @@ acompaña al comprador.
 - **Reserva ≠ seña**, y está escrito así en la etapa, la ficha y el glosario:
   la reserva es una oferta (desistir cuesta la reserva; si el vendedor la
   acepta inicia la operación y si luego se retracta devuelve el doble); la
-  seña compromete a comprar.
+  seña compromete a comprar. **Desde el 24-sep la etapa 3 es "De la reserva a
+  la seña" — "El paso a la compra"**: explica las dos y cómo una lleva a la
+  otra (la reserva expresa la intención, la seña confirma la compra, el boleto
+  la formaliza), con un desplegable para cada una (documento `sena` nuevo). El
+  slug sigue siendo `reserva` por el CHECK de la 00010.
 - Sin duración por etapa; fuera el Certificado Catastral y los tres libres
   deuda de los desplegables; los que quedan no muestran costo ni plazo.
 - **Se fue el último resto de los servicios pagos** (`serviceId` y el sello

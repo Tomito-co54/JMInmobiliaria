@@ -8,6 +8,7 @@ import {
   PenLine,
   Stamp,
   Banknote,
+  HandCoins,
 } from "lucide-react";
 import type { DocumentInfo, DocumentSlug } from "@/lib/education/buying-process";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ const SM_COLS: Record<number, string> = {
 
 const ICONS: Record<DocumentSlug, typeof FileText> = {
   reserva: PenLine,
+  sena: HandCoins,
   informe_dominio: ShieldCheck,
   informe_inhibiciones: ShieldCheck,
   estado_parcelario: Ruler,
