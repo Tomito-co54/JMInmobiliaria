@@ -707,6 +707,52 @@ se estrangula a ~1s, así que cualquier cronómetro propio devuelve ~1000ms para
 todo. Las mediciones que valen son las del **navegador** (`PerformanceResourceTiming`)
 y las de **curl**. Ver también la nota al pie de *Cómo se mueve el sitio*.
 
+### La segunda lentitud: el catálogo del colega (auditoría del 24-sep)
+
+Tomy notaba que tardaba más entre el click y la página. Esta vez **no era
+geografía, era peso**: el catálogo pasó de 15 a 128 publicadas y tres lugares
+escalaban con eso. Medido en producción, antes → después:
+
+| Qué | Antes | Después |
+|---|---|---|
+| Navegación a `/propiedades` (RSC, crudo) | 707 kB · 402–457 ms | **227 kB · 198 ms** |
+| Navegación a `/edificios` | 470 kB · 733 ms | **141 kB · 224 ms** |
+| Cualquier página pública (la guía, p. ej.) | 237 kB | **135 kB** |
+| HTML de `/propiedades` (crudo) | 1.284 kB, DOM 3.246 | **395 kB, DOM 817** |
+
+- **`getPublicCatalog`** (`2776d0e`) reemplaza a `getPropertiesByProximity`:
+  columnas con nombre en vez de `select("*")` y **cacheada** con
+  `PUBLIC_CATALOG_TAG`. El `*` mandaba `quality_score_breakdown` (220 kB por
+  visita), timestamps y `url` — que en una del colega es el link a su sitio.
+  `/propiedades` además pasa **sólo la portada** de cada galería (eran 1.837
+  URLs), y el catálogo del match del header va **sin descripciones** (el
+  matcher sólo las lee para un imprescindible, y un visitante no tiene).
+- **Las tarjetas se dibujan de a 24** (`8e67667`): el orden se decide sobre
+  la lista entera, sólo el dibujo espera; un IntersectionObserver suma más
+  antes del final y hay botón "Ver más propiedades". Un pin del mapa que
+  nombra una tarjeta sin dibujar la dibuja antes de ir. **El auto-cargado no
+  se pudo ver en el panel** (oculto, no entrega IntersectionObserver): lo
+  mira Tomy; el botón funciona igual.
+- **Verificado sin pérdida**: las 128 tarjetas de `/propiedades` y todo
+  `/edificios` dieron el mismo texto, la misma foto y el mismo orden que
+  producción antes del cambio (hash por tarjeta).
+
+**Y de paso, un bug de datos** (`2e45382`): `enrich-cadastral`, el paso de
+catastro de `npm run pipeline`, enriquecía **toda** fila activa con posición,
+de cualquier origen. Cada corrida le daba a las ~83 sueltas de Laudani la
+parcela más cercana a su pin → aparecían en `/edificios` como "edificios" de
+una unidad (llegó a listar 128 unidades); la sync del colega les sacaba la
+parcela a la mañana siguiente pero dejaba **partida y `surface_arba`**, y un
+depto de Garzón 750 mostraba los **509 m² de su lote** (la Fase 12 otra vez).
+Ahora excluye `NON_MARKET_SOURCES`. Reparado: backup en
+`.backups/colega-catastro-2026-09-24.json`, partida y superficie catastral en
+null en las 83, y la sync del colega devolvió la parcela sólo a los 13
+edificios; segunda corrida en seco, cero cambios. `/edificios`: 45 unidades en
+19 edificios (6 propios + 13 del colega).
+
+**Regla que deja:** un paso del pipeline que escribe en `properties` tiene que
+decir **de qué orígenes**. La tabla ya no es sólo mercado + lo propio.
+
 ### Cómo se mueve el sitio
 
 Todo el movimiento es CSS sobre `transform`/`opacity` más IntersectionObserver.
@@ -2654,6 +2700,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.43 | Sep 24, 2026 | **La segunda lentitud era peso, y el pipeline pisaba al colega.** Con 128 publicadas, cada navegación a `/propiedades` bajaba 707 kB (220 de un desglose interno de puntaje) y cada página pública 96 kB de descripciones para el menú del match. Consulta con columnas nombradas y cacheada, sólo la portada de cada galería, header sin descripciones, tarjetas de a 24: navegar entre pestañas pasó de 400–730 ms a ~200 ms. Y el paso de catastro del pipeline les daba parcela a las sueltas de Laudani (aparecían como edificios de una unidad; un depto mostraba los 509 m² del lote): ahora sólo enriquece mercado, datos reparados con backup. También: operación y tipo con selección múltiple en "Tu búsqueda", la etapa 3 de la guía pasa a "De la reserva a la seña", y la portada de la home llena la primera pantalla con la barra más alta. **558 tests.** |
 | 2.42 | Sep 24, 2026 | **El mapa pasa a streets-v2 y los edificios del colega se arman.** Tomy eligió MapTiler `streets-v2` entre seis estilos; el cambio en Vercel no se había guardado la primera vez (el Save está abajo del cuadro) y se verificó en producción mirando la tesela. Los avisos de Laudani se agrupan en edificios por dirección **o** por parcela con el pin adentro, porque ni la dirección ni el pin alcanzan solos: 13 edificios, después de los propios en `/edificios`. |
 | 2.41 | Sep 23, 2026 | **Las portadas de los edificios dejan de romperse.** La de Belgrano apuntaba a una URL que la sync con `--fotos` ya había borrado; ahora cada portada es "foto N de la unidad X", resuelta contra la galería de hoy, o un archivo propio en `edificios/` que la sync no toca (`npm run subir-portada`). Cabrera 205 y Portela 95 tienen la suya. Quinta corrida del protocolo y del colega: sin diferencias. |
 | 2.40 | Sep 23, 2026 | **El catálogo de un colega.** Luciano (Laudani & Cía) le dio a Tomy todo su catálogo, operaciones a medias. Su sitio es BuscadorProp y se lee sin navegador: 113 propiedades entran estandarizadas —tipos, localidades, descripciones sin gritos y sin sus teléfonos— con un sello chico de su logo, el WhatsApp de Tomy y ningún link a su sitio. Un origen nuevo, `colega`, que es público pero no propio: la sync de la maestra y la protagonista siguen viendo sólo lo de la familia, y el mercado no lo cuenta. Sincronización diaria en GitHub Actions con la misma guarda de bajas que costó tres catálogos aprenderla. El catálogo pasa de 15 a **128**. **522 → 544 tests.** |
