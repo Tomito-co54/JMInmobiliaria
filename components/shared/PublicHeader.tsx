@@ -7,6 +7,7 @@ import { BrandLogo } from "@/components/shared/BrandLogo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { MatchQuickFilter } from "@/components/matching/MatchQuickFilter";
 import { NavPending } from "@/components/shared/NavPending";
+import { MobileNav } from "@/components/shared/MobileNav";
 import { getMatchableCatalog } from "@/lib/db/properties";
 
 /**
@@ -136,16 +137,12 @@ export async function PublicHeader({
                   // pixels of the edge — and the broker is the one person who
                   // is always logged in.
                   "px-2 sm:px-3 lg:px-4 lg:text-[0.95rem]",
-                  // Both catalog destinations stay visible at 375px. The
-                  // landing no longer contains the catalog, so these are the
-                  // only way to it, and hiding one on the viewport the project
-                  // designs for first would make it unreachable exactly where
-                  // most visitors are. They fit; the guide is the one that
-                  // waits for a wider screen.
-                  item.href === "/guia-de-compra" && "hidden sm:inline-flex",
-                  // Measured 24-sep-2026: with four links the row is 46px too
-                  // wide at 640 and 5px at 700; from 768 it has 62 to spare.
-                  item.href === "/servicios" && "hidden md:inline-flex",
+                  // Inline from md, where all four fit (measured 24-sep-2026:
+                  // 46px too wide at 640, 62 to spare at 768). Below that the
+                  // row could hold two, which left the guide and /servicios
+                  // unreachable from a phone; now every destination lives in
+                  // MobileNav's drawer instead.
+                  "hidden md:inline-flex",
                   current && "text-foreground font-semibold",
                 )}
               >
@@ -156,6 +153,7 @@ export async function PublicHeader({
           })}
           <MatchQuickFilter properties={matchable} compact={!!user} />
           <ThemeToggle />
+          {/* On a phone the Panel button moves into the drawer too. */}
           {user && (
             <Link
               href={isAdmin ? "/admin" : "/dashboard"}
@@ -164,7 +162,7 @@ export async function PublicHeader({
               // none to spare: once "Servicios" joined the nav at md, the
               // logged-in row at 768 came out 8px too wide. This button exists
               // for one person, who knows what it is — they put it there.
-              className={cn(buttonVariants({ size: "sm" }), "px-2.5 lg:px-3")}
+              className={cn(buttonVariants({ size: "sm" }), "hidden md:inline-flex px-2.5 lg:px-3")}
             >
               <LayoutDashboard className="size-4 lg:hidden" aria-hidden />
               <span className="hidden lg:inline">
@@ -172,6 +170,11 @@ export async function PublicHeader({
               </span>
             </Link>
           )}
+          <MobileNav
+            items={NAV}
+            activeHref={activeHref}
+            panel={user ? { href: isAdmin ? "/admin" : "/dashboard", label: isAdmin ? "Panel" : "Ir al dashboard" } : null}
+          />
         </nav>
       </div>
     </header>
