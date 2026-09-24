@@ -33,13 +33,14 @@ const NAV = [
   { href: "/propiedades", label: "Propiedades" },
   { href: "/edificios", label: "Edificios" },
   { href: "/guia-de-compra", label: "Guía de compra" },
+  { href: "/servicios", label: "Servicios" },
 ] as const;
 
 export async function PublicHeader({
   /** Marks the current section so the visitor knows where they are. */
   active,
 }: {
-  active?: "propiedades" | "edificios" | "guia";
+  active?: "propiedades" | "edificios" | "guia" | "servicios";
 }) {
   const supabase = await createClient();
 
@@ -71,7 +72,9 @@ export async function PublicHeader({
         ? "/edificios"
         : active === "guia"
           ? "/guia-de-compra"
-          : null;
+          : active === "servicios"
+            ? "/servicios"
+            : null;
 
   return (
     // Taller on a desktop, with a bigger mark (Tomy, 24-sep-2026). The home
@@ -140,6 +143,9 @@ export async function PublicHeader({
                   // most visitors are. They fit; the guide is the one that
                   // waits for a wider screen.
                   item.href === "/guia-de-compra" && "hidden sm:inline-flex",
+                  // Measured 24-sep-2026: with four links the row is 46px too
+                  // wide at 640 and 5px at 700; from 768 it has 62 to spare.
+                  item.href === "/servicios" && "hidden md:inline-flex",
                   current && "text-foreground font-semibold",
                 )}
               >
@@ -154,14 +160,14 @@ export async function PublicHeader({
             <Link
               href={isAdmin ? "/admin" : "/dashboard"}
               aria-label={isAdmin ? "Panel de administración" : "Ir al dashboard"}
-              // Icon-only below sm. The word costs 25px in a row that has
-              // none to spare once the match joins it, and this button exists
-              // for one person on the one screen where the label is least
-              // needed — they know what it is, they put it there.
-              className={cn(buttonVariants({ size: "sm" }), "px-2.5 sm:px-3")}
+              // Icon-only below lg. The word costs ~35px in a row that has
+              // none to spare: once "Servicios" joined the nav at md, the
+              // logged-in row at 768 came out 8px too wide. This button exists
+              // for one person, who knows what it is — they put it there.
+              className={cn(buttonVariants({ size: "sm" }), "px-2.5 lg:px-3")}
             >
-              <LayoutDashboard className="size-4 sm:hidden" aria-hidden />
-              <span className="hidden sm:inline">
+              <LayoutDashboard className="size-4 lg:hidden" aria-hidden />
+              <span className="hidden lg:inline">
                 {isAdmin ? "Panel" : "Ir al dashboard"}
               </span>
             </Link>

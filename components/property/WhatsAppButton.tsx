@@ -22,17 +22,20 @@ function WhatsAppGlyph({ className }: { className?: string }) {
 const WA_GREEN = "#25D366";
 
 export function WhatsAppButton({
-  address,
+  address = null,
+  message,
   size = "lg",
   className,
 }: {
   /** Property address, used to name the listing in the pre-filled message. */
-  address: string | null;
+  address?: string | null;
+  /** A message of its own, for a lead that is not about a listing (/servicios). */
+  message?: string;
   size?: "sm" | "lg";
   /** Extra classes (e.g. h-12 to match siblings). */
   className?: string;
 }) {
-  const href = whatsappLink(propertyLeadMessage(address));
+  const href = whatsappLink(message ?? propertyLeadMessage(address));
   return (
     <a
       href={href}
