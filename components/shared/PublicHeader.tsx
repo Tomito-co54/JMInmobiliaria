@@ -74,7 +74,10 @@ export async function PublicHeader({
           : null;
 
   return (
-    <header className="px-4 py-3 border-b">
+    // Taller on a desktop, with a bigger mark (Tomy, 24-sep-2026). The home
+    // hero subtracts this height (4.75rem on lg: 2rem of padding + the 2.75rem
+    // row) to fill the first screen exactly — change one, change the other.
+    <header className="px-4 py-3 lg:py-4 border-b">
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         <Link
           href="/"
@@ -99,9 +102,9 @@ export async function PublicHeader({
               destination or clipping the mark. */}
           <BrandLogo
             variant="isotipo"
-            size={32}
+            size={44}
             priority
-            className="h-6 w-auto sm:h-8"
+            className="h-6 w-auto sm:h-8 lg:h-11"
           />
         </Link>
 
@@ -129,7 +132,7 @@ export async function PublicHeader({
                   // does not — the "Panel" button lands the nav within a few
                   // pixels of the edge — and the broker is the one person who
                   // is always logged in.
-                  "px-2 sm:px-3",
+                  "px-2 sm:px-3 lg:px-4 lg:text-[0.95rem]",
                   // Both catalog destinations stay visible at 375px. The
                   // landing no longer contains the catalog, so these are the
                   // only way to it, and hiding one on the viewport the project

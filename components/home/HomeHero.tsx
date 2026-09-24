@@ -37,7 +37,12 @@ import { cn } from "@/lib/utils";
  */
 export function HomeHero({ zonas }: { zonas: string[] }) {
   return (
-    <section className="relative px-4 pt-12 pb-14 sm:pt-20 sm:pb-20 overflow-hidden">
+    // On a desktop the hero is exactly the first screen — the window minus
+    // the header (4.75rem + its border) — with the content centred in it and
+    // the gaps sized from the window's height, so it always frames down to
+    // "Ver propiedades" (Tomy, 24-sep-2026: at 100% zoom the button was cut
+    // off). Phones keep the plain flow: the headline fits there already.
+    <section className="relative px-4 pt-12 pb-14 sm:pt-20 sm:pb-20 overflow-hidden lg:flex lg:min-h-[calc(100svh-4.75rem-1px)] lg:flex-col lg:justify-center lg:py-[5vh]">
       {/* Subtle radial spotlight behind the content.
           Light: navy of brand at 3% → transparent. Dark: white at 3%. */}
       <div
@@ -57,13 +62,18 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
         }}
       />
 
-      <div className="max-w-2xl mx-auto text-center space-y-7 sm:space-y-9">
+      <div className="max-w-2xl mx-auto text-center space-y-7 sm:space-y-9 lg:space-y-[clamp(0.9rem,3.2vh,2.25rem)]">
         {/* Logo */}
         <div
           className="flex justify-center home-rise"
           style={{ animationDelay: "0ms" }}
         >
-          <BrandLogo variant="full" size={110} priority />
+          <BrandLogo
+            variant="full"
+            size={120}
+            priority
+            className="h-[6.875rem] w-auto lg:h-[clamp(4.75rem,14vh,8rem)]"
+          />
         </div>
 
         {/* Eyebrow — anchor de geografía/categoría. Caps + tracking ancho,
@@ -82,7 +92,7 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
             home-rise-hero le da el peso de entrada más pronunciado (más
             recorrido + blur que se aclara). */}
         <h1
-          className="font-heading font-medium text-3xl sm:text-5xl leading-[1.05] tracking-tight italic home-rise-hero"
+          className="font-heading font-medium text-3xl sm:text-5xl lg:text-[clamp(2.5rem,7.2vh,3.9rem)] leading-[1.05] tracking-tight italic home-rise-hero"
           style={{
             color: "var(--brand-heading)",
             animationDelay: "260ms",
@@ -153,7 +163,7 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
       {/* Scroll hint — chevron pulsando suavemente. */}
       <div
         aria-hidden
-        className="mt-10 sm:mt-14 flex justify-center home-rise"
+        className="mt-10 sm:mt-14 flex justify-center home-rise lg:absolute lg:inset-x-0 lg:bottom-[2.5vh] lg:mt-0"
         style={{ animationDelay: "920ms" }}
       >
         <ChevronDown className="size-4 text-muted-foreground/50 motion-safe:animate-bounce" />
