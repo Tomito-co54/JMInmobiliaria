@@ -72,7 +72,7 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
             variant="full"
             size={120}
             priority
-            className="h-[6.875rem] w-auto lg:h-[clamp(4.75rem,14vh,8rem)]"
+            className="h-[6.875rem] w-auto lg:h-[clamp(5.5rem,19vh,11rem)]"
           />
         </div>
 
