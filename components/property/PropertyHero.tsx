@@ -173,8 +173,7 @@ export function PropertyHero({
           Es el mismo motivo por el que se fue el Quality Score: un dato que
           nunca varía no informa, sólo decora. Y de paso cierra un fail-open,
           porque la condición se encendía con la partida tipeada a mano y no
-          con la confirmación del catastro. Los datos siguen enteros en
-          "Datos oficiales", que los muestra uno por uno. */}
+          con la confirmación del catastro. */}
       </div>
 
       {/* Below the photo, clearing the medallion that overlaps its corner. */}

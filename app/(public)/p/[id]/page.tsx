@@ -14,7 +14,6 @@ import { propertyTypeLabel } from "@/lib/property/types";
 import { PropertyDataPanel } from "@/components/property/PropertyDataPanel";
 import { PropertyMobileBar } from "@/components/property/PropertyMobileBar";
 import { EditorialSection } from "@/components/property/EditorialSection";
-import { VerifiedDataList } from "@/components/property/VerifiedDataList";
 import { PropertyMapSection } from "@/components/property/PropertyMapSection";
 import { BuildingUnits } from "@/components/property/BuildingUnits";
 import { PropertyDescription } from "@/components/property/PropertyDescription";
@@ -220,16 +219,9 @@ export default async function PublicPropertyPage({ params }: PageProps) {
               />
             )}
 
-            {/* Not on a partner's listing: its empty state says "todavía no
-                cargamos la partida", a claim about the family's own loading. */}
-            {property.source !== "colega" && (
-              <EditorialSection
-                title="Datos oficiales"
-                subtitle="Los datos registrales de esta propiedad, como figuran en el catastro."
-              >
-                <VerifiedDataList property={property} arbaLookup={arbaLookup} />
-              </EditorialSection>
-            )}
+            {/* "Datos oficiales" (partida, parcela, nomenclatura) lived here
+                until 24-sep-2026: Tomy took it off the listings. The data is
+                still loaded and still drives the map's parcel outline below. */}
 
             {buildingUnits.length > 0 && (
               <EditorialSection
