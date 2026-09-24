@@ -3,7 +3,7 @@ import { PublicHeader } from "@/components/shared/PublicHeader";
 import { PropertyCatalog } from "@/components/catalog/PropertyCatalog";
 import { WhatsAppFloat } from "@/components/home/WhatsAppFloat";
 import { summariseBuildings } from "@/lib/buildings";
-import { getPropertiesByProximity, ZONA_SUR_CENTER } from "@/lib/db/properties";
+import { getPublicCatalog } from "@/lib/db/properties";
 import { catalogOperationLabel } from "@/lib/property/price";
 import type { CatalogProperty } from "@/lib/catalog/filters";
 
@@ -38,15 +38,16 @@ export default async function PropiedadesPage({
   // is someone who already knows what they want to see.
   const startWithIntro = Object.keys(await searchParams).length === 0;
 
-  // Proximity to ZONA_SUR_CENTER is the seed order for a visitor we know
-  // nothing about: the most-covered part of GBA first. No limit — this is the
-  // page that is supposed to show all of it.
-  const proximity = await getPropertiesByProximity(ZONA_SUR_CENTER, {
-    limit: Number.MAX_SAFE_INTEGER,
-  });
-  const properties = proximity.data as unknown as CatalogProperty[];
+  // Everything published, nearest to the centre of Zona Sur first — the seed
+  // order for a visitor we know nothing about. Cached between requests.
+  const rows = (await getPublicCatalog()) as unknown as CatalogProperty[];
   // A plain object, not a Map: it crosses into the client list.
-  const buildings = Object.fromEntries(summariseBuildings(properties));
+  const buildings = Object.fromEntries(summariseBuildings(rows));
+  // The card paints the cover and nothing else of the gallery, and the whole
+  // list crosses to the browser (the match and the filters run there). A
+  // partner's listing carries a dozen photos or more: 1.837 URLs went out on
+  // every visit to paint 128 covers (24-sep-2026).
+  const properties = rows.map((p) => ({ ...p, photos: p.photos?.slice(0, 1) ?? [] }));
 
   // The heading used to read "Propiedades en venta", which was true for as
   // long as a sale was the only thing loadable. Asked of the catalog instead,
@@ -60,7 +61,7 @@ export default async function PropiedadesPage({
 
       <PropertyCatalog
         properties={properties}
-        totalProperties={proximity.count}
+        totalProperties={properties.length}
         buildings={buildings}
         eyebrow="El catálogo"
         heading={operationLabel ? `Propiedades ${operationLabel}` : "Propiedades"}

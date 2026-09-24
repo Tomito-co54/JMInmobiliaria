@@ -10,7 +10,7 @@ import {
 } from "@/components/catalog/BuildingGroup";
 import { buildingLabel, groupByBuilding } from "@/lib/buildings";
 import { buildingPhoto } from "@/lib/buildings/photos";
-import { getPropertiesByProximity, ZONA_SUR_CENTER } from "@/lib/db/properties";
+import { getPublicCatalog } from "@/lib/db/properties";
 import type { BuildingUnitRow } from "@/lib/db/properties";
 
 /**
@@ -122,15 +122,13 @@ function toGroup(key: string, units: Row[]): BuildingGroupData {
 }
 
 export default async function EdificiosPage() {
-  const proximity = await getPropertiesByProximity(ZONA_SUR_CENTER, {
-    limit: Number.MAX_SAFE_INTEGER,
-  });
+  const catalog = await getPublicCatalog();
   // A partner's listings (source = 'colega') come in only as buildings: the
   // sync gives a parcel to the units of one building and to nothing else
   // (lib/colegas/buildings), so a partner's house on its own stays in the
   // catalog. That also keeps the "no parcel" note below about the family's
   // own loading.
-  const rows = (proximity.data as unknown as Row[]).filter(
+  const rows = (catalog as unknown as Row[]).filter(
     (r) => r.source !== "colega" || !!r.nomenclatura_catastral,
   );
 

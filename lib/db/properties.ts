@@ -296,53 +296,95 @@ export const ZONA_SUR_CENTER = {
 } as const;
 
 /**
- * Fetch active properties sorted by Euclidean distance from a reference
- * point. Properties without coordinates fall to the bottom.
+ * The columns the public catalog pages actually use: the card, the filters,
+ * the match, the map, the building grouping. Named, not `*`.
  *
- * For the small dataset we work with (50-500 properties), fetching all
- * active rows and sorting in JS is simpler than building an RPC. If
- * the catalog grows past a few thousand active rows this will need to
- * move to a Postgres function using ST_Distance.
+ * It was `select("*")`, and on 24-sep-2026, with a partner's 113 listings in,
+ * /propiedades shipped 563 kB of rows per visit, 40% of it
+ * `quality_score_breakdown` — an internal score breakdown no visitor sees —
+ * plus timestamps and `url`, which for a partner's listing is the link to
+ * their site that we promised never to show. A column a public page does not
+ * paint does not belong in the query that feeds it.
  */
-export async function getPropertiesByProximity(
-  ref: { lat: number; lng: number },
-  options?: { limit?: number },
-) {
-  const supabase = await createClient();
-  const { data, error, count } = await supabase
-    .from("properties")
-    .select("*", { count: "exact" })
-    .eq("is_active", true)
-    // Two-gate public filter (source = mine, listing_status = decidí mostrar).
-    .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
-    .eq("listing_status", PUBLIC_LISTING_STATUS);
-  if (error) throw error;
+const PUBLIC_CATALOG_COLS = [
+  "id",
+  "source",
+  "partner",
+  "address",
+  "partido",
+  "localidad",
+  "partida",
+  "nomenclatura_catastral",
+  "property_type",
+  "operation_type",
+  "price_amount",
+  "price_currency",
+  "rooms",
+  "bedrooms",
+  "bathrooms",
+  "garages",
+  "surface_total",
+  "surface_covered",
+  "surface_arba",
+  "year_built",
+  "lat",
+  "lng",
+  "photos",
+  "tags",
+  "extras",
+  "description",
+  "quality_score",
+].join(", ");
 
-  const limit = options?.limit ?? 20;
-  const rows = (data ?? []) as Array<{ lat: number | null; lng: number | null }>;
+/**
+ * Everything published, nearest to `ZONA_SUR_CENTER` first (listings without
+ * a position last) — the seed order for a visitor we know nothing about.
+ *
+ * Cached between requests like the matchable catalog, and for the same
+ * reason: it is the same answer for everyone until somebody publishes, and
+ * publishing drops the tag. /propiedades and /edificios both read it; before,
+ * each visit to either asked the database for every column of every row.
+ *
+ * A failed read throws instead of caching an empty list: an empty catalog is
+ * a credible page, and exactly the wrong one to show.
+ *
+ * Sorted in JS, which is fine for hundreds of rows; past a few thousand it
+ * belongs in a Postgres function with ST_Distance.
+ */
+const loadPublicCatalog = unstable_cache(
+  async function loadPublicCatalog(): Promise<Record<string, unknown>[]> {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("properties")
+      .select(PUBLIC_CATALOG_COLS)
+      .eq("is_active", true)
+      // Two-gate public filter (source = public, listing_status = decidí mostrar).
+      .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+      .eq("listing_status", PUBLIC_LISTING_STATUS);
+    if (error) throw error;
 
-  // Adjust lng span by cos(lat) so 1 unit of lng is visually equivalent
-  // to 1 unit of lat — without this, distances near the equator are
-  // overweighted in longitude. Negligible at this scale but cheap and
-  // correct.
-  const cosLat = Math.cos((ref.lat * Math.PI) / 180);
+    const rows = (data ?? []) as unknown as Array<Record<string, unknown> & { lat: unknown; lng: unknown }>;
+    const ref = ZONA_SUR_CENTER;
+    // Adjust the longitude span by cos(lat) so a degree east weighs the same
+    // as a degree north.
+    const cosLat = Math.cos((ref.lat * Math.PI) / 180);
+    return rows
+      .map((row) => {
+        const has = typeof row.lat === "number" && typeof row.lng === "number";
+        const dlng = has ? ((row.lng as number) - ref.lng) * cosLat : 0;
+        const dlat = has ? (row.lat as number) - ref.lat : 0;
+        return { row, d2: has ? dlat * dlat + dlng * dlng : Number.POSITIVE_INFINITY };
+      })
+      .sort((x, y) => x.d2 - y.d2)
+      .map(({ row }) => row);
+  },
+  ["public-catalog"],
+  { tags: [PUBLIC_CATALOG_TAG], revalidate: 300 },
+);
 
-  const sorted = rows
-    .map((p, i) => {
-      const hasCoords = typeof p.lat === "number" && typeof p.lng === "number";
-      const dlng = hasCoords ? ((p.lng as number) - ref.lng) * cosLat : 0;
-      const dlat = hasCoords ? (p.lat as number) - ref.lat : 0;
-      // Push uncoordinated rows after every coordinated one by giving
-      // them an effectively-infinite distance.
-      const d2 = hasCoords ? dlat * dlat + dlng * dlng : Number.POSITIVE_INFINITY;
-      return { row: rows[i], d2 };
-    })
-    .sort((a, b) => a.d2 - b.d2)
-    .slice(0, limit)
-    .map((r) => r.row);
-
-  return { data: sorted, count: count ?? 0 };
-}
+export const getPublicCatalog = cache(async function getPublicCatalog() {
+  return loadPublicCatalog();
+});
 
 // ============================================================================
 // Home protagonista (Block 3 — rediseño de la home)
@@ -560,12 +602,20 @@ const loadMatchableCatalog = unstable_cache(
       const { data } = await supabase
         .from("properties")
         .select(
-          "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, description, year_built",
+          "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, year_built",
         )
         .eq("is_active", true)
         .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
         .eq("listing_status", PUBLIC_LISTING_STATUS);
-      return (data ?? []) as unknown as MatchableProperty[];
+      // No descriptions. The matcher reads one only for a must-have ("con
+      // cochera"), and a visitor's preferences have none (toSearchProfile
+      // sends must_haves: []). This list rides on every public page through
+      // the header, and the 128 descriptions were half its weight (~53 kB
+      // raw, 24-sep-2026). Null, said out loud, rather than a missing key.
+      return ((data ?? []) as unknown as Omit<MatchableProperty, "description">[]).map((p) => ({
+        ...p,
+        description: null,
+      }));
     } catch {
       // An empty list degrades to the neutral prompt, which is honest: with no
       // catalog in hand there is no best match to name.
