@@ -50,7 +50,7 @@ function readLastSearch(): Filters | null {
 
 function saveLastSearch(f: Filters) {
   try {
-    if (f.operation || f.type || f.localidad) {
+    if (f.operation || f.type || f.localidades.length > 0) {
       window.sessionStorage.setItem(LAST_SEARCH_KEY, filtersToParams(f).toString());
     }
   } catch {
@@ -171,8 +171,8 @@ export function PropertyCatalogList({
   }, [filters, mapOpen, sort, writeUrl]);
 
   const finishIntro = useCallback(
-    (answers: Pick<Filters, "operation" | "type" | "localidad">) => {
-      const next = { ...EMPTY_CATALOG_FILTERS, operation: answers.operation, type: answers.type, localidad: answers.localidad };
+    (answers: Pick<Filters, "operation" | "type" | "localidades">) => {
+      const next = { ...EMPTY_CATALOG_FILTERS, operation: answers.operation, type: answers.type, localidades: answers.localidades };
       setIntroOpen(false);
       update(next);
       setLastSearch(next);

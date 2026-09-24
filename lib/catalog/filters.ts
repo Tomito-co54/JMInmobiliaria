@@ -39,8 +39,12 @@ export interface CatalogFilters {
   /** Free text — address, zone, a word from the description. */
   q: string;
   partido: string | null;
-  /** Town within the partido — what the search intro asks as "ubicación". */
-  localidad: string | null;
+  /**
+   * Towns within the partido — any of them. What the intro asks as
+   * "ubicación" (one), and what the search board lets widen (several: Tomy,
+   * 24-sep-2026). Empty = anywhere.
+   */
+  localidades: string[];
   operation: CatalogOperation | null;
   type: string | null;
   /** A rectangle on the map. Null = anywhere. */
@@ -50,7 +54,7 @@ export interface CatalogFilters {
 export const EMPTY_CATALOG_FILTERS: CatalogFilters = {
   q: "",
   partido: null,
-  localidad: null,
+  localidades: [],
   operation: null,
   type: null,
   area: null,
@@ -60,7 +64,7 @@ export function hasAnyFilter(f: CatalogFilters): boolean {
   return (
     f.q.trim() !== "" ||
     f.partido !== null ||
-    f.localidad !== null ||
+    f.localidades.length > 0 ||
     f.operation !== null ||
     f.type !== null ||
     f.area !== null
@@ -104,7 +108,7 @@ export function normalizeText(text: string): string {
 const PARAM = {
   q: "q",
   partido: "partido",
-  localidad: "loc",
+  localidades: "loc",
   operation: "op",
   type: "tipo",
   area: "area",
@@ -115,7 +119,12 @@ export function filtersFromParams(params: URLSearchParams): CatalogFilters {
   return {
     q: params.get(PARAM.q) ?? "",
     partido: params.get(PARAM.partido) || null,
-    localidad: params.get(PARAM.localidad) || null,
+    // Several travel as one comma-separated value: ?loc=Banfield,Temperley.
+    // No localidad in lib/zona-sur/localidades has a comma in its name.
+    localidades: (params.get(PARAM.localidades) ?? "")
+      .split(",")
+      .map((l) => l.trim())
+      .filter(Boolean),
     operation: op === "venta" || op === "alquiler" ? op : null,
     type: params.get(PARAM.type) || null,
     area: boundsFromParam(params.get(PARAM.area)),
@@ -126,7 +135,7 @@ export function filtersToParams(f: CatalogFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (f.q.trim()) params.set(PARAM.q, f.q.trim());
   if (f.partido) params.set(PARAM.partido, f.partido);
-  if (f.localidad) params.set(PARAM.localidad, f.localidad);
+  if (f.localidades.length > 0) params.set(PARAM.localidades, f.localidades.join(","));
   if (f.operation) params.set(PARAM.operation, f.operation);
   if (f.type) params.set(PARAM.type, f.type);
   if (f.area) params.set(PARAM.area, boundsToParam(f.area));
@@ -182,7 +191,7 @@ export function applyFilters<T extends CatalogProperty>(
   const words = normalizeText(f.q).split(/\s+/).filter(Boolean);
   return list.filter((p) => {
     if (f.partido && p.partido !== f.partido) return false;
-    if (f.localidad && p.localidad !== f.localidad) return false;
+    if (f.localidades.length > 0 && !(p.localidad && f.localidades.includes(p.localidad))) return false;
     if (f.operation && p.operation_type !== f.operation) return false;
     if (f.type && p.property_type !== f.type) return false;
     // A listing with no position cannot be inside any area. It is left out
@@ -360,8 +369,8 @@ export function dropStaleAnswers(list: readonly CatalogProperty[], f: CatalogFil
   const types = narrowedOptions(list, { operation: f.operation, type: null }).types;
   const type = f.type && types.includes(f.type) ? f.type : null;
   const localidades = narrowedOptions(list, { operation: f.operation, type }).localidades;
-  const localidad = f.localidad && localidades.includes(f.localidad) ? f.localidad : null;
-  return type === f.type && localidad === f.localidad ? f : { ...f, type, localidad };
+  const kept = f.localidades.filter((l) => localidades.includes(l));
+  return type === f.type && kept.length === f.localidades.length ? f : { ...f, type, localidades: kept };
 }
 
 // --- the family's first ---------------------------------------------------------

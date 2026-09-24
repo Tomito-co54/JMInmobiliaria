@@ -67,30 +67,47 @@ export function CatalogSearchBoard({
   const set = (patch: Partial<CatalogFilters>) => onFiltersChange({ ...filters, ...patch });
   const missing = missingCriteria(preferences);
 
+  // Operation and type are one answer each; the place can be several at
+  // once (Tomy, 24-sep-2026: "Banfield o Temperley"). "Cualquiera" clears.
+  const single = (value: string | null, pick: (v: string | null) => void) => ({
+    isOn: (v: string) => value === v,
+    anyOn: value !== null,
+    toggle: (v: string) => pick(value === v ? null : v),
+    clear: () => pick(null),
+  });
   const rows = [
     options.operations.length > 1 && {
       label: "Operación",
-      value: filters.operation,
       choices: options.operations.map((o) => ({ value: o, label: OPERATION_LABELS[o] })),
-      pick: (v: string | null) => set({ operation: v as CatalogOperation | null }),
+      ...single(filters.operation, (v) => set({ operation: v as CatalogOperation | null })),
     },
     options.types.length > 1 && {
       label: "Tipo",
-      value: filters.type,
       choices: options.types.map((t) => ({ value: t, label: propertyTypeLabel(t) ?? t })),
-      pick: (v: string | null) => set({ type: v }),
+      ...single(filters.type, (v) => set({ type: v })),
     },
     options.localidades.length > 1 && {
       label: "Ubicación",
-      value: filters.localidad,
+      hint: "podés elegir varias",
       choices: options.localidades.map((l) => ({ value: l, label: l })),
-      pick: (v: string | null) => set({ localidad: v }),
+      isOn: (v: string) => filters.localidades.includes(v),
+      anyOn: filters.localidades.length > 0,
+      toggle: (v: string) =>
+        set({
+          localidades: filters.localidades.includes(v)
+            ? filters.localidades.filter((l) => l !== v)
+            : [...filters.localidades, v],
+        }),
+      clear: () => set({ localidades: [] }),
     },
   ].filter(Boolean) as {
     label: string;
-    value: string | null;
+    hint?: string;
     choices: { value: string; label: string }[];
-    pick: (v: string | null) => void;
+    isOn: (v: string) => boolean;
+    anyOn: boolean;
+    toggle: (v: string) => void;
+    clear: () => void;
   }[];
 
   const summary =
@@ -132,14 +149,15 @@ export function CatalogSearchBoard({
             <fieldset key={row.label} className="min-w-0">
               <legend className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 {row.label}
+                {row.hint && <span className="ml-2 normal-case tracking-normal">· {row.hint}</span>}
               </legend>
               <div className="flex flex-wrap gap-2">
                 {row.choices.map((c) => (
-                  <Chip key={c.value} on={row.value === c.value} onClick={() => row.pick(row.value === c.value ? null : c.value)}>
+                  <Chip key={c.value} on={row.isOn(c.value)} onClick={() => row.toggle(c.value)}>
                     {c.label}
                   </Chip>
                 ))}
-                <Chip on={row.value === null} onClick={() => row.pick(null)}>
+                <Chip on={!row.anyOn} onClick={row.clear}>
                   Cualquiera
                 </Chip>
               </div>

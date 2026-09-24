@@ -7,9 +7,12 @@ import { whatsappLink, GENERIC_LEAD_MESSAGE } from "@/lib/brand/contact";
  * whole home scroll so a visitor can reach the broker without entering a
  * specific property (closes the gap left by the per-property CTA on /p/[id]).
  *
- * Pill that shows just the glyph on mobile (saves space over content) and
- * expands with a "Consultar" label from sm up. Gentle fade/scale-in on
- * mount, motion-safe. WhatsApp brand green + inline brand glyph.
+ * A round glyph that stays out of the way (Tomy, 24-sep-2026: "que se
+ * minimice a solo el logo, así no molesta"). "Consultar" slides out of it on
+ * hover, and on keyboard focus so it is not a mouse-only label. On a phone
+ * there is no hover: the glyph alone is the button and a tap opens WhatsApp,
+ * which is the action — the label adds nothing a tap needs (§2.2).
+ * Gentle fade/scale-in on mount, motion-safe. WhatsApp brand green.
  */
 
 function WhatsAppGlyph({ className }: { className?: string }) {
@@ -29,11 +32,15 @@ export function WhatsAppFloat() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Consultar por WhatsApp"
-      className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-40 inline-flex items-center gap-2 rounded-full px-3.5 py-3 sm:px-5 font-medium text-white shadow-lg transition-[filter,transform] hover:brightness-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-90 motion-safe:duration-500"
+      className="group fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-40 inline-flex h-12 min-w-12 items-center justify-center rounded-full px-3 font-medium text-white shadow-lg transition-[filter,transform] hover:brightness-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-90 motion-safe:duration-500"
       style={{ backgroundColor: WA_GREEN }}
     >
-      <WhatsAppGlyph className="size-6 sm:size-5 shrink-0" />
-      <span className="hidden sm:inline">Consultar</span>
+      <WhatsAppGlyph className="size-6 shrink-0" />
+      {/* Folded to zero width until hover or focus; max-width rather than
+          width so it opens to the word's own size. */}
+      <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-[max-width,opacity,margin] duration-300 ease-out group-hover:ml-2 group-hover:max-w-32 group-hover:opacity-100 group-focus-visible:ml-2 group-focus-visible:max-w-32 group-focus-visible:opacity-100 motion-reduce:transition-none">
+        Consultar
+      </span>
     </a>
   );
 }

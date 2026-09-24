@@ -85,7 +85,7 @@ describe("applyFilters", () => {
     const out = applyFilters(all, {
       q: "belgrano",
       partido: "Lomas de Zamora",
-      localidad: null,
+      localidades: [],
       operation: "venta",
       type: "departamento",
       area: null,
@@ -140,7 +140,7 @@ describe("catalogOptions", () => {
 
 describe("filters <-> URL", () => {
   it("round-trips, omitting what is empty", () => {
-    const f = { q: "belgrano", partido: null, localidad: null, operation: "venta" as const, type: null, area: null };
+    const f = { q: "belgrano", partido: null, localidades: [], operation: "venta" as const, type: null, area: null };
     const params = filtersToParams(f);
     expect(params.toString()).toBe("q=belgrano&op=venta");
     expect(filtersFromParams(params)).toEqual(f);
@@ -205,13 +205,19 @@ describe("localidad", () => {
   });
 
   it("filters by it, leaving out the listings that have none", () => {
-    expect(applyFilters(list, { ...EMPTY_CATALOG_FILTERS, localidad: "Banfield" }).map((p) => p.id)).toEqual(["l1"]);
+    expect(applyFilters(list, { ...EMPTY_CATALOG_FILTERS, localidades: ["Banfield"] }).map((p) => p.id)).toEqual(["l1"]);
   });
 
-  it("travels in the URL as loc", () => {
-    const params = filtersToParams({ ...EMPTY_CATALOG_FILTERS, localidad: "Banfield" });
-    expect(params.toString()).toBe("loc=Banfield");
-    expect(filtersFromParams(params).localidad).toBe("Banfield");
+  it("keeps a listing in any of several localidades", () => {
+    const out = applyFilters(list, { ...EMPTY_CATALOG_FILTERS, localidades: ["Banfield", "Temperley"] });
+    expect(out.map((p) => p.id)).toEqual(["l1", "l2"]);
+  });
+
+  it("travels in the URL as loc, several separated by commas", () => {
+    const params = filtersToParams({ ...EMPTY_CATALOG_FILTERS, localidades: ["Banfield", "Temperley"] });
+    expect(params.get("loc")).toBe("Banfield,Temperley");
+    expect(filtersFromParams(params).localidades).toEqual(["Banfield", "Temperley"]);
+    expect(filtersFromParams(new URLSearchParams("")).localidades).toEqual([]);
   });
 
   it("is found by the search box", () => {
@@ -278,12 +284,12 @@ describe("narrowedOptions and dropStaleAnswers", () => {
   });
 
   it("clears a type and a place that the new operation does not have", () => {
-    const f = { ...EMPTY_CATALOG_FILTERS, operation: "alquiler" as const, type: "departamento", localidad: "Banfield" };
-    expect(dropStaleAnswers(list, f)).toMatchObject({ type: null, localidad: null });
+    const f = { ...EMPTY_CATALOG_FILTERS, operation: "alquiler" as const, type: "departamento", localidades: ["Banfield"] };
+    expect(dropStaleAnswers(list, f)).toMatchObject({ type: null, localidades: [] });
   });
 
   it("keeps answers that still fit, and returns the same object", () => {
-    const f = { ...EMPTY_CATALOG_FILTERS, operation: "venta" as const, type: "casa", localidad: "Lomas de Zamora" };
+    const f = { ...EMPTY_CATALOG_FILTERS, operation: "venta" as const, type: "casa", localidades: ["Lomas de Zamora"] };
     expect(dropStaleAnswers(list, f)).toBe(f);
   });
 });

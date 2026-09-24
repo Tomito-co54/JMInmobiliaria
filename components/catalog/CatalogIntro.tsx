@@ -48,7 +48,15 @@ import {
  */
 
 type StepKey = "operation" | "type" | "localidad";
-type Answers = Pick<CatalogFilters, "operation" | "type" | "localidad">;
+/** One answer per question; the search itself may later hold several places. */
+type Answers = { operation: CatalogOperation | null; type: string | null; localidad: string | null };
+type Search = Pick<CatalogFilters, "operation" | "type" | "localidades">;
+
+const toSearch = (a: Answers): Search => ({
+  operation: a.operation,
+  type: a.type,
+  localidades: a.localidad ? [a.localidad] : [],
+});
 
 const STEPS: { key: StepKey; question: string; hint: string }[] = [
   { key: "operation", question: "¿Qué operación buscás?", hint: "Elegí una para empezar." },
@@ -88,7 +96,7 @@ export function CatalogIntro({
   properties: readonly CatalogProperty[];
   /** The last search of this visit, offered back instead of asked again. */
   resume: { label: string; filters: CatalogFilters } | null;
-  onDone: (answers: Answers) => void;
+  onDone: (search: Search) => void;
   onSkip: () => void;
 }) {
   const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
@@ -122,7 +130,7 @@ export function CatalogIntro({
     for (let i = current.index + 1; i < STEPS.length; i++) next[STEPS[i].key] = null;
     const following = nextAskable(current.index + 1, next);
     if (following === null) {
-      onDone(next);
+      onDone(toSearch(next));
       return;
     }
     setAnswers(next);
@@ -290,10 +298,17 @@ function SkipOnly({ onSkip }: { onSkip: () => void }) {
 }
 
 /** How a search reads in one line: "Departamento en venta · Banfield". */
-export function describeSearch(f: Pick<CatalogFilters, "operation" | "type" | "localidad">): string | null {
+export function describeSearch(f: Search): string | null {
   const type = f.type ? (propertyTypeLabel(f.type) ?? f.type) : "Propiedades";
   const op = f.operation === "venta" ? "en venta" : f.operation === "alquiler" ? "en alquiler" : null;
-  const parts = [[type, op].filter(Boolean).join(" "), f.localidad].filter(Boolean);
-  if (!f.type && !f.operation && !f.localidad) return null;
-  return parts.join(" · ");
+  const places =
+    f.localidades.length === 0
+      ? null
+      : f.localidades.length === 1
+        ? f.localidades[0]
+        : f.localidades.length === 2
+          ? `${f.localidades[0]} y ${f.localidades[1]}`
+          : `${f.localidades.length} ubicaciones`;
+  if (!f.type && !f.operation && !places) return null;
+  return [[type, op].filter(Boolean).join(" "), places].filter(Boolean).join(" · ");
 }
