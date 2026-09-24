@@ -1731,8 +1731,13 @@ Sentry y `docs/TESTING_BLOCK_7.md`. **Quedan solo las KEY en Vercel y en
 
 Los tres mapas del sitio —bloque de cobertura de la home, `/p/[id]`,
 `/admin/mercado/mapa`— toman sus tiles de **una sola** variable:
-`NEXT_PUBLIC_BASEMAP_URL`. Hoy apunta a **MapTiler**, estilo `landscape`,
-con la key restringida por origin a `localhost` y al dominio de producción.
+`NEXT_PUBLIC_BASEMAP_URL`. Hoy apunta a **MapTiler**, estilo **`streets-v2`**
+(desde el 24-sep; antes `landscape`, que Tomy encontró demasiado pálido para
+leer calles y manzanas — eligió entre seis estilos sobre la misma zona de
+Banfield), con la key restringida por origin a `localhost` y al dominio de
+producción. **Cambiar de estilo es sólo la palabra en la URL**, en `.env.local`
+y en Vercel (Settings → Environment Variables), y se toma en el próximo deploy
+porque una `NEXT_PUBLIC_` se hornea en el build.
 
 Lo que hay que saber antes de tocarlo:
 
