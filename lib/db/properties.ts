@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { topLocalidades } from "@/lib/catalog/filters";
+import { ownFirst, topLocalidades } from "@/lib/catalog/filters";
 import { unstable_cache } from "next/cache";
 import {
   createClient,
@@ -569,8 +569,8 @@ async function findArbaLookup(
 /**
  * The published catalog, reduced to the fields the matcher scores against.
  *
- * Small on purpose and small in fact — the public filter is four listings
- * today — so the whole set ships to the client and the match recomputes on
+ * Small on purpose — thirteen scalar fields per listing, no descriptions or
+ * photos — so the whole set ships to the client and the match recomputes on
  * every tap with no round trip. It honours the same two-door filter as every
  * other public surface (`lib/db/property-sources`): a visitor must never be
  * matched against scraped inventory.
@@ -580,61 +580,47 @@ async function findArbaLookup(
  * apply the public gate is exactly the duplication that lets one of them
  * quietly stop applying it.
  *
- * Cached on two levels, because it is asked for on every public page and the
- * answer is the same for everyone:
+ * Derived from `getPublicCatalog` rather than queried on its own, for two
+ * reasons. One query and one cache entry instead of two. And, the one that
+ * forced it (24-sep-2026): the ORDER. `bestMatch` keeps the first listing with
+ * the top score, and scores tie a lot — six departments at 89 — so "tu mejor
+ * match" was whichever the database returned first while /propiedades showed a
+ * different one at the top. Handing the matcher the catalog's own order (the
+ * family's first, then nearest to the centre) makes the landing's button, the
+ * header and the catalog's first card name the same property.
  *
- *   - `unstable_cache` keeps it BETWEEN requests, tagged so publishing a
- *     property drops it immediately (see PUBLIC_CATALOG_TAG). Measured before
- *     this: a round trip to the database cost ~375ms in production, because
- *     the database is in São Paulo and the function ran in Washington. This
- *     query ran on every single public page view and its answer had not
- *     changed since the last time somebody published something.
- *   - `cache` (React) dedupes it WITHIN a request, for the landing, where the
- *     header and the garantías section both want it.
- *
- * Reads with the cookie-less public client: `unstable_cache` has no request to
- * read cookies from, and this data does not depend on who is asking.
+ * An empty list on failure degrades to the neutral prompt, which is honest:
+ * with no catalog in hand there is no best match to name.
  */
-const loadMatchableCatalog = unstable_cache(
-  async function loadMatchableCatalog(): Promise<MatchableProperty[]> {
+export const getMatchableCatalog = cache(
+  async function getMatchableCatalog(): Promise<MatchableProperty[]> {
+    let rows: Record<string, unknown>[];
     try {
-      const supabase = createPublicClient();
-      const { data } = await supabase
-        .from("properties")
-        .select(
-          "id, address, partido, property_type, operation_type, price_amount, price_currency, rooms, bedrooms, surface_total, surface_arba, garages, year_built",
-        )
-        .eq("is_active", true)
-        .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
-        .eq("listing_status", PUBLIC_LISTING_STATUS);
+      rows = await getPublicCatalog();
+    } catch {
+      return [];
+    }
+    return ownFirst(rows as Array<Record<string, unknown> & { source?: string | null }>).map((p) => ({
+      id: p.id as string,
+      address: (p.address as string | null) ?? null,
+      partido: (p.partido as string | null) ?? null,
+      property_type: (p.property_type as string | null) ?? null,
+      operation_type: (p.operation_type as string | null) ?? null,
+      price_amount: (p.price_amount as number | null) ?? null,
+      price_currency: (p.price_currency as "USD" | "ARS" | null) ?? null,
+      rooms: (p.rooms as number | null) ?? null,
+      bedrooms: (p.bedrooms as number | null) ?? null,
+      surface_total: (p.surface_total as number | null) ?? null,
+      surface_arba: (p.surface_arba as number | null) ?? null,
+      garages: (p.garages as number | null) ?? null,
+      year_built: (p.year_built as number | null) ?? null,
       // No descriptions. The matcher reads one only for a must-have ("con
       // cochera"), and a visitor's preferences have none (toSearchProfile
       // sends must_haves: []). This list rides on every public page through
       // the header, and the 128 descriptions were half its weight (~53 kB
-      // raw, 24-sep-2026). Null, said out loud, rather than a missing key.
-      return ((data ?? []) as unknown as Omit<MatchableProperty, "description">[]).map((p) => ({
-        ...p,
-        description: null,
-      }));
-    } catch {
-      // An empty list degrades to the neutral prompt, which is honest: with no
-      // catalog in hand there is no best match to name.
-      return [];
-    }
-  },
-  ["matchable-catalog"],
-  {
-    tags: [PUBLIC_CATALOG_TAG],
-    // A ceiling, not the mechanism. The tag is what makes a publish visible at
-    // once; this only bounds how long a cache that missed its invalidation can
-    // stay wrong.
-    revalidate: 300,
-  },
-);
-
-export const getMatchableCatalog = cache(
-  async function getMatchableCatalog(): Promise<MatchableProperty[]> {
-    return loadMatchableCatalog();
+      // raw). Null, said out loud, rather than a missing key.
+      description: null,
+    }));
   },
 );
 
