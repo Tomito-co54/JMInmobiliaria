@@ -2302,6 +2302,23 @@ Tres caminos:
 - **Desde un JSON:** `npm run cargar-propiedad -- ficha.json [--dry-run]`
   (`docs/ejemplo-propiedad.json` es la plantilla, ya incluye `year_built`).
 
+**1b. Tasador por m² en el panel** ← pedido por Tomy el 24-sep, para después
+
+Una herramienta de `/admin` para **tasar rápido con datos del mercado real**
+(las scrapeadas): elegir filtros —tipo, operación, localidad, ambientes,
+superficie, antigüedad— y que diga el **USD/m² aproximado**; y lo mismo
+**marcando un área en el mapa**, que calcule el valor promedio de la zona.
+De ahí, una propiedad se tasa multiplicando por sus m².
+
+Qué hay para apoyarse: `/admin/mercado/mapa` ya selecciona áreas por arrastre
+sobre los avisos geolocalizados, y `lib/market/stats.ts` ya saca media,
+mediana y desvío del USD/m² por tipo. Lo que tiene que resolver: **la mediana,
+no la media** (un aviso con un precio mal cargado mueve la media), cuántos
+avisos hay atrás del número (con 3 no es un valor de zona, es una anécdota, y
+tiene que decirlo), y **cubierto vs descubierto** — el punto 4 de abajo: hoy
+el USD/m² divide por la superficie total, y en una casa eso mide el lote. Una
+tasación seria necesita ese desglose, o por lo menos avisar qué superficie usó.
+
 **2. Correr `npm run pipeline` seguido** ← ahora es la única forma en que corre
 
 Cada corrida acumula historial que no se puede reconstruir después.
