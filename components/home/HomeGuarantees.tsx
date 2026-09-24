@@ -22,7 +22,7 @@ export async function HomeGuarantees() {
 
   return (
     <section className="relative px-4 py-20 sm:py-28 overflow-x-clip">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* The match, on a tinted panel. Decorative blobs give it life. */}
         <div className="relative rounded-[2rem] bg-muted/40 px-5 py-14 sm:px-12 sm:py-20 overflow-hidden">
           <div

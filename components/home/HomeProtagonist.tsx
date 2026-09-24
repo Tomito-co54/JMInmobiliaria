@@ -85,7 +85,7 @@ export function HomeProtagonist({ property }: { property: FeaturedPropertyRow | 
 
   return (
     <section className="relative px-4 py-16 sm:py-24 overflow-x-clip">
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-y-14 md:gap-x-10 items-center">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-y-14 md:gap-x-10 items-center">
         {/* ---- Text block (the serious anchor) ---- */}
         <Reveal
           direction="left"

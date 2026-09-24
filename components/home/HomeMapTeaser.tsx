@@ -78,7 +78,7 @@ export async function HomeMapTeaser() {
 
   return (
     <section className="px-4 py-16 sm:py-24">
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-y-10 md:gap-x-12 items-center">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-y-10 md:gap-x-12 items-center">
         <Reveal direction="left" className="order-2 md:order-1">
           <p
             className="text-[0.7rem] sm:text-xs font-medium uppercase tracking-[0.22em] mb-3"

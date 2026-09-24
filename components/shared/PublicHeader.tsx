@@ -75,7 +75,7 @@ export async function PublicHeader({
 
   return (
     <header className="px-4 py-3 border-b">
-      <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+      <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         <Link
           href="/"
           aria-label="Jotaeme — inicio"

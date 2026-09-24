@@ -158,7 +158,7 @@ export default async function EdificiosPage() {
       <PublicHeader active="edificios" />
 
       <section className="px-4 py-14 sm:py-20">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <Reveal className="max-w-2xl">
             <p
               className="text-xs uppercase tracking-[0.2em] font-medium"
