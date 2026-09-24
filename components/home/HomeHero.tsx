@@ -88,9 +88,9 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
             animationDelay: "260ms",
           }}
         >
-          70 años
+          70 años de trayectoria
           <br />
-          a tu servicio.
+          para acompañarte.
         </h1>
 
         {/* Zonas con middle-dot, sin caja final con coma — más editorial. */}
