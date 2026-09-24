@@ -386,3 +386,18 @@ export function ownFirst<T extends { source?: string | null }>(list: readonly T[
   const isPartner = (p: T) => p.source === "colega";
   return [...list.filter((p) => !isPartner(p)), ...list.filter(isPartner)];
 }
+
+/**
+ * The localidades with the most published listings, most first (ties in
+ * alphabetical order). The landing's line of zones is this, so it cannot go
+ * stale: it used to be a hand-written list of five partidos from the old
+ * coverage map, three of which the catalog barely touched.
+ */
+export function topLocalidades(list: readonly { localidad?: string | null }[], n: number): string[] {
+  const counts = new Map<string, number>();
+  for (const p of list) if (p.localidad) counts.set(p.localidad, (counts.get(p.localidad) ?? 0) + 1);
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "es"))
+    .slice(0, n)
+    .map(([l]) => l);
+}

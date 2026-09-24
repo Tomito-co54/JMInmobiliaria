@@ -12,6 +12,7 @@ import {
   orderByMatch,
   ownFirst,
   sortCatalog,
+  topLocalidades,
   sortFromParams,
   type CatalogProperty,
 } from "./filters";
@@ -310,5 +311,19 @@ describe("ownFirst", () => {
     const own = row({ id: "o", source: "owner_direct" });
     const ordered = orderByMatch(ownFirst([partner, own]), { ...EMPTY_MATCH_PREFERENCES, roomsMin: 2 });
     expect(ordered.map((x) => x.property.id)).toEqual(["o", "p"]);
+  });
+});
+
+describe("topLocalidades", () => {
+  it("names the busiest localidades first, ties alphabetically, and skips listings without one", () => {
+    const list = [
+      { localidad: "Banfield" },
+      { localidad: "Adrogué" },
+      { localidad: "Adrogué" },
+      { localidad: "Burzaco" },
+      { localidad: null },
+    ];
+    expect(topLocalidades(list, 2)).toEqual(["Adrogué", "Banfield"]);
+    expect(topLocalidades([], 5)).toEqual([]);
   });
 });

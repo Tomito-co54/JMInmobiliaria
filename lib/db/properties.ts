@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { topLocalidades } from "@/lib/catalog/filters";
 import { unstable_cache } from "next/cache";
 import {
   createClient,
@@ -630,4 +631,33 @@ const loadCatalogPins = unstable_cache(
 
 export const getCatalogPins = cache(async function getCatalogPins(): Promise<CatalogPin[]> {
   return loadCatalogPins();
+});
+
+/**
+ * The line of zones under the landing's headline: the localidades with the
+ * most published listings. Same cache and tag as the rest of the public
+ * catalog, so it moves when something is published and not otherwise.
+ */
+const loadTopLocalidades = unstable_cache(
+  async function loadTopLocalidades(): Promise<string[]> {
+    try {
+      const supabase = createPublicClient();
+      const { data } = await supabase
+        .from("properties")
+        .select("localidad")
+        .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+        .eq("listing_status", PUBLIC_LISTING_STATUS)
+        .not("localidad", "is", null);
+      return topLocalidades((data ?? []) as { localidad: string | null }[], 5);
+    } catch {
+      // No line of zones rather than a wrong one.
+      return [];
+    }
+  },
+  ["top-localidades"],
+  { tags: [PUBLIC_CATALOG_TAG], revalidate: 300 },
+);
+
+export const getTopLocalidades = cache(async function getTopLocalidades(): Promise<string[]> {
+  return loadTopLocalidades();
 });

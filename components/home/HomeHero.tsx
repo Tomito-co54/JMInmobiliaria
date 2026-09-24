@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { BrandLogo } from "@/components/shared/BrandLogo";
@@ -34,7 +35,7 @@ import { cn } from "@/lib/utils";
  * va en `text-muted-foreground` + italic para que durante el desarrollo
  * sea evidente que no es producción.
  */
-export function HomeHero() {
+export function HomeHero({ zonas }: { zonas: string[] }) {
   return (
     <section className="relative px-4 pt-12 pb-14 sm:pt-20 sm:pb-20 overflow-hidden">
       {/* Subtle radial spotlight behind the content.
@@ -87,26 +88,28 @@ export function HomeHero() {
             animationDelay: "260ms",
           }}
         >
-          La información del martillero,
+          70 años
           <br />
-          en tus manos.
+          a tu servicio.
         </h1>
 
         {/* Zonas con middle-dot, sin caja final con coma — más editorial. */}
-        <p
-          className="text-sm sm:text-base text-muted-foreground home-rise"
-          style={{ animationDelay: "440ms" }}
-        >
-          <span>Lomas</span>
-          <Bullet />
-          <span>Banfield</span>
-          <Bullet />
-          <span>Lanús</span>
-          <Bullet />
-          <span>Avellaneda</span>
-          <Bullet />
-          <span>Quilmes</span>
-        </p>
+        {zonas.length > 0 && (
+          <p
+            className="text-sm sm:text-base text-muted-foreground home-rise"
+            style={{ animationDelay: "440ms" }}
+          >
+            {/* The busiest localidades of the published catalog (Tomy,
+                24-sep-2026), not a hand-written list: the old one named three
+                partidos the catalog barely touched. */}
+            {zonas.map((z, i) => (
+              <Fragment key={z}>
+                {i > 0 && <Bullet />}
+                <span>{z}</span>
+              </Fragment>
+            ))}
+          </p>
+        )}
 
         {/* CTA. El chevron se desplaza 2px al hover (§2.2 — premia
             curiosidad). Ya no es un ancla: el catálogo vive en /propiedades,
