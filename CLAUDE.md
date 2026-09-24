@@ -57,9 +57,11 @@ trajo HEAD `e64b474` del upstream.
 
 ## Current progress
 
-**Status (23-sep-2026):** Deployado y funcionando en producción, con
-auto-deploy desde `main`. **544 tests passing** (+7 skipped a propósito),
-`npm run build` verde, **33 rutas**.
+**Status (24-sep-2026):** Deployado y funcionando en producción en
+**https://www.jminmobiliaria.com.ar**, con auto-deploy desde `main`. **549 tests
+passing** (+7 skipped a propósito), `npm run build` verde, **34 rutas** (contadas
+en el build del 24-sep: las 33 de antes más `/servicios`). Catálogo: **15 propias
++ 113 del colega = 128 publicadas**.
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
 3-sep, no se copiaron del párrafo anterior. El build lista 33 rutas contadas
@@ -2717,6 +2719,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.45 | Sep 24, 2026 | **Dominio propio, y el sitio queda funcional.** Tomy registró `jminmobiliaria.com.ar` en NIC Argentina (con CUIL y clave fiscal; vence el 24-sep-2027) y lo delegó a `ns1/ns2.vercel-dns.com`. NIC publicó en ~15 min; Vercel tardó ~1 h en habilitar la zona ("DNS zone not enabled … dns-01" mientras tanto) y se destrabó solo. El pelado redirige al `www`, el `.vercel.app` redirige 308 al dominio conservando ruta y parámetros, MapTiler autoriza el origen nuevo (verificado mirando la tesela), Supabase Auth tiene el dominio como Site URL, y `SITE_URL` en `lib/brand/contact.ts` reemplaza los respaldos que nombraban el `.vercel.app` y el proyecto original. `NEXT_PUBLIC_APP_URL` no se cargó en Vercel —su panel rechazó el prefijo público— y no hace falta. Quinta corrida del protocolo: Alsina 4°Y 89.000 → 88.000 (decisión del 24-sep en `CONTEXTO.md`); segunda pasada en seco sin diferencias en las 14, y el colega sin cambios. |
 | 2.44 | Sep 24, 2026 | **Servicios, el menú del celular, y se va "Datos oficiales".** `/servicios` (contenido en `lib/servicios/catalogo.ts`): tasaciones, estado parcelario, mensura y subdivisión, planos municipales y demoliciones —hechos por la inmobiliaria, Tomy confirmó que la demolición es completa, del plano a la obra—, sin precios (un test lo impide) y un WhatsApp por servicio con el mensaje armado. **Debajo de md la barra pasa a un menú lateral** (`MobileNav`, sobre el `Sheet` de base-ui): los cuatro destinos numerados como las disciplinas de servicios, el Panel si hay sesión y un WhatsApp; desde md la barra no cambió. Antes, en un teléfono la guía y servicios eran inalcanzables desde la barra. Y **"Datos oficiales" sale de las publicaciones** a pedido de Tomy: `VerifiedDataList` y `lib/property/verified-data.ts` se borraron (el lookup del catastro sigue dibujando la parcela en el mapa). **549 tests** (se fueron los 12 de verified-data). |
 | 2.43 | Sep 24, 2026 | **La segunda lentitud era peso, y el pipeline pisaba al colega.** Con 128 publicadas, cada navegación a `/propiedades` bajaba 707 kB (220 de un desglose interno de puntaje) y cada página pública 96 kB de descripciones para el menú del match. Consulta con columnas nombradas y cacheada, sólo la portada de cada galería, header sin descripciones, tarjetas de a 24: navegar entre pestañas pasó de 400–730 ms a ~200 ms. Y el paso de catastro del pipeline les daba parcela a las sueltas de Laudani (aparecían como edificios de una unidad; un depto mostraba los 509 m² del lote): ahora sólo enriquece mercado, datos reparados con backup. También: operación y tipo con selección múltiple en "Tu búsqueda", la etapa 3 de la guía pasa a "De la reserva a la seña", y la portada de la home llena la primera pantalla con la barra más alta. **558 tests.** |
 | 2.42 | Sep 24, 2026 | **El mapa pasa a streets-v2 y los edificios del colega se arman.** Tomy eligió MapTiler `streets-v2` entre seis estilos; el cambio en Vercel no se había guardado la primera vez (el Save está abajo del cuadro) y se verificó en producción mirando la tesela. Los avisos de Laudani se agrupan en edificios por dirección **o** por parcela con el pin adentro, porque ni la dirección ni el pin alcanzan solos: 13 edificios, después de los propios en `/edificios`. |
