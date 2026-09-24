@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/brand/contact";
 import { Resend } from "resend";
 
 /**
@@ -33,8 +34,5 @@ export function getFromAddress(): string | null {
  * at something real.
  */
 export function getAppOrigin(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    "https://jotaeme-beryl.vercel.app"
-  );
+  return process.env.NEXT_PUBLIC_APP_URL?.trim() || SITE_URL;
 }

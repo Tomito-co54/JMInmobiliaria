@@ -913,7 +913,7 @@ una contra el build: no falta ninguna — están las 41, con `/icon.svg` y
 `/apple-icon.png` incluidas. Era un error de conteo, no una ruta perdida.)*
 
 **Live URLs:**
-- Producción: **https://jm-inmobiliaria-d3pa.vercel.app** — deployada 12-ago-2026. Login de admin **verificado** el 24-ago. Auto-deploy desde `main`: un push llega a producción en ~60s.
+- Producción: **https://www.jminmobiliaria.com.ar** desde el 24-sep-2026 (registrado en NIC Argentina por Tomy, **vence el 24-sep-2027**; delegado a `ns1/ns2.vercel-dns.com`; el dominio pelado redirige 308 al `www`; en el código es `SITE_URL` de `lib/brand/contact.ts`). Sigue respondiendo `https://jm-inmobiliaria-d3pa.vercel.app`, deployada 12-ago-2026. La primera activación trabó con "DNS zone not enabled … dns-01": Vercel tarda en ver la delegación; se destrabó sola en ~1 h. Login de admin **verificado** el 24-ago. Auto-deploy desde `main`: un push llega a producción en ~60s.
 - GitHub repo: https://github.com/Tomito-co54/JMInmobiliaria
 - Supabase project: `https://cjnaxxidigdylnwlpyab.supabase.co` (**compartido con el proyecto original `jotaeme`** — decisión tomada: una única DB, el scraper alimenta la misma tabla).
 - Sentry project: `jotaeme-web` (heredado del upstream).

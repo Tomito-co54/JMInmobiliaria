@@ -7,6 +7,15 @@
  */
 
 /**
+ * The site's own address (jminmobiliaria.com.ar, registered at NIC Argentina
+ * on 24-sep-2026 and delegated to Vercel; the bare domain redirects to www).
+ * The fallback for anything that prints an absolute link when
+ * NEXT_PUBLIC_APP_URL is not set — before, two fallbacks named the .vercel.app
+ * URL and one the upstream project's.
+ */
+export const SITE_URL = "https://www.jminmobiliaria.com.ar";
+
+/**
  * WhatsApp number in full international form, digits only (no +, spaces or
  * dashes) — the format wa.me expects.
  *   +54 9 11 3286 2525  →  5491132862525

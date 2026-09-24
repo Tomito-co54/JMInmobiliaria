@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPropertyForPublicView } from "@/lib/db/properties";
 import { generatePropertySheet } from "@/lib/services/pdf";
-import { WHATSAPP_DISPLAY } from "@/lib/brand/contact";
+import { SITE_URL, WHATSAPP_DISPLAY } from "@/lib/brand/contact";
 
 /**
  * GET /p/[id]/ficha.pdf — the listing as a one-page PDF.
@@ -31,7 +31,7 @@ export async function GET(
   }
 
   const p = view.property;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://jm-inmobiliaria-d3pa.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || SITE_URL;
 
   let pdf: Buffer;
   try {
