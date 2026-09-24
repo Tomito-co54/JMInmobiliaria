@@ -397,6 +397,19 @@ propias **primero** y como protagonistas.
   siendo la oferta propia más barata (`getFeaturedProperty` lee sólo
   `OWNER_PROPERTY_SOURCES`) y lo propio sigue primero (`ownFirst`).
 - **"Dúplex/Tríplex" → departamento**, confirmado por Tomy.
+- **Sus edificios se arman como los propios** (24-sep, `lib/colegas/buildings.ts`,
+  puro): la sync consulta la parcela de cada pin (`lookupParcel`, cacheado 180
+  días) y dos avisos son el mismo edificio si **comparten dirección** (sin
+  mayúsculas, tildes ni espacios de más) **o** si el catastro pone **los dos
+  pines adentro** de la misma parcela. Ninguna de las dos pistas alcanza sola:
+  la dirección está tipeada a mano ("Diagonal Brown" / "Diagonal Almirante
+  Brown") y el pin también (Somellera 538 cayó a 49 m, en otra manzana). A
+  cada edificio de 2+ se le da **una parcela y una dirección** —la más votada—
+  y con eso andan solos `/edificios`, "N unidades · desde…" y "Otras unidades
+  en este edificio". Un aviso suelto **no** recibe parcela. Hoy: **13
+  edificios**, en `/edificios` después de los propios y con el sello. Dos de
+  esos "edificios" son la misma propiedad publicada dos veces con otro tipo
+  (Canale 1789 casa + lote, Espora 3700 local + lote).
 - **Se fue el bloque "Cómo trabajamos" de la home** (el manifiesto, "Publicamos
   los papeles…" y el mapa de cobertura): era de la versión vieja y con un
   colega ya no era cierto. Queda el panel del match. Se llevó el lugar de la
@@ -2637,6 +2650,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.42 | Sep 24, 2026 | **El mapa pasa a streets-v2 y los edificios del colega se arman.** Tomy eligió MapTiler `streets-v2` entre seis estilos; el cambio en Vercel no se había guardado la primera vez (el Save está abajo del cuadro) y se verificó en producción mirando la tesela. Los avisos de Laudani se agrupan en edificios por dirección **o** por parcela con el pin adentro, porque ni la dirección ni el pin alcanzan solos: 13 edificios, después de los propios en `/edificios`. |
 | 2.41 | Sep 23, 2026 | **Las portadas de los edificios dejan de romperse.** La de Belgrano apuntaba a una URL que la sync con `--fotos` ya había borrado; ahora cada portada es "foto N de la unidad X", resuelta contra la galería de hoy, o un archivo propio en `edificios/` que la sync no toca (`npm run subir-portada`). Cabrera 205 y Portela 95 tienen la suya. Quinta corrida del protocolo y del colega: sin diferencias. |
 | 2.40 | Sep 23, 2026 | **El catálogo de un colega.** Luciano (Laudani & Cía) le dio a Tomy todo su catálogo, operaciones a medias. Su sitio es BuscadorProp y se lee sin navegador: 113 propiedades entran estandarizadas —tipos, localidades, descripciones sin gritos y sin sus teléfonos— con un sello chico de su logo, el WhatsApp de Tomy y ningún link a su sitio. Un origen nuevo, `colega`, que es público pero no propio: la sync de la maestra y la protagonista siguen viendo sólo lo de la familia, y el mercado no lo cuenta. Sincronización diaria en GitHub Actions con la misma guarda de bajas que costó tres catálogos aprenderla. El catálogo pasa de 15 a **128**. **522 → 544 tests.** |
 | 2.39 | Sep 23, 2026 | **La guía habla como el sitio, y el catálogo se entra en tres pasos.** Tomy reescribió la guía de compra etapa por etapa: sobria, informativa, sin la voz de agencia que acompaña al comprador ni los restos de los servicios pagos; boleto y escritura pasan a ser dos etapas, y reserva y seña dejan de confundirse. En `/propiedades`, una intro de tres preguntas (operación → tipo → ubicación) que filtra, un tablero al costado con el match y lo que falta para afinar, y orden por precio y antigüedad. Para que la ubicación sirva hizo falta un dato que no existía: **la localidad** (00022), que llega desde la maestra; y entraron cuatro tipos (00023). Cuarta corrida del protocolo: 14 sin diferencias, Vergara UF 3 queda en 58.500 (la maestra se corrigió al sitio, no al revés). Una trampa nueva de herramienta: un `\b` escrito desde Python dentro de un string no crudo se guardó como el carácter de retroceso, y la regex de "campo" no matcheaba — lo agarró un test. **499 → 522 tests.** |

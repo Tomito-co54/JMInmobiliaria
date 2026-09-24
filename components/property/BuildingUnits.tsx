@@ -3,6 +3,7 @@ import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import type { BuildingUnitRow } from "@/lib/db/properties";
 import { formatPrice, operationNoun } from "@/lib/property/price";
+import { skipsOptimizer } from "@/lib/property/photo-source";
 
 /**
  * "Otras unidades en este edificio" — the sibling listings standing on the
@@ -52,6 +53,7 @@ export function BuildingUnits({ units }: { units: BuildingUnitRow[] }) {
                     alt=""
                     fill
                     sizes="64px"
+                    unoptimized={skipsOptimizer(cover)}
                     className="object-cover"
                   />
                 )}

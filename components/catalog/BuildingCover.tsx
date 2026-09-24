@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Building2, Expand } from "lucide-react";
 import { PropertyGallery } from "@/components/property/PropertyGallery";
+import { skipsOptimizer } from "@/lib/property/photo-source";
 
 /**
  * The building's cover photo, openable at full size.
@@ -51,7 +52,7 @@ export function BuildingCover({
         className={`${box} group cursor-zoom-in transition-transform hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-2`}
         style={{ outlineColor: "var(--brand-gold)" }}
       >
-        <Image src={photo} alt={label} fill sizes="64px" className="object-cover" />
+        <Image src={photo} alt={label} fill sizes="64px" unoptimized={skipsOptimizer(photo)} className="object-cover" />
         <span
           aria-hidden
           className="absolute inset-x-0 bottom-0 flex h-6 items-end justify-end bg-gradient-to-t from-black/60 to-transparent p-1"

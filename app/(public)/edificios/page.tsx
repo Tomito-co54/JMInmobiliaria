@@ -46,6 +46,9 @@ export const metadata: Metadata = {
 type Row = BuildingUnitRow & {
   nomenclatura_catastral: string | null;
   partido: string | null;
+  localidad?: string | null;
+  source?: string;
+  partner?: string | null;
 };
 
 function toGroup(key: string, units: Row[]): BuildingGroupData {
@@ -105,7 +108,10 @@ function toGroup(key: string, units: Row[]): BuildingGroupData {
       buildingPhoto(key, units) ??
       ordered.find((u) => u.photos?.[0])?.photos?.[0] ??
       null,
-    partido: units.find((u) => u.partido)?.partido ?? null,
+    // The town reads better than the partido, as on the catalog cards.
+    partido: units.find((u) => u.localidad)?.localidad ?? units.find((u) => u.partido)?.partido ?? null,
+    // A building is a partner's when every unit in it is.
+    partner: units.every((u) => u.source === "colega") ? (units[0]?.partner ?? null) : null,
     units: ordered,
     fromPrice,
     fromCurrency,
@@ -119,22 +125,27 @@ export default async function EdificiosPage() {
   const proximity = await getPropertiesByProximity(ZONA_SUR_CENTER, {
     limit: Number.MAX_SAFE_INTEGER,
   });
-  // A partner's listings (source = 'colega') are in the catalog, not here:
-  // this page groups the family's buildings, and their "no parcel" note is
-  // about the family's loading, not about somebody else's catalog.
-  const rows = (proximity.data as unknown as (Row & { source?: string })[]).filter(
-    (r) => r.source !== "colega",
+  // A partner's listings (source = 'colega') come in only as buildings: the
+  // sync gives a parcel to the units of one building and to nothing else
+  // (lib/colegas/buildings), so a partner's house on its own stays in the
+  // catalog. That also keeps the "no parcel" note below about the family's
+  // own loading.
+  const rows = (proximity.data as unknown as Row[]).filter(
+    (r) => r.source !== "colega" || !!r.nomenclatura_catastral,
   );
 
   const grouped = groupByBuilding(rows);
   const buildings = [...grouped.entries()]
     .map(([key, units]) => toGroup(key, units))
-    // Biggest buildings first — comparing units within one is what the page
-    // is for, so the ones with something to compare lead. Ties by name so the
+    // The family's buildings first (Tomy, 23-sep-2026: his are the priority),
+    // then biggest first — comparing units within one is what the page is
+    // for, so the ones with something to compare lead. Ties by name so the
     // order does not shuffle between requests.
     .sort(
       (a, b) =>
-        b.units.length - a.units.length || a.label.localeCompare(b.label, "es"),
+        Number(!!a.partner) - Number(!!b.partner) ||
+        b.units.length - a.units.length ||
+        a.label.localeCompare(b.label, "es"),
     );
 
   // Everything with a parcel is now in a group, so what is left over is

@@ -35,6 +35,8 @@ import {
   type ColegaRow,
 } from "../lib/colegas/buscadorprop";
 import { decideDeactivation, type CrawlEnd } from "../lib/services/scrapers/crawl-completeness";
+import { lookupParcel } from "../lib/services/arba";
+import { groupPartnerUnits, type BuildingAssignment, type PartnerUnit } from "../lib/colegas/buildings";
 import { LOCALIDADES } from "../lib/zona-sur/localidades";
 
 dotenv.config({ path: ".env.local", quiet: true });
@@ -94,7 +96,7 @@ async function crawlIds(colega: Colega): Promise<{ ids: string[]; end: CrawlEnd 
 }
 
 const COMPARED: (keyof ColegaRow)[] = [
-  "address", "localidad", "partido", "property_type", "operation_type", "price_amount", "price_currency",
+  "address", "nomenclatura_catastral", "localidad", "partido", "property_type", "operation_type", "price_amount", "price_currency",
   "rooms", "bedrooms", "bathrooms", "garages", "surface_covered", "surface_total", "year_built",
   "description", "photos", "lat", "lng", "tags",
 ];
@@ -143,6 +145,35 @@ async function syncColega(sb: SupabaseClient, colega: Colega) {
     await sleep(PAUSE_MS);
   }
 
+  // 3b. Buildings. Each pin is placed on a parcel (cached for 180 days in
+  //     arba_lookups, so a daily run asks almost nothing), and the units of
+  //     one building get one parcel and one address (lib/colegas/buildings).
+  //     If the cadastre fails, grouping is left exactly as it is this run.
+  let grouping: Map<string, BuildingAssignment> | null = null;
+  try {
+    const units: PartnerUnit[] = [];
+    for (const [id, row] of rows) {
+      const parcel = row.lat !== null && row.lng !== null ? await lookupParcel(row.lat, row.lng) : null;
+      units.push({
+        externalId: id,
+        address: row.address,
+        parcel: parcel ? { nomenclatura: parcel.nomenclatura, inside: parcel.matchStrategy === "intersects" } : null,
+      });
+      if (parcel?.source !== "cache") await sleep(250);
+    }
+    grouping = groupPartnerUnits(units);
+    for (const [id, row] of rows) {
+      const g = grouping.get(id);
+      if (!g) continue;
+      row.nomenclatura_catastral = g.nomenclatura;
+      row.address = g.address;
+    }
+    const sizes = [...new Set([...grouping.values()].filter((g) => g.size > 1 && g.nomenclatura).map((g) => g.nomenclatura))];
+    console.log(`  edificios: ${sizes.length} con más de una unidad`);
+  } catch (err) {
+    console.warn(`  ⚠ catastro no disponible, el agrupado queda como está: ${err instanceof Error ? err.message : err}`);
+  }
+
   // 4. Against the site.
   const { data: existing, error } = await sb
     .from("properties")
@@ -159,6 +190,11 @@ async function syncColega(sb: SupabaseClient, colega: Colega) {
     if (!site) {
       inserts.push(row);
       continue;
+    }
+    if (!grouping) {
+      // Without the cadastre this run, keep the building the site already has.
+      row.address = (site.address as string | null) ?? row.address;
+      row.nomenclatura_catastral = (site.nomenclatura_catastral as string | null) ?? null;
     }
     const fields = COMPARED.filter((k) => !same(site[k], row[k]));
     const republish = site.listing_status !== "publicada";

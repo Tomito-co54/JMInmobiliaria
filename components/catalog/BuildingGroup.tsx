@@ -2,6 +2,7 @@ import { BuildingCover } from "@/components/catalog/BuildingCover";
 import { BuildingUnits } from "@/components/property/BuildingUnits";
 import type { BuildingUnitRow } from "@/lib/db/properties";
 import { formatPrice } from "@/lib/property/price";
+import { PartnerSeal } from "@/components/property/PartnerSeal";
 
 /**
  * One building and the units published in it.
@@ -23,6 +24,8 @@ export interface BuildingGroupData {
   label: string;
   partido: string | null;
   units: BuildingUnitRow[];
+  /** Set when the building is a partner's (lib/colegas): whose seal to show. */
+  partner?: string | null;
   fromPrice: number | null;
   fromCurrency: "USD" | "ARS" | null;
   fromOperation: "venta" | "alquiler" | null;
@@ -87,8 +90,11 @@ export function BuildingGroup({ building }: { building: BuildingGroupData }) {
             </p>
           </div>
         </div>
-        {building.partido && (
-          <p className="text-sm text-muted-foreground">{building.partido}</p>
+        {(building.partido || building.partner) && (
+          <div className="flex items-center gap-3">
+            {building.partido && <p className="text-sm text-muted-foreground">{building.partido}</p>}
+            <PartnerSeal partner={building.partner} />
+          </div>
         )}
       </header>
 

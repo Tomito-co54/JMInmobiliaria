@@ -314,6 +314,11 @@ export function sentenceCase(text: string, properNouns: readonly string[] = []):
 export interface ColegaRow {
   external_id: string;
   address: string | null;
+  /**
+   * Set by the sync, not by the reader: the parcel shared by the units of one
+   * building (lib/colegas/buildings). Null for a listing on its own.
+   */
+  nomenclatura_catastral: string | null;
   localidad: string | null;
   partido: string | null;
   property_type: PropertyType;
@@ -386,6 +391,7 @@ export function normalizeListing(raw: RawListing, placeNames: readonly string[] 
     row: {
       external_id: raw.externalId,
       address: street,
+      nomenclatura_catastral: null,
       localidad: place.localidad,
       partido: place.partido,
       property_type: type,
