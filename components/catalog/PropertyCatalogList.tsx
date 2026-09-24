@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Reveal } from "@/components/shared/Reveal";
 import { buildingKey, type BuildingSummary } from "@/lib/buildings";
 import { useMatchPreferences } from "@/hooks/use-match-preferences";
@@ -37,6 +37,14 @@ const MAP_PARAM = "mapa";
 const ALL_PARAM = "ver";
 /** The last search of the visit, offered back by the intro. */
 const LAST_SEARCH_KEY = "jm.catalog-search.v1";
+/**
+ * Cards drawn at once; more arrive as the visitor nears the end. With a
+ * partner's catalog in, the list went from 15 cards to 128 (24-sep-2026), and
+ * drawing all of them on every search is what a phone feels between the tap
+ * and the page. The order is decided over the whole list first — the best
+ * match is card 1 whether or not card 100 exists yet — only the drawing waits.
+ */
+const PAGE_SIZE = 24;
 
 function readLastSearch(): Filters | null {
   try {
@@ -208,9 +216,48 @@ export function PropertyCatalogList({
     [mapOpen, order, properties, filters],
   );
 
-  const scrollToCard = useCallback((id: string) => {
+  // A new search, order or match starts again from the top of the list.
+  const [shown, setShown] = useState(PAGE_SIZE);
+  useEffect(() => setShown(PAGE_SIZE), [ordered]);
+  const more = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = more.current;
+    if (!el) return;
+    // Well before the end, so the next cards are there when the scroll is.
+    // Observing again after every batch re-fires while the marker is still in
+    // range, which fills a tall screen without waiting for a scroll.
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setShown((n) => n + PAGE_SIZE);
+      },
+      { rootMargin: "1200px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+    // introOpen: behind the intro the marker does not exist yet.
+  }, [shown, ordered.length, introOpen]);
+
+  // A pin on the map can name a card that is not drawn yet: draw up to it,
+  // then scroll once it exists.
+  const pendingScroll = useRef<string | null>(null);
+  useEffect(() => {
+    const id = pendingScroll.current;
+    if (!id) return;
+    pendingScroll.current = null;
     document.getElementById(`prop-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, []);
+  }, [shown]);
+  const scrollToCard = useCallback(
+    (id: string) => {
+      const index = ordered.findIndex((item) => item.property.id === id);
+      if (index >= shown) {
+        pendingScroll.current = id;
+        setShown(Math.ceil((index + 1) / PAGE_SIZE) * PAGE_SIZE);
+        return;
+      }
+      document.getElementById(`prop-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    },
+    [ordered, shown],
+  );
 
   if (introOpen) {
     const resumeLabel = lastSearch ? describeSearch(lastSearch) : null;
@@ -305,7 +352,7 @@ export function PropertyCatalogList({
             </div>
           ) : (
             <div className="space-y-8 sm:space-y-12">
-              {ordered.map(({ property, score }, i) => {
+              {ordered.slice(0, shown).map(({ property, score }, i) => {
                 const flip = i % 2 === 1;
                 return (
                   // Each card swings in from its photo side (flip → from the
@@ -328,6 +375,20 @@ export function PropertyCatalogList({
                   </Reveal>
                 );
               })}
+              {shown < ordered.length && (
+                // The marker the observer watches, and a button for when it
+                // cannot: a browser without it, or a visitor who would rather
+                // ask than scroll.
+                <div ref={more} className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setShown((n) => n + PAGE_SIZE)}
+                    className="inline-flex min-h-11 items-center rounded-full border px-5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    Ver más propiedades ({ordered.length - shown} más)
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
