@@ -10,7 +10,8 @@
  *   tsx scripts/enrich-cadastral.ts 5        # first 5 (smoke test)
  *
  * Notes:
- *   - Targets properties that have lat/lng but no partida yet.
+ *   - Targets properties that have lat/lng but no partida yet — market
+ *     data only (the scraped portals). See the query for why.
  *   - Rate-limited internally to 1 req/sec against ARBA's WFS, so the
  *     network-bound runtime is ~1s per uncached property. Cache hits are instant.
  *   - Idempotent: properties already enriched short-circuit; negative-cached
@@ -22,6 +23,7 @@ dotenv.config({ path: ".env.local" });
 
 import { createClient } from "@supabase/supabase-js";
 import { ensurePropertyCadastral } from "@/lib/services/arba/properties";
+import { NON_MARKET_SOURCES } from "@/lib/db/property-sources";
 
 interface PropertyToEnrich {
   id: string;
@@ -50,6 +52,16 @@ async function main() {
     .eq("is_active", true)
     .not("lat", "is", null)
     .is("nomenclatura_catastral", null)
+    // Market data only. The family's listings get their parcel from the
+    // partida in their papers (by_partida / by_nomenclatura), never from a
+    // pin. A partner's get one only as a building of two or more
+    // (lib/colegas/buildings): a listing alone must have none. This step used
+    // to take every active row, so each pipeline run gave ~100 of Laudani's
+    // single listings the nearest parcel — they showed up in /edificios as
+    // one-unit "buildings", and a flat at Garzón 750 printed its lot's
+    // 509 m² — until the partner sync took the parcel back the next morning,
+    // leaving the partida and the surface behind (24-sep-2026).
+    .not("source", "in", `(${NON_MARKET_SOURCES.join(",")})`)
     .order("created_at", { ascending: true });
 
   if (limit !== undefined) query = query.limit(limit);
