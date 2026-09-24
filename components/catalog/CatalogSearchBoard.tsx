@@ -67,38 +67,33 @@ export function CatalogSearchBoard({
   const set = (patch: Partial<CatalogFilters>) => onFiltersChange({ ...filters, ...patch });
   const missing = missingCriteria(preferences);
 
-  // Operation and type are one answer each; the place can be several at
-  // once (Tomy, 24-sep-2026: "Banfield o Temperley"). "Cualquiera" clears.
-  const single = (value: string | null, pick: (v: string | null) => void) => ({
-    isOn: (v: string) => value === v,
-    anyOn: value !== null,
-    toggle: (v: string) => pick(value === v ? null : v),
-    clear: () => pick(null),
+  // Every row takes several answers at once (Tomy, 24-sep-2026: "Banfield o
+  // Temperley", and then the same for operation and type). A tap adds or
+  // removes; "Cualquiera" clears the row.
+  const several = <T extends string>(value: T[], pick: (next: T[]) => void) => ({
+    isOn: (v: string) => (value as string[]).includes(v),
+    anyOn: value.length > 0,
+    toggle: (v: string) =>
+      pick((value as string[]).includes(v) ? value.filter((x) => x !== v) : [...value, v as T]),
+    clear: () => pick([]),
   });
   const rows = [
     options.operations.length > 1 && {
       label: "Operación",
       choices: options.operations.map((o) => ({ value: o, label: OPERATION_LABELS[o] })),
-      ...single(filters.operation, (v) => set({ operation: v as CatalogOperation | null })),
+      ...several<CatalogOperation>(filters.operations, (operations) => set({ operations })),
     },
     options.types.length > 1 && {
       label: "Tipo",
+      hint: "podés elegir varios",
       choices: options.types.map((t) => ({ value: t, label: propertyTypeLabel(t) ?? t })),
-      ...single(filters.type, (v) => set({ type: v })),
+      ...several(filters.types, (types) => set({ types })),
     },
     options.localidades.length > 1 && {
       label: "Ubicación",
       hint: "podés elegir varias",
       choices: options.localidades.map((l) => ({ value: l, label: l })),
-      isOn: (v: string) => filters.localidades.includes(v),
-      anyOn: filters.localidades.length > 0,
-      toggle: (v: string) =>
-        set({
-          localidades: filters.localidades.includes(v)
-            ? filters.localidades.filter((l) => l !== v)
-            : [...filters.localidades, v],
-        }),
-      clear: () => set({ localidades: [] }),
+      ...several(filters.localidades, (localidades) => set({ localidades })),
     },
   ].filter(Boolean) as {
     label: string;

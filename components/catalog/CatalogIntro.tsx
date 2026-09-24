@@ -50,11 +50,11 @@ import {
 type StepKey = "operation" | "type" | "localidad";
 /** One answer per question; the search itself may later hold several places. */
 type Answers = { operation: CatalogOperation | null; type: string | null; localidad: string | null };
-type Search = Pick<CatalogFilters, "operation" | "type" | "localidades">;
+type Search = Pick<CatalogFilters, "operations" | "types" | "localidades">;
 
 const toSearch = (a: Answers): Search => ({
-  operation: a.operation,
-  type: a.type,
+  operations: a.operation ? [a.operation] : [],
+  types: a.type ? [a.type] : [],
   localidades: a.localidad ? [a.localidad] : [],
 });
 
@@ -83,7 +83,7 @@ const EMPTY_ANSWERS: Answers = { operation: null, type: null, localidad: null };
 
 /** What a step can offer, given the answers before it. */
 function optionsFor(key: StepKey, list: readonly CatalogProperty[], answers: Answers): string[] {
-  const opts = narrowedOptions(list, answers);
+  const opts = narrowedOptions(list, toSearch(answers));
   return key === "operation" ? opts.operations : key === "type" ? opts.types : opts.localidades;
 }
 
@@ -299,8 +299,25 @@ function SkipOnly({ onSkip }: { onSkip: () => void }) {
 
 /** How a search reads in one line: "Departamento en venta · Banfield". */
 export function describeSearch(f: Search): string | null {
-  const type = f.type ? (propertyTypeLabel(f.type) ?? f.type) : "Propiedades";
-  const op = f.operation === "venta" ? "en venta" : f.operation === "alquiler" ? "en alquiler" : null;
+  const label = (t: string) => propertyTypeLabel(t) ?? t;
+  // "Casa, departamento o PH": an acronym keeps its capitals. Past three the
+  // heading would be a list, so it says "Propiedades" and the board shows which.
+  const lower = (s: string) => (s === s.toUpperCase() ? s : s.charAt(0).toLowerCase() + s.slice(1));
+  const names = f.types.map((t, i) => (i === 0 ? label(t) : lower(label(t))));
+  const type =
+    names.length === 0 || names.length > 3
+      ? "Propiedades"
+      : names.length === 1
+        ? names[0]
+        : `${names.slice(0, -1).join(", ")} o ${names.at(-1)}`;
+  const op =
+    f.operations.length === 2
+      ? "en venta y alquiler"
+      : f.operations[0] === "venta"
+        ? "en venta"
+        : f.operations[0] === "alquiler"
+          ? "en alquiler"
+          : null;
   const places =
     f.localidades.length === 0
       ? null
@@ -309,6 +326,6 @@ export function describeSearch(f: Search): string | null {
         : f.localidades.length === 2
           ? `${f.localidades[0]} y ${f.localidades[1]}`
           : `${f.localidades.length} ubicaciones`;
-  if (!f.type && !f.operation && !places) return null;
+  if (f.types.length === 0 && f.operations.length === 0 && !places) return null;
   return [[type, op].filter(Boolean).join(" "), places].filter(Boolean).join(" · ");
 }

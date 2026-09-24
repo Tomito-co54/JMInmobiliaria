@@ -77,9 +77,16 @@ describe("applyFilters", () => {
   });
 
   it("the selectors are exact", () => {
-    expect(applyFilters(all, { ...EMPTY_CATALOG_FILTERS, operation: "alquiler" }).map((p) => p.id)).toEqual(["b"]);
+    expect(applyFilters(all, { ...EMPTY_CATALOG_FILTERS, operations: ["alquiler"] }).map((p) => p.id)).toEqual(["b"]);
     expect(applyFilters(all, { ...EMPTY_CATALOG_FILTERS, partido: "Lanús" }).map((p) => p.id)).toEqual(["c"]);
-    expect(applyFilters(all, { ...EMPTY_CATALOG_FILTERS, type: "departamento" }).map((p) => p.id)).toEqual(["a"]);
+    expect(applyFilters(all, { ...EMPTY_CATALOG_FILTERS, types: ["departamento"] }).map((p) => p.id)).toEqual(["a"]);
+  });
+
+  it("keeps any of several operations and types", () => {
+    const ids = (f: Partial<typeof EMPTY_CATALOG_FILTERS>) =>
+      applyFilters(all, { ...EMPTY_CATALOG_FILTERS, ...f }).map((p) => p.id);
+    expect(ids({ operations: ["venta", "alquiler"] })).toEqual(ids({}));
+    expect(ids({ types: ["departamento", "ph"] })).toEqual(["a", "c"]);
   });
 
   it("combines them", () => {
@@ -87,8 +94,8 @@ describe("applyFilters", () => {
       q: "belgrano",
       partido: "Lomas de Zamora",
       localidades: [],
-      operation: "venta",
-      type: "departamento",
+      operations: ["venta"],
+      types: ["departamento"],
       area: null,
     });
     expect(out.map((p) => p.id)).toEqual(["a"]);
@@ -141,20 +148,33 @@ describe("catalogOptions", () => {
 
 describe("filters <-> URL", () => {
   it("round-trips, omitting what is empty", () => {
-    const f = { q: "belgrano", partido: null, localidades: [], operation: "venta" as const, type: null, area: null };
+    const f = { ...EMPTY_CATALOG_FILTERS, q: "belgrano", operations: ["venta" as const] };
     const params = filtersToParams(f);
     expect(params.toString()).toBe("q=belgrano&op=venta");
     expect(filtersFromParams(params)).toEqual(f);
   });
 
   it("ignores an operation it does not know", () => {
-    expect(filtersFromParams(new URLSearchParams("op=permuta")).operation).toBeNull();
+    expect(filtersFromParams(new URLSearchParams("op=permuta")).operations).toEqual([]);
+    expect(filtersFromParams(new URLSearchParams("op=permuta,alquiler")).operations).toEqual(["alquiler"]);
+  });
+
+  it("carries several operations and types, and reads an old single-value link", () => {
+    const f = { ...EMPTY_CATALOG_FILTERS, operations: ["venta" as const, "alquiler" as const], types: ["casa", "ph"] };
+    const params = filtersToParams(f);
+    expect(params.get("op")).toBe("venta,alquiler");
+    expect(params.get("tipo")).toBe("casa,ph");
+    expect(filtersFromParams(params)).toEqual(f);
+    expect(filtersFromParams(new URLSearchParams("op=venta&tipo=casa"))).toMatchObject({
+      operations: ["venta"],
+      types: ["casa"],
+    });
   });
 
   it("knows when nothing is set", () => {
     expect(hasAnyFilter(EMPTY_CATALOG_FILTERS)).toBe(false);
     expect(hasAnyFilter({ ...EMPTY_CATALOG_FILTERS, q: "  " })).toBe(false);
-    expect(hasAnyFilter({ ...EMPTY_CATALOG_FILTERS, type: "casa" })).toBe(true);
+    expect(hasAnyFilter({ ...EMPTY_CATALOG_FILTERS, types: ["casa"] })).toBe(true);
   });
 });
 
@@ -279,18 +299,19 @@ describe("narrowedOptions and dropStaleAnswers", () => {
   const list = [depto, casaAlq, casaVenta];
 
   it("offers only the types for the chosen operation, and the places for both", () => {
-    expect(narrowedOptions(list, { operation: "alquiler", type: null }).types).toEqual(["casa"]);
-    expect(narrowedOptions(list, { operation: "venta", type: "casa" }).localidades).toEqual(["Lomas de Zamora"]);
-    expect(narrowedOptions(list, { operation: null, type: null }).operations).toEqual(["venta", "alquiler"]);
+    expect(narrowedOptions(list, { operations: ["alquiler"], types: [] }).types).toEqual(["casa"]);
+    expect(narrowedOptions(list, { operations: ["venta"], types: ["casa"] }).localidades).toEqual(["Lomas de Zamora"]);
+    expect(narrowedOptions(list, { operations: [], types: [] }).operations).toEqual(["venta", "alquiler"]);
+    expect(narrowedOptions(list, { operations: ["venta", "alquiler"], types: [] }).types).toEqual(["casa", "departamento"]);
   });
 
   it("clears a type and a place that the new operation does not have", () => {
-    const f = { ...EMPTY_CATALOG_FILTERS, operation: "alquiler" as const, type: "departamento", localidades: ["Banfield"] };
-    expect(dropStaleAnswers(list, f)).toMatchObject({ type: null, localidades: [] });
+    const f = { ...EMPTY_CATALOG_FILTERS, operations: ["alquiler" as const], types: ["departamento", "casa"], localidades: ["Banfield"] };
+    expect(dropStaleAnswers(list, f)).toMatchObject({ types: ["casa"], localidades: [] });
   });
 
   it("keeps answers that still fit, and returns the same object", () => {
-    const f = { ...EMPTY_CATALOG_FILTERS, operation: "venta" as const, type: "casa", localidades: ["Lomas de Zamora"] };
+    const f = { ...EMPTY_CATALOG_FILTERS, operations: ["venta" as const], types: ["casa"], localidades: ["Lomas de Zamora"] };
     expect(dropStaleAnswers(list, f)).toBe(f);
   });
 });

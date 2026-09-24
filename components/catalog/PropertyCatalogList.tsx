@@ -50,7 +50,7 @@ function readLastSearch(): Filters | null {
 
 function saveLastSearch(f: Filters) {
   try {
-    if (f.operation || f.type || f.localidades.length > 0) {
+    if (f.operations.length > 0 || f.types.length > 0 || f.localidades.length > 0) {
       window.sessionStorage.setItem(LAST_SEARCH_KEY, filtersToParams(f).toString());
     }
   } catch {
@@ -124,22 +124,25 @@ export function PropertyCatalogList({
   /**
    * Operation and type are both a filter here and a question of the match,
    * and the two must not disagree: the header's "tu mejor match" and each
-   * card's score read the match. So the filter is copied into it. A change of
+   * card's score read the match. So the filter is copied into it. The match
+   * holds one operation, and it is a gate: with both picked it stays open
+   * (null), or it would sink one of the two the visitor asked for. A change of
    * operation also drops the budget, which was a ceiling in the other
    * currency (lib/matching/preferences, priceScaleFor).
    */
   const mirrorIntoMatch = useCallback(
     (next: Filters) => {
-      const types = next.type ? [next.type] : [];
+      const operation = next.operations.length === 1 ? next.operations[0] : null;
+      const types = next.types;
       const sameTypes =
         types.length === preferences.propertyTypes.length &&
         types.every((t) => preferences.propertyTypes.includes(t));
-      if (next.operation === preferences.operation && sameTypes) return;
+      if (operation === preferences.operation && sameTypes) return;
       setPreferences({
         ...preferences,
-        operation: next.operation,
+        operation,
         propertyTypes: types,
-        priceMax: next.operation === preferences.operation ? preferences.priceMax : null,
+        priceMax: operation === preferences.operation ? preferences.priceMax : null,
       });
     },
     [preferences, setPreferences],
@@ -171,8 +174,8 @@ export function PropertyCatalogList({
   }, [filters, mapOpen, sort, writeUrl]);
 
   const finishIntro = useCallback(
-    (answers: Pick<Filters, "operation" | "type" | "localidades">) => {
-      const next = { ...EMPTY_CATALOG_FILTERS, operation: answers.operation, type: answers.type, localidades: answers.localidades };
+    (answers: Pick<Filters, "operations" | "types" | "localidades">) => {
+      const next = { ...EMPTY_CATALOG_FILTERS, ...answers };
       setIntroOpen(false);
       update(next);
       setLastSearch(next);

@@ -45,8 +45,13 @@ export interface CatalogFilters {
    * 24-sep-2026). Empty = anywhere.
    */
   localidades: string[];
-  operation: CatalogOperation | null;
-  type: string | null;
+  /**
+   * Buy, rent, or both, and the types — like the places, any of several
+   * (Tomy, 24-sep-2026). The intro asks one of each; the search board widens.
+   * Empty = any.
+   */
+  operations: CatalogOperation[];
+  types: string[];
   /** A rectangle on the map. Null = anywhere. */
   area: Bounds | null;
 }
@@ -55,8 +60,8 @@ export const EMPTY_CATALOG_FILTERS: CatalogFilters = {
   q: "",
   partido: null,
   localidades: [],
-  operation: null,
-  type: null,
+  operations: [],
+  types: [],
   area: null,
 };
 
@@ -65,8 +70,8 @@ export function hasAnyFilter(f: CatalogFilters): boolean {
     f.q.trim() !== "" ||
     f.partido !== null ||
     f.localidades.length > 0 ||
-    f.operation !== null ||
-    f.type !== null ||
+    f.operations.length > 0 ||
+    f.types.length > 0 ||
     f.area !== null
   );
 }
@@ -109,24 +114,29 @@ const PARAM = {
   q: "q",
   partido: "partido",
   localidades: "loc",
-  operation: "op",
-  type: "tipo",
+  operations: "op",
+  types: "tipo",
   area: "area",
 } as const;
 
+/**
+ * Several values travel as one comma-separated parameter: ?loc=Banfield,Temperley,
+ * ?op=venta,alquiler. A single value — every link written before 24-sep —
+ * reads as a list of one. No localidad or type has a comma in its name.
+ */
+function listParam(raw: string | null): string[] {
+  return [...new Set((raw ?? "").split(",").map((v) => v.trim()).filter(Boolean))];
+}
+
 export function filtersFromParams(params: URLSearchParams): CatalogFilters {
-  const op = params.get(PARAM.operation);
   return {
     q: params.get(PARAM.q) ?? "",
     partido: params.get(PARAM.partido) || null,
-    // Several travel as one comma-separated value: ?loc=Banfield,Temperley.
-    // No localidad in lib/zona-sur/localidades has a comma in its name.
-    localidades: (params.get(PARAM.localidades) ?? "")
-      .split(",")
-      .map((l) => l.trim())
-      .filter(Boolean),
-    operation: op === "venta" || op === "alquiler" ? op : null,
-    type: params.get(PARAM.type) || null,
+    localidades: listParam(params.get(PARAM.localidades)),
+    operations: listParam(params.get(PARAM.operations)).filter(
+      (o): o is CatalogOperation => o === "venta" || o === "alquiler",
+    ),
+    types: listParam(params.get(PARAM.types)),
     area: boundsFromParam(params.get(PARAM.area)),
   };
 }
@@ -136,8 +146,8 @@ export function filtersToParams(f: CatalogFilters): URLSearchParams {
   if (f.q.trim()) params.set(PARAM.q, f.q.trim());
   if (f.partido) params.set(PARAM.partido, f.partido);
   if (f.localidades.length > 0) params.set(PARAM.localidades, f.localidades.join(","));
-  if (f.operation) params.set(PARAM.operation, f.operation);
-  if (f.type) params.set(PARAM.type, f.type);
+  if (f.operations.length > 0) params.set(PARAM.operations, f.operations.join(","));
+  if (f.types.length > 0) params.set(PARAM.types, f.types.join(","));
   if (f.area) params.set(PARAM.area, boundsToParam(f.area));
   return params;
 }
@@ -192,8 +202,9 @@ export function applyFilters<T extends CatalogProperty>(
   return list.filter((p) => {
     if (f.partido && p.partido !== f.partido) return false;
     if (f.localidades.length > 0 && !(p.localidad && f.localidades.includes(p.localidad))) return false;
-    if (f.operation && p.operation_type !== f.operation) return false;
-    if (f.type && p.property_type !== f.type) return false;
+    if (f.operations.length > 0 && !(p.operation_type && (f.operations as string[]).includes(p.operation_type)))
+      return false;
+    if (f.types.length > 0 && !(p.property_type && f.types.includes(p.property_type))) return false;
     // A listing with no position cannot be inside any area. It is left out
     // rather than kept "just in case": the visitor drew a rectangle, and a
     // pin that is not on the map is not in it.
@@ -349,12 +360,12 @@ export function sortCatalog<T extends CatalogProperty>(
  */
 export function narrowedOptions(
   list: readonly CatalogProperty[],
-  f: Pick<CatalogFilters, "operation" | "type">,
+  f: Pick<CatalogFilters, "operations" | "types">,
 ): Pick<CatalogOptions, "operations" | "types" | "localidades"> {
   const all = catalogOptions(list);
-  const byOp = catalogOptions(applyFilters(list, { ...EMPTY_CATALOG_FILTERS, operation: f.operation }));
+  const byOp = catalogOptions(applyFilters(list, { ...EMPTY_CATALOG_FILTERS, operations: f.operations }));
   const byOpType = catalogOptions(
-    applyFilters(list, { ...EMPTY_CATALOG_FILTERS, operation: f.operation, type: f.type }),
+    applyFilters(list, { ...EMPTY_CATALOG_FILTERS, operations: f.operations, types: f.types }),
   );
   return { operations: all.operations, types: byOp.types, localidades: byOpType.localidades };
 }
@@ -366,11 +377,13 @@ export function narrowedOptions(
  * silently emptying the list.
  */
 export function dropStaleAnswers(list: readonly CatalogProperty[], f: CatalogFilters): CatalogFilters {
-  const types = narrowedOptions(list, { operation: f.operation, type: null }).types;
-  const type = f.type && types.includes(f.type) ? f.type : null;
-  const localidades = narrowedOptions(list, { operation: f.operation, type }).localidades;
+  const offeredTypes = narrowedOptions(list, { operations: f.operations, types: [] }).types;
+  const types = f.types.filter((t) => offeredTypes.includes(t));
+  const localidades = narrowedOptions(list, { operations: f.operations, types }).localidades;
   const kept = f.localidades.filter((l) => localidades.includes(l));
-  return type === f.type && kept.length === f.localidades.length ? f : { ...f, type, localidades: kept };
+  return types.length === f.types.length && kept.length === f.localidades.length
+    ? f
+    : { ...f, types, localidades: kept };
 }
 
 // --- the family's first ---------------------------------------------------------
