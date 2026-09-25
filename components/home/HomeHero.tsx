@@ -63,23 +63,17 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
       />
 
       <div className="max-w-2xl mx-auto text-center space-y-7 sm:space-y-9 lg:space-y-[clamp(0.9rem,3.2vh,2.25rem)]">
-        {/* Logo, with the +70 seal beside it. The seal hangs off the logo
-            (absolute) instead of taking a row: the hero is sized to end at
-            "Ver propiedades" on the first screen, and a row more would push
-            it out on a short laptop. */}
+        {/* Logo */}
         <div
           className="flex justify-center home-rise"
           style={{ animationDelay: "0ms" }}
         >
-          <div className="relative">
-            <BrandLogo
-              variant="full"
-              size={120}
-              priority
-              className="h-[6.875rem] w-auto lg:h-[clamp(5.5rem,19vh,11rem)]"
-            />
-            <TrajectorySeal />
-          </div>
+          <BrandLogo
+            variant="full"
+            size={120}
+            priority
+            className="h-[6.875rem] w-auto lg:h-[clamp(5.5rem,19vh,11rem)]"
+          />
         </div>
 
         {/* Eyebrow — anchor de geografía/categoría. Caps + tracking ancho,
@@ -91,7 +85,10 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
             animationDelay: "140ms",
           }}
         >
-          Inmobiliaria · Zona Sur GBA
+          {/* "Zona Sur GBA" went on 24-sep-2026 (Tomy): the logo right above
+              already says what the agency is, and the zones line below says
+              where. */}
+          Inmobiliaria
         </p>
 
         {/* Headline — Fraunces italic, la línea protagónica. El
@@ -120,7 +117,16 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
                 partidos the catalog barely touched. */}
             {zonas.map((z, i) => (
               <Fragment key={z}>
-                {i > 0 && <Bullet />}
+                {/* The dot stays glued to the name before it (no-break space)
+                    and the line may break after it, so a wrapped line never
+                    starts with a dot. Without a breakable space here the
+                    whole row was one unbreakable run and overflowed at 375. */}
+                {i > 0 && (
+                  <>
+                    {"\u00a0"}
+                    <Bullet />{" "}
+                  </>
+                )}
                 {/* A place name is one unit: "José Mármol" split over two lines
                     at 375px read as two places. */}
                 <span className="whitespace-nowrap">{z}</span>
@@ -168,6 +174,8 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
         </div>
       </div>
 
+      <TrajectorySeal />
+
       {/* Scroll hint — chevron pulsando suavemente. */}
       <div
         aria-hidden
@@ -181,9 +189,14 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
 }
 
 /**
- * "+70 años", as a small stamp beside the logo (Tomy, 24-sep-2026: "un sello
- * muy sobrio y delicado"). It will outlive the headline, which says the same
- * thing today and is going to change.
+ * "+70 años", a small stamp fixed to the bottom-left corner — the WhatsApp
+ * button's mirror on the other side (Tomy, 24-sep-2026: "un sello muy sobrio y
+ * delicado", then "abajo a la izquierda, como el wpp pero del lado
+ * contrario"). It will outlive the headline, which says the same thing today
+ * and is going to change. Landing only, like the headline it stands in for.
+ *
+ * Its centre sits at the same height as the WhatsApp button's, and it has a
+ * background of its own: fixed, it floats over whatever scrolls beneath.
  *
  * A thin gold ring with a second, fainter one inside — the double rule of a
  * stamp — and the number in Fraunces over a tracked caps line. Tilted a
@@ -194,11 +207,11 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
 function TrajectorySeal() {
   return (
     <div
-      className="absolute bottom-0 -right-16 home-rise sm:-right-[4.5rem] lg:-right-20"
-      style={{ animationDelay: "220ms" }}
+      className="fixed bottom-4 left-4 z-40 home-rise sm:left-6"
+      style={{ animationDelay: "900ms" }}
     >
       <div
-        className="relative grid size-14 -rotate-[8deg] place-items-center rounded-full border sm:size-16"
+        className="relative grid size-14 -rotate-[8deg] place-items-center rounded-full border bg-background/90 shadow-sm backdrop-blur-sm sm:size-16"
         style={{ borderColor: "color-mix(in srgb, var(--brand-gold) 70%, transparent)" }}
       >
         <span
@@ -233,7 +246,7 @@ function TrajectorySeal() {
  */
 function Bullet() {
   return (
-    <span aria-hidden className="opacity-40 mx-1.5">
+    <span aria-hidden className="opacity-40 mx-0.5">
       ·
     </span>
   );
