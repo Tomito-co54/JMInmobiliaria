@@ -63,13 +63,15 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
       />
 
       <div className="max-w-2xl mx-auto text-center space-y-7 sm:space-y-9 lg:space-y-[clamp(0.9rem,3.2vh,2.25rem)]">
-        {/* The mark alone: "Oportunidades inmobiliarias" came off the hero on
-            24-sep-2026 (Tomy), with "Zona Sur GBA" before it. The isotipo is
-            the same 3395px wide as the full logo and 1590/2540 = 0.626 as
-            tall, so these heights are the old ones times 0.626: the houses
-            keep exactly the size they had. */}
+        {/* The mark, and under it the logo's own tagline cut to one word.
+            The full logo image says "Oportunidades inmobiliarias"; on
+            24-sep-2026 Tomy kept only "Inmobiliaria", so the tagline is text
+            now, set like the one in the image — navy, serif, caps — rather
+            than a second image. The isotipo is the same 3395px wide as the
+            full logo and 1590/2540 = 0.626 as tall, so these heights are the
+            old ones times 0.626: the houses keep exactly the size they had. */}
         <div
-          className="flex justify-center home-rise"
+          className="flex flex-col items-center gap-1.5 home-rise lg:gap-[clamp(0.3rem,0.9vh,0.6rem)]"
           style={{ animationDelay: "0ms" }}
         >
           <BrandLogo
@@ -78,10 +80,18 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
             priority
             className="h-[4.3rem] w-auto lg:h-[clamp(3.44rem,11.9vh,6.89rem)]"
           />
+          <span
+            className="font-heading font-semibold uppercase leading-none tracking-[0.14em] text-[0.8rem] lg:text-[clamp(0.8rem,1.9vh,1.2rem)]"
+            style={{ color: "var(--brand-heading)" }}
+          >
+            Inmobiliaria
+          </span>
         </div>
 
-        {/* Eyebrow — anchor de geografía/categoría. Caps + tracking ancho,
-            dorado para ese chispazo editorial sin gritar. */}
+        {/* Eyebrow — el apellido, en dorado (Tomy, 24-sep-2026). Caps +
+            tracking ancho, el chispazo editorial sin gritar. Antes decía
+            "Inmobiliaria · Zona Sur GBA"; "Inmobiliaria" pasó a la marca de
+            arriba y las zonas ya están en la línea de abajo. */}
         <p
           className="text-[0.7rem] sm:text-xs font-medium uppercase tracking-[0.25em] home-rise"
           style={{
@@ -89,10 +99,7 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
             animationDelay: "140ms",
           }}
         >
-          {/* "Zona Sur GBA" went on 24-sep-2026 (Tomy): the logo right above
-              already says what the agency is, and the zones line below says
-              where. */}
-          Inmobiliaria
+          Martino
         </p>
 
         {/* Headline — Fraunces italic, la línea protagónica. El
