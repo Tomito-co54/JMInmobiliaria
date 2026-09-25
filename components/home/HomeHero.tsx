@@ -63,16 +63,20 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
       />
 
       <div className="max-w-2xl mx-auto text-center space-y-7 sm:space-y-9 lg:space-y-[clamp(0.9rem,3.2vh,2.25rem)]">
-        {/* Logo */}
+        {/* The mark alone: "Oportunidades inmobiliarias" came off the hero on
+            24-sep-2026 (Tomy), with "Zona Sur GBA" before it. The isotipo is
+            the same 3395px wide as the full logo and 1590/2540 = 0.626 as
+            tall, so these heights are the old ones times 0.626: the houses
+            keep exactly the size they had. */}
         <div
           className="flex justify-center home-rise"
           style={{ animationDelay: "0ms" }}
         >
           <BrandLogo
-            variant="full"
-            size={120}
+            variant="isotipo"
+            size={75}
             priority
-            className="h-[6.875rem] w-auto lg:h-[clamp(5.5rem,19vh,11rem)]"
+            className="h-[4.3rem] w-auto lg:h-[clamp(3.44rem,11.9vh,6.89rem)]"
           />
         </div>
 
