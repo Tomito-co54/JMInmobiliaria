@@ -445,7 +445,15 @@ Córdoba y La Costa**.
 - **`HomeZonas`** (server) arma cada slide y **`HomeZonasSlider`** (cliente)
   lo dibuja: scroll-snap como la galería, flechas de 44px sólo en escritorio,
   puntos de 44px con el nombre de la zona como etiqueta, flechas del teclado
-  con el foco adentro. **Sin rotación automática**: es navegación, espera.
+  con el foco adentro. **Se desliza solo cada 6 segundos** (Tomy, 25-sep:
+  *"ahora que se deslicen solos"*; el doc de arte prefería que no, y es
+  decisión suya). Con las guardas para que nunca le pelee al visitante:
+  espera 6 s completos después de cualquier movimiento suyo, se frena con el
+  mouse o un dedo encima, con el foco adentro, con la sección fuera de
+  pantalla o la pestaña oculta, no corre para quien pidió menos movimiento,
+  y hay un botón de pausa al lado de los puntos. **El avance no se pudo ver
+  en el panel** (oculto: ni `visibilityState` ni el IntersectionObserver lo
+  permiten, que es justamente la guarda); lo mira Tomy en producción.
   La tarjeta: eyebrow "Zona · N propiedades", el nombre de la zona en
   Fraunces, la línea de la zona, y abajo la propiedad (etiqueta "Oportunidad
   en oferta" o "Propiedad destacada", dirección, precio con placa si es
@@ -2842,7 +2850,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
-| 2.48 | Sep 25, 2026 | **Las portadas de zona.** El slider que Tomy vio en el sitio de Villa del Dique entra como portada de cada zona donde publica —Buenos Aires, Córdoba, La Costa— en el lugar de la protagonista. Cada slide es una zona, no una propiedad: el suelo de la zona detrás (su mapa, hasta que haya foto aérea), una tarjeta con su mejor propiedad y la salida al catálogo filtrado por zona. Sin rotación automática. La regla que elige la propiedad es la de la protagonista, un escalón más larga: en una zona sin nada de la familia, la más cara con galería. **562 → 567 tests.** |
+| 2.48 | Sep 25, 2026 | **Las portadas de zona.** El slider que Tomy vio en el sitio de Villa del Dique entra como portada de cada zona donde publica —Buenos Aires, Córdoba, La Costa— en el lugar de la protagonista. Cada slide es una zona, no una propiedad: el suelo de la zona detrás (su mapa, hasta que haya foto aérea), una tarjeta con su mejor propiedad y la salida al catálogo filtrado por zona. Se desliza solo cada 6 s, con guardas y botón de pausa. La regla que elige la propiedad es la de la protagonista, un escalón más larga: en una zona sin nada de la familia, la más cara con galería. **562 → 567 tests.** |
 | 2.47 | Sep 25, 2026 | **La otra inmobiliaria de la familia entra sin sello.** José Martino Inmobiliaria (Villa del Dique, Córdoba) es de la familia, y Tomy pidió *"lo mismo que con Laudani, pero sin sello"*. Su sitio corre en otra plataforma (Pixel Inmobiliario), así que hay un segundo lector y un despacho por plataforma; el sello es opcional por colega; lo que su sitio muestra vendido se escribe `vendida`; Calamuchita entra a las localidades. Su carga trae errores que el lector rechaza en vez de publicar (un lote a $13.000, una casa de 3 m²) y dos tipos sin equivalente que quedan afuera hasta que Tomy decida. Y 39 pins a 700 km destaparon que el recorte de percentiles del mapa no alcanza: ahora encuadra el grupo alrededor de la mediana. **549 → 562 tests**, catálogo 128 → **165**. |
 | 2.46 | Sep 24, 2026 | **La portada, en la voz de Tomy.** Título nuevo: **"Vos decidís, / nuestra experiencia te acompaña"** (sin punto; "te acompaña" no se separa, porque a 375 px dejaba "ayuda" sola en un renglón y `text-balance` no actúa a través de un `<br />`; la columna se ensancha en `lg` para que la segunda línea entre entera). Los 70 años pasaron a un **sello "+70 años" fijo abajo a la izquierda**, espejo del botón de WhatsApp y centrado a su misma altura, sólo en la landing. Arriba del título: el **isotipo** (el logo completo decía "Oportunidades inmobiliarias"), **"INMOBILIARIA"** como texto con el tratamiento de ese tagline, y **"MARTINO"** en la línea dorada, que antes decía "Inmobiliaria · Zona Sur GBA". El botón "Ver propiedades" sigue entrando en la primera pantalla, medido de 320 a 1905 px. |
 | 2.45 | Sep 24, 2026 | **Dominio propio, y el sitio queda funcional.** Tomy registró `jminmobiliaria.com.ar` en NIC Argentina (con CUIL y clave fiscal; vence el 24-sep-2027) y lo delegó a `ns1/ns2.vercel-dns.com`. NIC publicó en ~15 min; Vercel tardó ~1 h en habilitar la zona ("DNS zone not enabled … dns-01" mientras tanto) y se destrabó solo. El pelado redirige al `www`, el `.vercel.app` redirige 308 al dominio conservando ruta y parámetros, MapTiler autoriza el origen nuevo (verificado mirando la tesela), Supabase Auth tiene el dominio como Site URL, y `SITE_URL` en `lib/brand/contact.ts` reemplaza los respaldos que nombraban el `.vercel.app` y el proyecto original. `NEXT_PUBLIC_APP_URL` no se cargó en Vercel —su panel rechazó el prefijo público— y no hace falta. Quinta corrida del protocolo: Alsina 4°Y 89.000 → 88.000 (decisión del 24-sep en `CONTEXTO.md`); segunda pasada en seco sin diferencias en las 14, y el colega sin cambios. |

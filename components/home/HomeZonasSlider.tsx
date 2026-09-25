@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  Play,
+} from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { NavPending } from "@/components/shared/NavPending";
 import { OfferBadge, OfferPrice } from "@/components/property/OfferBadge";
@@ -18,16 +24,25 @@ import { cn } from "@/lib/utils";
  *
  * What was kept from the reference: the ground of the place full-bleed
  * behind, a white card floating on it with the property's photo large on
- * the right, one price, one button, the dots. What was not: the automatic
- * rotation — a slide that moves on its own is one the eye learns to ignore
- * (DIRECCION_DE_ARTE §2, principio rector), and this is navigation, so it
- * waits. Swiping is CSS scroll-snap, like the gallery: the browser's own
- * gesture, no handler to get wrong. The arrows and dots scroll the same
- * track, so there is one state and it is the scroll position.
+ * the right, one price, one button, the dots — and, since 25-sep-2026 at
+ * Tomy's request, the slides move on their own. Swiping is CSS scroll-snap,
+ * like the gallery: the browser's own gesture, no handler to get wrong. The
+ * arrows, the dots and the timer scroll the same track, so there is one
+ * state and it is the scroll position.
+ *
+ * The auto-advance is built so it never fights the visitor: it waits a full
+ * interval after any move of theirs (a swipe, an arrow, a dot), it holds
+ * while the pointer or a finger is on the slider, while the focus is inside,
+ * while the section is off screen or the tab is hidden, and it does not run
+ * at all for someone who asked for less motion. There is a pause button next
+ * to the dots, because moving content needs one the visitor can reach.
  *
  * transform/opacity only; 44px targets; keyboard arrows while focus is
  * inside.
  */
+
+/** Long enough to read a card: a zone, a property, a price. */
+const AUTOPLAY_MS = 6000;
 
 export interface ZonaSlide {
   zona: { key: string; name: string; tagline: string; photo: string | null };
@@ -51,21 +66,42 @@ export interface ZonaSlide {
 export function HomeZonasSlider({ slides }: { slides: ZonaSlide[] }) {
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
+  const indexRef = useRef(0);
   const count = slides.length;
+
+  // When the slider last moved, by anyone. The timer waits a full interval
+  // after it, so a visitor who just swiped is not swiped back.
+  const lastMove = useRef(0);
+  const held = useRef(false); // pointer over it, or a finger on it
+  const focused = useRef(false);
+  const inView = useRef(false);
+  const [playing, setPlaying] = useState(true);
 
   const scrollTo = useCallback((i: number) => {
     const el = track.current;
     if (!el) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    el.scrollTo({ left: i * el.clientWidth, behavior: reduced ? "auto" : "smooth" });
+    lastMove.current = Date.now();
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    el.scrollTo({
+      left: i * el.clientWidth,
+      behavior: reduced ? "auto" : "smooth",
+    });
   }, []);
 
-  // The scroll position is the state: a swipe, an arrow and a dot all end
-  // here, so the dots can never disagree with what is on screen.
+  // The scroll position is the state: a swipe, an arrow, a dot and the timer
+  // all end here, so the dots can never disagree with what is on screen.
   const onScroll = useCallback(() => {
     const el = track.current;
     if (!el || el.clientWidth === 0) return;
-    setIndex(Math.max(0, Math.min(count - 1, Math.round(el.scrollLeft / el.clientWidth))));
+    lastMove.current = Date.now();
+    const i = Math.max(
+      0,
+      Math.min(count - 1, Math.round(el.scrollLeft / el.clientWidth)),
+    );
+    indexRef.current = i;
+    setIndex(i);
   }, [count]);
 
   // Arrow keys while the focus is inside the section.
@@ -81,12 +117,47 @@ export function HomeZonasSlider({ slides }: { slides: ZonaSlide[] }) {
     return () => el.removeEventListener("keydown", onKey);
   }, [index, count, scrollTo]);
 
+  // The auto-advance. One coarse tick that checks every guard and moves only
+  // when a full interval has passed since anybody last moved the slider.
+  useEffect(() => {
+    const el = section.current;
+    if (!el || count < 2 || !playing) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        inView.current = entry.isIntersecting;
+      },
+      { threshold: 0.5 },
+    );
+    io.observe(el);
+    const tick = window.setInterval(() => {
+      if (!inView.current || held.current || focused.current) return;
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - lastMove.current < AUTOPLAY_MS) return;
+      scrollTo((indexRef.current + 1) % count);
+    }, 500);
+    return () => {
+      io.disconnect();
+      window.clearInterval(tick);
+    };
+  }, [count, playing, scrollTo]);
+
   return (
     <section
       ref={section}
       aria-roledescription="carrusel"
       aria-label="Las zonas donde publicamos"
       className="relative"
+      onMouseEnter={() => (held.current = true)}
+      onMouseLeave={() => (held.current = false)}
+      onPointerDown={() => (held.current = true)}
+      onPointerUp={() => (held.current = false)}
+      onPointerCancel={() => (held.current = false)}
+      onFocusCapture={() => (focused.current = true)}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null))
+          focused.current = false;
+      }}
     >
       <div
         ref={track}
@@ -94,7 +165,13 @@ export function HomeZonasSlider({ slides }: { slides: ZonaSlide[] }) {
         className="flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {slides.map((s, i) => (
-          <Slide key={s.zona.key} slide={s} position={i + 1} total={count} first={i === 0} />
+          <Slide
+            key={s.zona.key}
+            slide={s}
+            position={i + 1}
+            total={count}
+            first={i === 0}
+          />
         ))}
       </div>
 
@@ -126,26 +203,48 @@ export function HomeZonasSlider({ slides }: { slides: ZonaSlide[] }) {
             <ChevronRight className="size-5" aria-hidden />
           </button>
 
-          {/* Dots: the zone names, so they are not just dots. 44px targets. */}
-          <div className="absolute inset-x-0 bottom-3 flex justify-center gap-1" role="tablist" aria-label="Elegir zona">
-            {slides.map((s, i) => (
-              <button
-                key={s.zona.key}
-                type="button"
-                role="tab"
-                aria-selected={i === index}
-                aria-label={s.zona.name}
-                onClick={() => scrollTo(i)}
-                className="group inline-flex min-h-11 min-w-11 items-center justify-center px-1"
-              >
-                <span
-                  className={cn(
-                    "block h-2 rounded-full bg-white transition-all duration-300",
-                    i === index ? "w-7 opacity-100" : "w-2 opacity-50 group-hover:opacity-80",
-                  )}
-                />
-              </button>
-            ))}
+          {/* Dots: the zone names, so they are not just dots. 44px targets.
+              And the pause, because content that moves needs one in reach. */}
+          <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-1">
+            <button
+              type="button"
+              onClick={() => setPlaying((p) => !p)}
+              aria-label={
+                playing
+                  ? "Pausar el paso de zonas"
+                  : "Reanudar el paso de zonas"
+              }
+              aria-pressed={!playing}
+              className="inline-flex size-11 items-center justify-center rounded-full text-white/70 transition-colors hover:text-white"
+            >
+              {playing ? (
+                <Pause className="size-3.5" aria-hidden />
+              ) : (
+                <Play className="size-3.5" aria-hidden />
+              )}
+            </button>
+            <div className="flex gap-1" role="tablist" aria-label="Elegir zona">
+                {slides.map((s, i) => (
+                  <button
+                    key={s.zona.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={i === index}
+                    aria-label={s.zona.name}
+                    onClick={() => scrollTo(i)}
+                    className="group inline-flex min-h-11 min-w-11 items-center justify-center px-1"
+                  >
+                    <span
+                      className={cn(
+                        "block h-2 rounded-full bg-white transition-all duration-300",
+                        i === index
+                          ? "w-7 opacity-100"
+                          : "w-2 opacity-50 group-hover:opacity-80",
+                      )}
+                    />
+                  </button>
+                ))}
+            </div>
           </div>
         </>
       )}
@@ -172,9 +271,20 @@ function Slide({
       className="relative w-full shrink-0 snap-center overflow-hidden"
     >
       {/* ---- The ground: the zone's photo, or its map ---- */}
-      <div aria-hidden className="absolute inset-0 [container-type:size]" style={{ background: "var(--brand-navy)" }}>
+      <div
+        aria-hidden
+        className="absolute inset-0 [container-type:size]"
+        style={{ background: "var(--brand-navy)" }}
+      >
         {s.zona.photo ? (
-          <Image src={s.zona.photo} alt="" fill sizes="100vw" priority={first} className="object-cover" />
+          <Image
+            src={s.zona.photo}
+            alt=""
+            fill
+            sizes="100vw"
+            priority={first}
+            className="object-cover"
+          />
         ) : (
           s.tiles.length > 0 && (
             // A 16:9 layer that always covers the slide, whatever its shape,
@@ -189,7 +299,12 @@ function Slide({
                   height={BASEMAP_TILE_PIXELS}
                   unoptimized
                   className="absolute max-w-none"
-                  style={{ left: t.left, top: t.top, width: t.width, height: t.height }}
+                  style={{
+                    left: t.left,
+                    top: t.top,
+                    width: t.width,
+                    height: t.height,
+                  }}
                 />
               ))}
             </div>
@@ -211,7 +326,11 @@ function Slide({
           <div className="relative grid grid-cols-1 overflow-hidden rounded-3xl bg-card shadow-2xl md:grid-cols-[1fr_1.15fr]">
             {/* The bar at the edge, the gold of the brand: the one thing on
                 the card that is not the property. */}
-            <span aria-hidden className="absolute inset-y-0 left-0 z-10 w-1.5" style={{ background: "var(--brand-gold)" }} />
+            <span
+              aria-hidden
+              className="absolute inset-y-0 left-0 z-10 w-1.5"
+              style={{ background: "var(--brand-gold)" }}
+            />
 
             <div className="order-2 flex flex-col p-7 sm:p-10 md:order-1 md:p-12">
               <p
@@ -226,9 +345,14 @@ function Slide({
               >
                 {s.zona.name}
               </h2>
-              <p className="mt-2 text-sm text-muted-foreground">{s.zona.tagline}</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {s.zona.tagline}
+              </p>
 
-              <div className="my-6 h-px w-12" style={{ background: "var(--brand-gold)" }} />
+              <div
+                className="my-6 h-px w-12"
+                style={{ background: "var(--brand-gold)" }}
+              />
 
               <p className="text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 {p.offer ? "Oportunidad en oferta" : "Propiedad destacada"}
@@ -239,16 +363,28 @@ function Slide({
               >
                 {p.headline}
               </h3>
-              {p.place && <p className="mt-1 text-sm text-muted-foreground">{p.place}</p>}
+              {p.place && (
+                <p className="mt-1 text-sm text-muted-foreground">{p.place}</p>
+              )}
 
               {p.priceText ? (
                 <p className="mt-4 text-2xl font-bold leading-none tabular-nums sm:text-3xl">
-                  {p.offer ? <OfferPrice>{p.priceText}</OfferPrice> : <span style={{ color: "var(--price)" }}>{p.priceText}</span>}
+                  {p.offer ? (
+                    <OfferPrice>{p.priceText}</OfferPrice>
+                  ) : (
+                    <span style={{ color: "var(--price)" }}>{p.priceText}</span>
+                  )}
                 </p>
               ) : (
-                <p className="mt-4 text-xl font-bold leading-none text-muted-foreground">Consultar precio</p>
+                <p className="mt-4 text-xl font-bold leading-none text-muted-foreground">
+                  Consultar precio
+                </p>
               )}
-              {p.specs.length > 0 && <p className="mt-3 text-sm text-muted-foreground">{p.specs.join(" · ")}</p>}
+              {p.specs.length > 0 && (
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {p.specs.join(" · ")}
+                </p>
+              )}
 
               <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
                 <Link
@@ -292,7 +428,9 @@ function Slide({
                   className="object-cover transition-transform duration-700 ease-out motion-safe:group-hover:scale-[1.03]"
                 />
               )}
-              {p.offer && <OfferBadge size="lg" className="absolute left-4 top-4 z-10" />}
+              {p.offer && (
+                <OfferBadge size="lg" className="absolute left-4 top-4 z-10" />
+              )}
             </Link>
           </div>
         </div>
