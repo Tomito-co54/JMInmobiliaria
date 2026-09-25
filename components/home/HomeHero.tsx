@@ -68,20 +68,20 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
             24-sep-2026 Tomy kept only "Inmobiliaria", so the tagline is text
             now, set like the one in the image — navy, serif, caps — rather
             than a second image. The isotipo is the same 3395px wide as the
-            full logo and 1590/2540 = 0.626 as tall, so these heights are the
-            old ones times 0.626: the houses keep exactly the size they had. */}
+            full logo and 1590/2540 = 0.626 as tall; the heights below were the old
+            ones times 0.626, then 25% bigger at Tomy's word (24-sep). */}
         <div
           className="flex flex-col items-center gap-1.5 home-rise lg:gap-[clamp(0.3rem,0.9vh,0.6rem)]"
           style={{ animationDelay: "0ms" }}
         >
           <BrandLogo
             variant="isotipo"
-            size={75}
+            size={94}
             priority
-            className="h-[4.3rem] w-auto lg:h-[clamp(3.44rem,11.9vh,6.89rem)]"
+            className="h-[5.4rem] w-auto lg:h-[clamp(4.3rem,14.9vh,8.6rem)]"
           />
           <span
-            className="font-heading font-semibold uppercase leading-none tracking-[0.14em] text-[0.8rem] lg:text-[clamp(0.8rem,1.9vh,1.2rem)]"
+            className="font-heading font-semibold uppercase leading-none tracking-[0.14em] text-[0.95rem] lg:text-[clamp(0.95rem,2.35vh,1.5rem)]"
             style={{ color: "var(--brand-heading)" }}
           >
             Inmobiliaria
