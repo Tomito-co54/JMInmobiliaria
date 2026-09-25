@@ -63,17 +63,23 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
       />
 
       <div className="max-w-2xl mx-auto text-center space-y-7 sm:space-y-9 lg:space-y-[clamp(0.9rem,3.2vh,2.25rem)]">
-        {/* Logo */}
+        {/* Logo, with the +70 seal beside it. The seal hangs off the logo
+            (absolute) instead of taking a row: the hero is sized to end at
+            "Ver propiedades" on the first screen, and a row more would push
+            it out on a short laptop. */}
         <div
           className="flex justify-center home-rise"
           style={{ animationDelay: "0ms" }}
         >
-          <BrandLogo
-            variant="full"
-            size={120}
-            priority
-            className="h-[6.875rem] w-auto lg:h-[clamp(5.5rem,19vh,11rem)]"
-          />
+          <div className="relative">
+            <BrandLogo
+              variant="full"
+              size={120}
+              priority
+              className="h-[6.875rem] w-auto lg:h-[clamp(5.5rem,19vh,11rem)]"
+            />
+            <TrajectorySeal />
+          </div>
         </div>
 
         {/* Eyebrow — anchor de geografía/categoría. Caps + tracking ancho,
@@ -100,7 +106,7 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
         >
           70 años de trayectoria
           <br />
-          para acompañarte.
+          para acompañarte
         </h1>
 
         {/* Zonas con middle-dot, sin caja final con coma — más editorial. */}
@@ -115,7 +121,9 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
             {zonas.map((z, i) => (
               <Fragment key={z}>
                 {i > 0 && <Bullet />}
-                <span>{z}</span>
+                {/* A place name is one unit: "José Mármol" split over two lines
+                    at 375px read as two places. */}
+                <span className="whitespace-nowrap">{z}</span>
               </Fragment>
             ))}
           </p>
@@ -169,6 +177,52 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
         <ChevronDown className="size-4 text-muted-foreground/50 motion-safe:animate-bounce" />
       </div>
     </section>
+  );
+}
+
+/**
+ * "+70 años", as a small stamp beside the logo (Tomy, 24-sep-2026: "un sello
+ * muy sobrio y delicado"). It will outlive the headline, which says the same
+ * thing today and is going to change.
+ *
+ * A thin gold ring with a second, fainter one inside — the double rule of a
+ * stamp — and the number in Fraunces over a tracked caps line. Tilted a
+ * little, like something pressed on paper. The tilt lives on the inner
+ * element: `home-rise` animates the wrapper's `transform`, and a keyframe
+ * that writes `transform` would wipe a `rotate` class on the same element.
+ */
+function TrajectorySeal() {
+  return (
+    <div
+      className="absolute bottom-0 -right-16 home-rise sm:-right-[4.5rem] lg:-right-20"
+      style={{ animationDelay: "220ms" }}
+    >
+      <div
+        className="relative grid size-14 -rotate-[8deg] place-items-center rounded-full border sm:size-16"
+        style={{ borderColor: "color-mix(in srgb, var(--brand-gold) 70%, transparent)" }}
+      >
+        <span
+          aria-hidden
+          className="absolute inset-[3px] rounded-full border"
+          style={{ borderColor: "color-mix(in srgb, var(--brand-gold) 35%, transparent)" }}
+        />
+        <span className="sr-only">Más de 70 años de trayectoria</span>
+        <span aria-hidden className="flex flex-col items-center leading-none">
+          <span
+            className="font-heading italic text-lg sm:text-xl"
+            style={{ color: "var(--brand-heading)" }}
+          >
+            +70
+          </span>
+          <span
+            className="mt-0.5 text-[0.5rem] font-medium uppercase tracking-[0.22em] sm:text-[0.55rem]"
+            style={{ color: "var(--brand-accent)" }}
+          >
+            años
+          </span>
+        </span>
+      </div>
+    </div>
   );
 }
 
