@@ -31,9 +31,9 @@ import { cn } from "@/lib/utils";
  *   4. Propio ✓ — la combinación Fraunces protagónico + eyebrow caps en
  *      dorado + zonas con middle-dot no es de plantilla.
  *
- * El copy del headline es placeholder (acordado con el owner) — el texto
- * va en `text-muted-foreground` + italic para que durante el desarrollo
- * sea evidente que no es producción.
+ * El headline es de Tomy (24-sep-2026): "Vos decidís / nuestra experiencia
+ * te ayuda". Reemplazó a "70 años de trayectoria para acompañarte", cuyo dato
+ * vive ahora en el sello +70 de la esquina.
  */
 export function HomeHero({ zonas }: { zonas: string[] }) {
   return (
@@ -62,7 +62,7 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
         }}
       />
 
-      <div className="max-w-2xl mx-auto text-center space-y-7 sm:space-y-9 lg:space-y-[clamp(0.9rem,3.2vh,2.25rem)]">
+      <div className="max-w-2xl lg:max-w-4xl mx-auto text-center space-y-7 sm:space-y-9 lg:space-y-[clamp(0.9rem,3.2vh,2.25rem)]">
         {/* The mark, and under it the logo's own tagline cut to one word.
             The full logo image says "Oportunidades inmobiliarias"; on
             24-sep-2026 Tomy kept only "Inmobiliaria", so the tagline is text
@@ -106,15 +106,18 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
             home-rise-hero le da el peso de entrada más pronunciado (más
             recorrido + blur que se aclara). */}
         <h1
-          className="font-heading font-medium text-3xl sm:text-5xl lg:text-[clamp(2.5rem,7.2vh,3.9rem)] leading-[1.05] tracking-tight italic home-rise-hero"
+          className="font-heading font-medium text-3xl sm:text-5xl lg:text-[clamp(2.5rem,7.2vh,3.9rem)] leading-[1.05] tracking-tight italic text-balance home-rise-hero"
           style={{
             color: "var(--brand-heading)",
             animationDelay: "260ms",
           }}
         >
-          70 años de trayectoria
+          Vos decidís
           <br />
-          para acompañarte
+          {/* "te ayuda" travels together: at 375px the line broke before
+              "ayuda" and left it alone on a third line. text-balance does not
+              help across a forced <br />. */}
+          nuestra experiencia <span className="whitespace-nowrap">te ayuda</span>
         </h1>
 
         {/* Zonas con middle-dot, sin caja final con coma — más editorial. */}
@@ -203,8 +206,8 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
  * "+70 años", a small stamp fixed to the bottom-left corner — the WhatsApp
  * button's mirror on the other side (Tomy, 24-sep-2026: "un sello muy sobrio y
  * delicado", then "abajo a la izquierda, como el wpp pero del lado
- * contrario"). It will outlive the headline, which says the same thing today
- * and is going to change. Landing only, like the headline it stands in for.
+ * contrario"). It carries the 70 years the old headline used to say, now that
+ * the headline says something else. Landing only.
  *
  * Its centre sits at the same height as the WhatsApp button's, and it has a
  * background of its own: fixed, it floats over whatever scrolls beneath.
