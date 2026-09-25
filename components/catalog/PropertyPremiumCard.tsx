@@ -101,7 +101,10 @@ export function PropertyPremiumCard({
   // building's lot, so leading with it printed "239 m²" on a 40 m² unit.
   // Same mistake as Fase 12, on the card nobody re-checked.
   const surface = property.surface_total ?? property.surface_arba ?? null;
-  const heading = property.address ?? [typeLabel, property.partido].filter(Boolean).join(" en ");
+  // Without an address (a partner's listing that names only its town), the
+  // heading is "Casa en Villa del Dique" — the town, for the same reason as
+  // `place` above.
+  const heading = property.address ?? [typeLabel, place].filter(Boolean).join(" en ");
   const offer = isOnOffer(property.tags);
 
   const specs = [

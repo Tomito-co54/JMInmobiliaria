@@ -81,12 +81,25 @@ export const LOCALIDADES_POR_PARTIDO: Record<PartidoZonaSur, readonly string[]> 
  * Vicente, and two on the coast. They are places the site publishes, not
  * places it covers: the partido list above, with its ARBA codes, does not
  * grow for them.
+ *
+ * Calamuchita is a departamento of Córdoba, not a partido, and it holds the
+ * family's other agency (José Martino Inmobiliaria, Villa del Dique; Tomy,
+ * 25-sep-2026). The column is called partido; for a listing there it stores
+ * the departamento, which is the same kind of thing one province over.
  */
 export const LOCALIDADES_FUERA_DE_ZONA_SUR: Record<string, readonly string[]> = {
   "Presidente Perón": ["Guernica"],
   "San Vicente": ["San Vicente"],
   "La Costa": ["Santa Teresita"],
   Pinamar: ["Valeria del Mar"],
+  Calamuchita: [
+    "Villa del Dique",
+    "Villa Rumipal",
+    "San Ignacio",
+    "Embalse",
+    "Santa Rosa de Calamuchita",
+    "Villa General Belgrano",
+  ],
 };
 
 const ALL_BY_PARTIDO: Record<string, readonly string[]> = {

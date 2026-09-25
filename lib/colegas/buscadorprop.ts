@@ -61,7 +61,7 @@ export function decodeEntities(text: string): string {
   return once(once(text));
 }
 
-function stripTags(html: string): string {
+export function stripTags(html: string): string {
   return decodeEntities(html.replace(/\r/g, "").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " "))
     .replace(/[ \t ]+/g, " ")
     .replace(/ *\n */g, "\n")
@@ -69,7 +69,7 @@ function stripTags(html: string): string {
     .trim();
 }
 
-function oneLine(html: string): string {
+export function oneLine(html: string): string {
   return stripTags(html).replace(/\s+/g, " ").trim();
 }
 
@@ -182,7 +182,7 @@ const TYPES: Record<string, PropertyType> = {
   campos: "campo",
 };
 
-const fold = (s: string) =>
+export const fold = (s: string) =>
   s.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 export function mapType(raw: string | null): PropertyType | null {
@@ -223,7 +223,7 @@ export function parsePrice(raw: string | null): { amount: number; currency: "USD
 }
 
 /** First integer of the first characteristic that matches. */
-function countOf(items: string[], re: RegExp): number | null {
+export function countOf(items: string[], re: RegExp): number | null {
   for (const item of items) {
     if (!re.test(item)) continue;
     const n = item.match(/\d+/);
@@ -269,17 +269,38 @@ export function garagesOf(amenities: string[]): number | null {
  * phone number, an email, a web address, the agency's name. The sentence that
  * carries it goes, not just the number — "no dude en consultarnos al" with the
  * number cut out reads as a broken page.
+ *
+ * The agency's own words come from its entry in lib/colegas (`scrubWords`):
+ * "laudani" for one, "martino" and its sign-off lines for the other.
  */
-const CONTACT =
-  /laudani|https?:\/\/|www\.|\S+@\S+\.\w+|(?:\+?54\s?)?(?:9\s?)?(?:11|15)[\s.-]?\d{4}[\s.-]?\d{4}\b|\b4\d{3}[\s.-]\d{4}\b/i;
+const CONTACT = /https?:\/\/|www\.|\S+@\S+\.\w+/i;
 
-export function scrubContact(text: string): string {
+/**
+ * A run of 10 to 13 digits with the usual separators is a phone number:
+ * "11 4140-2704", "3546 478441", "+54 9 3546 478441". A price is not — "USD
+ * 55.000" has five digits, "$ 150.000.000" nine — and neither is "10 x 40 m".
+ */
+function hasPhoneNumber(sentence: string): boolean {
+  for (const m of sentence.matchAll(/\+?\d[\d\s.\-()]{7,}\d/g)) {
+    const digits = m[0].replace(/\D/g, "");
+    if (digits.length >= 10 && digits.length <= 13) return true;
+  }
+  return false;
+}
+
+export function scrubContact(text: string, words: readonly string[] = []): string {
+  const names = words.map((w) => w.toLowerCase());
+  const carriesContact = (sentence: string) => {
+    if (CONTACT.test(sentence) || hasPhoneNumber(sentence)) return true;
+    const folded = sentence.toLowerCase();
+    return names.some((w) => folded.includes(w));
+  };
   return text
     .split("\n")
     .map((line) =>
       line
         .split(/(?<=[.!?])\s+/)
-        .filter((sentence) => !CONTACT.test(sentence))
+        .filter((sentence) => !carriesContact(sentence))
         .join(" "),
     )
     .join("\n")
@@ -346,7 +367,12 @@ export interface Normalized {
   warnings: string[];
 }
 
-export function normalizeListing(raw: RawListing, placeNames: readonly string[] = [], now = new Date()): Normalized {
+export function normalizeListing(
+  raw: RawListing,
+  placeNames: readonly string[] = [],
+  now = new Date(),
+  scrubWords: readonly string[] = ["laudani"],
+): Normalized {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -381,8 +407,8 @@ export function normalizeListing(raw: RawListing, placeNames: readonly string[] 
 
   const age = yearBuiltOf(raw.characteristics, now);
   const nouns = [...placeNames, ...(place ? [place.localidad] : [])];
-  const body = raw.descriptionHtml ? scrubContact(sentenceCase(stripTags(raw.descriptionHtml), nouns)) : "";
-  const title = raw.title ? scrubContact(sentenceCase(raw.title, nouns)) : "";
+  const body = raw.descriptionHtml ? scrubContact(sentenceCase(stripTags(raw.descriptionHtml), nouns), scrubWords) : "";
+  const title = raw.title ? scrubContact(sentenceCase(raw.title, nouns), scrubWords) : "";
   const description = [title, body].filter(Boolean).join("\n\n") || null;
 
   if (errors.length > 0 || !type || !operation || !place) return { row: null, errors, warnings };

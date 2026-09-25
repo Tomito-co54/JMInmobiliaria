@@ -75,18 +75,27 @@ export function boundsOfPoints(points: LatLng[]): Bounds | null {
  * empty ground and the opening view is zoomed out past the point of being
  * readable.
  *
- * Trimming a couple of percent off each axis frames the mass. The outliers
- * are still drawn; they just stop deciding the camera.
+ * Trimming percentiles was the first answer, and it stopped working the day
+ * a quarter of the catalog moved 700 km away: the family's agency in Villa
+ * del Dique (Córdoba) publishes here too (lib/colegas, 25-sep-2026), and 39
+ * pins out of 160 survive any sensible trim, so the box spanned the country.
+ * Now the mass is what sits within `radiusMeters` of the median point — the
+ * middle of the biggest group, wherever it is — and the trim runs on that
+ * group. The rest is still drawn; it just stops deciding the camera.
  */
-export function robustBoundsOfPoints(points: LatLng[], trim = 0.02): Bounds | null {
+export function robustBoundsOfPoints(points: LatLng[], radiusMeters = 40_000, trim = 0.02): Bounds | null {
   if (points.length === 0) return null;
-  if (points.length < 20) return boundsOfPoints(points);
+  const near = pointsNearMedian(points, radiusMeters);
+  const group = near.length > 0 ? near : points;
+  // Within the group, the percentile trim still shaves the stray few — the
+  // three in Avellaneda against the three hundred in Lomas.
+  if (group.length < 20) return boundsOfPoints(group);
 
   const at = (sorted: number[], q: number) =>
     sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(q * (sorted.length - 1))))];
 
-  const lats = points.map((p) => p.lat).sort((a, b) => a - b);
-  const lngs = points.map((p) => p.lng).sort((a, b) => a - b);
+  const lats = group.map((p) => p.lat).sort((a, b) => a - b);
+  const lngs = group.map((p) => p.lng).sort((a, b) => a - b);
 
   return {
     south: at(lats, trim),
@@ -94,6 +103,27 @@ export function robustBoundsOfPoints(points: LatLng[], trim = 0.02): Bounds | nu
     west: at(lngs, trim),
     east: at(lngs, 1 - trim),
   };
+}
+
+/**
+ * The points within `radiusMeters` of the median point. The median is taken
+ * per axis, which lands inside the largest group whenever that group holds
+ * more than half of the points.
+ */
+export function pointsNearMedian<P extends LatLng>(points: P[], radiusMeters = 40_000): P[] {
+  if (points.length === 0) return [];
+  const mid = (values: number[]) => {
+    const sorted = [...values].sort((a, b) => a - b);
+    return sorted[Math.floor((sorted.length - 1) / 2)];
+  };
+  const center = { lat: mid(points.map((p) => p.lat)), lng: mid(points.map((p) => p.lng)) };
+  const METERS_PER_DEGREE = 111_320;
+  const cos = Math.cos((center.lat * Math.PI) / 180);
+  return points.filter((p) => {
+    const dLat = (p.lat - center.lat) * METERS_PER_DEGREE;
+    const dLng = (p.lng - center.lng) * METERS_PER_DEGREE * cos;
+    return Math.sqrt(dLat * dLat + dLng * dLng) <= radiusMeters;
+  });
 }
 
 /**

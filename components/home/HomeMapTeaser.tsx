@@ -6,6 +6,7 @@ import { NavPending } from "@/components/shared/NavPending";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getCatalogPins, type CatalogPin } from "@/lib/db/properties";
+import { pointsNearMedian } from "@/lib/market/geo";
 import {
   BASEMAP_ATTRIBUTION,
   BASEMAP_SUPERSAMPLE,
@@ -29,6 +30,12 @@ import {
  *
  * Renders nothing when no published listing has a position — a map with no
  * pins would be a promise about nothing.
+ *
+ * Shows the main group of pins only. The catalog also carries the family's
+ * listings in Villa del Dique, Córdoba (lib/colegas, 25-sep-2026), and a box
+ * that framed those too would show the country with two dots on it. The
+ * still is a window onto the ground the agency works; the far listings are
+ * on the real map at /propiedades.
  */
 
 const BOX = { width: 320, height: 200 };
@@ -71,7 +78,7 @@ function frame(pins: CatalogPin[]) {
 }
 
 export async function HomeMapTeaser() {
-  const pins = await getCatalogPins();
+  const pins = pointsNearMedian(await getCatalogPins());
   if (pins.length === 0) return null;
   const { tiles, dots } = frame(pins);
   const href = "/propiedades?mapa=1";

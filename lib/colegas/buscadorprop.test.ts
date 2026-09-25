@@ -155,6 +155,11 @@ describe("the small readers", () => {
       "Lote en esquina. Escritura al día.",
     );
     expect(scrubContact("Ver www.laudaniycia.com.ar")).toBe("");
+    expect(scrubContact("Consulte en Laudani & Cía. Gran lote.", ["laudani"])).toBe("Gran lote.");
+    // A Córdoba number, with and without the country code; a price is not a number to call.
+    expect(scrubContact("Llamanos al 3546 478441. Vista al lago.")).toBe("Vista al lago.");
+    expect(scrubContact("Whatsapp +54 9 3546 478441. Vista al lago.")).toBe("Vista al lago.");
+    expect(scrubContact("Precio $ 150.000.000. Terreno de 10 x 40 m.")).toBe("Precio $ 150.000.000. Terreno de 10 x 40 m.");
   });
 
   it("turns shouting into sentences and leaves normal text alone", () => {

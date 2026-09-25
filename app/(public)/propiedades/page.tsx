@@ -25,7 +25,7 @@ import type { CatalogProperty } from "@/lib/catalog/filters";
 export const metadata: Metadata = {
   title: "Propiedades — Jotaeme",
   description:
-    "Propiedades en venta y alquiler en Zona Sur del Gran Buenos Aires.",
+    "Propiedades en venta y alquiler en Zona Sur del Gran Buenos Aires y en Villa del Dique, Córdoba.",
 };
 
 export default async function PropiedadesPage({

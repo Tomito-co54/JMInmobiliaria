@@ -1,12 +1,14 @@
 name: Catálogo de colegas
 
 # Mantiene al día las propiedades de los colegas que el sitio publica como
-# propias (source = 'colega', lib/colegas): hoy Laudani & Cía. Trae las nuevas,
-# actualiza precios y fotos, y baja del sitio lo que ya no está en el suyo.
+# propias (source = 'colega', lib/colegas): Laudani & Cía (Adrogué, con sello)
+# y José Martino Inmobiliaria (Villa del Dique, la de la familia, sin sello).
+# Trae las nuevas, actualiza precios y fotos, marca como vendida lo que su
+# sitio muestra vendido, y baja lo que ya no está en el suyo.
 #
-# A diferencia del pipeline de mercado, este SÍ corre solo, y puede: el sitio
-# del colega es de una inmobiliaria amiga sobre BuscadorProp, sin bloqueo por
-# IP, y se lee con pedidos simples (sin navegador).
+# A diferencia del pipeline de mercado, este SÍ corre solo, y puede: los dos
+# sitios son de inmobiliarias amigas (BuscadorProp y Pixel Inmobiliario), sin
+# bloqueo por IP, y se leen con pedidos simples (sin navegador).
 #
 # Si algún día el sitio no contesta, la corrida no baja nada: las bajas
 # exigen haber recorrido el listado hasta el final y haber visto al menos la

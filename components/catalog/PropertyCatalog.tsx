@@ -50,7 +50,7 @@ export function PropertyCatalog({
     (totalProperties > 0
       ? `${totalProperties} ${
           totalProperties === 1 ? "propiedad publicada" : "propiedades publicadas"
-        } en Zona Sur GBA.`
+        } en Zona Sur GBA y en Villa del Dique, Córdoba.`
       : "Estamos cargando las primeras propiedades.");
 
   return (

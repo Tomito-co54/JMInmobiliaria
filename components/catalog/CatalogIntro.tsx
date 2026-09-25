@@ -61,7 +61,8 @@ const toSearch = (a: Answers): Search => ({
 const STEPS: { key: StepKey; question: string; hint: string }[] = [
   { key: "operation", question: "¿Qué operación buscás?", hint: "Elegí una para empezar." },
   { key: "type", question: "¿Qué tipo de propiedad?", hint: "Sólo te mostramos las que tenemos publicadas." },
-  { key: "localidad", question: "¿En qué ubicación?", hint: "Zona Sur del Gran Buenos Aires." },
+  // Not "Zona Sur": the family's agency in Villa del Dique publishes here too.
+  { key: "localidad", question: "¿En qué ubicación?", hint: "Sólo las zonas donde tenemos propiedades publicadas." },
 ];
 
 const OPERATION_LABELS: Record<CatalogOperation, string> = { venta: "Compra", alquiler: "Alquiler" };

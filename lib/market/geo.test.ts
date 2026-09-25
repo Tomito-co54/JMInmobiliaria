@@ -183,14 +183,24 @@ describe("robustBoundsOfPoints", () => {
     expect(robust.east).toBeLessThan(-58.3);
   });
 
-  it("falls back to the plain box on small samples", () => {
-    // Trimming percentiles off a handful of points would throw away real
-    // data rather than noise.
+  it("keeps a handful of points together, all of them", () => {
+    // Nothing is an outlier in a few points that sit near each other.
     const few = [
       { lat: -34.75, lng: -58.4 },
-      { lat: -34.66, lng: -58.25 },
+      { lat: -34.76, lng: -58.41 },
+      { lat: -34.74, lng: -58.39 },
     ];
     expect(robustBoundsOfPoints(few)).toEqual(boundsOfPoints(few));
+  });
+
+  it("frames the bigger group when a quarter of the points are 700 km away", () => {
+    // 25-sep-2026: the family's agency in Villa del Dique (Córdoba) joins the
+    // catalog. A percentile trim keeps 39 of 160 and the box spans Argentina.
+    const pts = clusterWithOutlier();
+    for (let i = 0; i < 39; i++) pts.push({ lat: -32.17 + i * 0.001, lng: -64.45 });
+    const robust = robustBoundsOfPoints(pts)!;
+    expect(robust.north).toBeLessThan(-34.6);
+    expect(robust.west).toBeGreaterThan(-58.5);
   });
 
   it("is null with no points", () => {

@@ -58,10 +58,10 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (24-sep-2026):** Deployado y funcionando en producción en
-**https://www.jminmobiliaria.com.ar**, con auto-deploy desde `main`. **549 tests
+**https://www.jminmobiliaria.com.ar**, con auto-deploy desde `main`. **562 tests
 passing** (+7 skipped a propósito), `npm run build` verde, **34 rutas** (contadas
 en el build del 24-sep: las 33 de antes más `/servicios`). Catálogo: **15 propias
-+ 113 del colega = 128 publicadas**.
++ 113 de Laudani + 37 de Villa del Dique = 165 publicadas** (25-sep).
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
 3-sep, no se copiaron del párrafo anterior. El build lista 33 rutas contadas
@@ -422,6 +422,74 @@ propias **primero** y como protagonistas.
   **matrícula** (`hasMatricula`): cuando llegue el número, hay que darle otro.
   `HomeGuaranteesClient.tsx` (el dibujo de la cobertura y un `ScoreRingViz`
   huérfano) se borró; `lib/zona-sur/coverage.ts` queda, sin uso.
+
+### La cartera de Villa del Dique: la otra inmobiliaria de la familia (25-sep)
+
+**José Martino Inmobiliaria** (`josemartinoinmobiliaria.com.ar`, Villa del Dique,
+Valle de Calamuchita, Córdoba; contacto Fabián Martino) **es de la familia**, no
+un homónimo. Tomy, 25-sep: *"vamos a hacer lo mismo que con Laudani, pero sin
+sello, traspasar toda la cartera acá"*. Así que entra como `colega`, con la
+misma sincronización diaria y el WhatsApp de Tomy, y **sin ninguna marca** en la
+card ni en la ficha: `Colega.seal = null` y `PartnerSeal` no dibuja nada.
+
+- **`partner = 'martino_villa_del_dique'`**. No hizo falta migración: `partner`
+  es texto y el CHECK de la 00025 sólo exige que un `colega` lo tenga.
+- **Su sitio es Pixel Inmobiliario**, una plantilla alquilada (Bootstrap +
+  jQuery, servida por nginx, 2,4 s de TTFB). Se lee sin navegador. Listado:
+  `/listing?user_id=1742&purpose=sale&page=N`, 9 cards por página, ninguna
+  después de la última. Ficha: `/ad/<slug>`; el slug sigue al título, así que
+  **el id estable es el "Código"** de la card. La ficha trae estado ("En Venta"
+  / "Vendido"), título, precio ("USD55.000"), tipo, cinco contadores
+  (dormitorios, ambientes, baños, m² totales, m² cubiertos), descripción,
+  comodidades, galería completa y un embed de Google Maps cuyo `q=` son las
+  coordenadas. Lector: `lib/colegas/pixel-inmobiliario.ts` (puro, 13 tests).
+- **`lib/colegas/platforms.ts`** es el despacho: una forma para las dos
+  plataformas (URL del listado, entradas de una página, lectura de una ficha),
+  y `sincronizar-colegas` recorre cualquiera igual. `Colega` ganó `platform`,
+  `seal`, `account`, `scrubWords` y `cadastre`.
+- **Vendidas**: su sitio deja las vendidas publicadas con una cinta. Una vista
+  así (en la card o en la ficha) se escribe como `listing_status = 'vendida'`:
+  vista, así que no es "baja", y no está a la venta. Hoy son 5.
+- **Localidades**: Villa del Dique, Villa Rumipal y San Ignacio, bajo
+  **`Calamuchita`** en `LOCALIDADES_FUERA_DE_ZONA_SUR` (la columna `partido`
+  guarda el departamento, que es la misma clase de cosa una provincia más
+  allá). Casi ningún aviso tiene calle: la card titula "Casa en Villa del
+  Dique" (`localidad` antes que `partido`). `cadastre: false`: ARBA no sabe
+  nada de Córdoba y no se le pregunta.
+- **Su copy trae otra inmobiliaria firmando**: "JOSÉ MARTINO INMOBILIARIA / El
+  nombre que marca la diferencia", "Consultanos… coordiná tu visita". Esas
+  líneas se borran (`scrubWords`), y `scrubContact` ahora reconoce cualquier
+  teléfono de 10 a 13 dígitos —el de Córdoba es "3546 478441", que la regex de
+  Buenos Aires no veía— sin confundirlo con un precio.
+- **Sus datos tienen errores de carga, y el lector los rechaza en vez de
+  publicarlos**: un lote a "$13.000" (pesos, al lado de lotes a USD 50.000) se
+  publica sin precio; "M² Totales 3 · M² Cubiertos 2" en una casa se publica
+  sin superficie. Las dos con aviso en el reporte. Los tipos **"Complejo"** (8
+  PH vendidos juntos, USD 140.000) e **"Inmueble en block"** no tienen
+  equivalente en `lib/property/types` y quedan **sin publicar**: decisión de
+  Tomy si se suma un tipo o se cargan de otra forma.
+- **El mapa de la portada sigue mostrando Zona Sur.** `robustBoundsOfPoints`
+  recortaba percentiles y con 39 pins de 160 a 700 km eso no alcanza: el
+  encuadre pasaba a ser la Argentina entera. Ahora `pointsNearMedian` toma el
+  grupo a 40 km de la mediana y recién ahí recorta; el recuadro de la home
+  (`HomeMapTeaser`) dibuja sólo ese grupo, y el mapa de `/propiedades` abre
+  sobre él. Los pins de Córdoba están, sólo que no deciden la cámara.
+- **La intro del catálogo** ya no dice "Zona Sur del Gran Buenos Aires" en la
+  pregunta de ubicación; ofrece las localidades que hay publicadas.
+- **Cargado el 25-sep**: 44 avisos en su sitio, **37 publicadas + 5 vendidas**,
+  2 sin traducir. La primera corrida con `--aplicar` dejó 3 fichas sin leer por
+  un fallo de red, y la segunda las trajo: el "sin leer se deja como está"
+  funcionó como estaba pensado. Corrida final en seco: cero diferencias. El
+  catálogo pasa de 128 a **165 publicadas**.
+- **Ojo con el nombre**: su pestaña dice "Martino Inmobiliaria", su Instagram es
+  `@martinoinmobiliaria`, y su logo es "MARTINO" grande con "INMOBILIARIA"
+  chico sobre azul oscuro —casi lo mismo que la portada de este sitio desde el
+  24-sep—. Google e Instagram van a mostrarlos a ellos primero; que el sitio y
+  las redes digan siempre "JM" o "Zona Sur" al lado del apellido.
+- **Lo que ellos tienen y este sitio no**, anotado de la revisión de su sitio:
+  formulario "¿Necesita tasar su propiedad?" en la home (capta vendedores;
+  conecta con el tasador del punto 1b), video en la ficha (el lector lo lee,
+  `videoUrl`, pero `properties` no tiene columna), cinta "Vendido" visible.
 
 ### Las portadas de los edificios (23-sep)
 
@@ -885,6 +953,7 @@ visual.
 | Fase 53 — La guía de compra, en la voz del sitio | Siete etapas dictadas por Tomy: impersonal, sobria, sin porcentajes salvo los que él pidió; boleto y escritura separados y abiertos en su etapa; reserva distinta de seña; se van los restos de servicios pagos y la voz de agencia compradora; la guía usa `PublicHeader`. | `34d77d5` … `77f9479` |
 | Fase 54 — El buscador entra en tres pasos | `CatalogIntro` (operación → tipo → localidad, filtran), `CatalogSearchBoard` con el match y lo que falta, orden por precio y antigüedad. Migraciones **00022** (`localidad`, desde la maestra) y **00023** (depósito, oficina, galpón, campo). **499 → 522 tests.** | `4dd292c` `9ad09c5` `e70b0bc` |
 | Fase 55 — El catálogo de un colega | Laudani & Cía: 113 propiedades sincronizadas cada día desde su sitio BuscadorProp, estandarizadas, con sello y sin links. Migraciones **00024** (`colega`) y **00025** (`partner`, CHECKs). **522 → 544 tests.** | `18e04ce` `e7879fe` |
+| Fase 56 — La cartera de Villa del Dique | José Martino Inmobiliaria, la de la familia en Córdoba, entra como `colega` **sin sello**: lector para Pixel Inmobiliario (`lib/colegas/pixel-inmobiliario.ts`), despacho por plataforma (`platforms.ts`), vendidas → `vendida`, localidades de Calamuchita, y el mapa de la portada encuadra el grupo mayor y no la Argentina. **549 → 562 tests.** 128 → **165 publicadas**. | ver git |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
 **Tests:** 406 passing + 7 skipped (176 al cierre de Fase 1.B → 216 tras la
@@ -2280,6 +2349,7 @@ servicios pagos el 2-sep.)
 55. **Fase 53 — La guía de compra, en la voz del sitio** ✅ 23-sep
 56. **Fase 54 — El buscador entra en tres pasos** ✅ 23-sep (migraciones 00022 y 00023)
 57. **Fase 55 — El catálogo de un colega (Laudani & Cía)** ✅ 23-sep (00024, 00025; 128 publicadas)
+58. **Fase 56 — La cartera de Villa del Dique, sin sello** ✅ 25-sep (165 publicadas)
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -2719,6 +2789,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.47 | Sep 25, 2026 | **La otra inmobiliaria de la familia entra sin sello.** José Martino Inmobiliaria (Villa del Dique, Córdoba) es de la familia, y Tomy pidió *"lo mismo que con Laudani, pero sin sello"*. Su sitio corre en otra plataforma (Pixel Inmobiliario), así que hay un segundo lector y un despacho por plataforma; el sello es opcional por colega; lo que su sitio muestra vendido se escribe `vendida`; Calamuchita entra a las localidades. Su carga trae errores que el lector rechaza en vez de publicar (un lote a $13.000, una casa de 3 m²) y dos tipos sin equivalente que quedan afuera hasta que Tomy decida. Y 39 pins a 700 km destaparon que el recorte de percentiles del mapa no alcanza: ahora encuadra el grupo alrededor de la mediana. **549 → 562 tests**, catálogo 128 → **165**. |
 | 2.46 | Sep 24, 2026 | **La portada, en la voz de Tomy.** Título nuevo: **"Vos decidís, / nuestra experiencia te acompaña"** (sin punto; "te acompaña" no se separa, porque a 375 px dejaba "ayuda" sola en un renglón y `text-balance` no actúa a través de un `<br />`; la columna se ensancha en `lg` para que la segunda línea entre entera). Los 70 años pasaron a un **sello "+70 años" fijo abajo a la izquierda**, espejo del botón de WhatsApp y centrado a su misma altura, sólo en la landing. Arriba del título: el **isotipo** (el logo completo decía "Oportunidades inmobiliarias"), **"INMOBILIARIA"** como texto con el tratamiento de ese tagline, y **"MARTINO"** en la línea dorada, que antes decía "Inmobiliaria · Zona Sur GBA". El botón "Ver propiedades" sigue entrando en la primera pantalla, medido de 320 a 1905 px. |
 | 2.45 | Sep 24, 2026 | **Dominio propio, y el sitio queda funcional.** Tomy registró `jminmobiliaria.com.ar` en NIC Argentina (con CUIL y clave fiscal; vence el 24-sep-2027) y lo delegó a `ns1/ns2.vercel-dns.com`. NIC publicó en ~15 min; Vercel tardó ~1 h en habilitar la zona ("DNS zone not enabled … dns-01" mientras tanto) y se destrabó solo. El pelado redirige al `www`, el `.vercel.app` redirige 308 al dominio conservando ruta y parámetros, MapTiler autoriza el origen nuevo (verificado mirando la tesela), Supabase Auth tiene el dominio como Site URL, y `SITE_URL` en `lib/brand/contact.ts` reemplaza los respaldos que nombraban el `.vercel.app` y el proyecto original. `NEXT_PUBLIC_APP_URL` no se cargó en Vercel —su panel rechazó el prefijo público— y no hace falta. Quinta corrida del protocolo: Alsina 4°Y 89.000 → 88.000 (decisión del 24-sep en `CONTEXTO.md`); segunda pasada en seco sin diferencias en las 14, y el colega sin cambios. |
 | 2.44 | Sep 24, 2026 | **Servicios, el menú del celular, y se va "Datos oficiales".** `/servicios` (contenido en `lib/servicios/catalogo.ts`): tasaciones, estado parcelario, mensura y subdivisión, planos municipales y demoliciones —hechos por la inmobiliaria, Tomy confirmó que la demolición es completa, del plano a la obra—, sin precios (un test lo impide) y un WhatsApp por servicio con el mensaje armado. **Debajo de md la barra pasa a un menú lateral** (`MobileNav`, sobre el `Sheet` de base-ui): los cuatro destinos numerados como las disciplinas de servicios, el Panel si hay sesión y un WhatsApp; desde md la barra no cambió. Antes, en un teléfono la guía y servicios eran inalcanzables desde la barra. Y **"Datos oficiales" sale de las publicaciones** a pedido de Tomy: `VerifiedDataList` y `lib/property/verified-data.ts` se borraron (el lookup del catastro sigue dibujando la parcela en el mapa). **549 tests** (se fueron los 12 de verified-data). |

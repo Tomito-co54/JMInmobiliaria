@@ -60,6 +60,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "staticbp.com" },
       { protocol: "https", hostname: "trezzapropiedades.com.ar" },
       { protocol: "https", hostname: "www.trezzapropiedades.com.ar" },
+      // José Martino Inmobiliaria, Villa del Dique (lib/colegas): sus fotos se
+      // sirven desde su propio dominio, sin pasar por el optimizador.
+      { protocol: "https", hostname: "www.josemartinoinmobiliaria.com.ar" },
       // Supabase Storage — fotos propias subidas vía el cargador
       // (bucket `property-photos`, public read).
       {

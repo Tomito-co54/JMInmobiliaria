@@ -9,8 +9,11 @@
  * What it does, per partner:
  *   1. Reads how many of their listings are published now (the baseline).
  *   2. Walks the listing to the empty page past the end.
- *   3. Reads each property page and normalizes it (lib/colegas/buscadorprop).
+ *   3. Reads each property page and normalizes it (lib/colegas/platforms picks
+ *      the reader for the partner's platform).
  *   4. Inserts what is new, updates what changed, re-publishes what came back.
+ *      A listing their site keeps with a "Vendido" ribbon is written as
+ *      `vendida`: seen, so not gone, and not for sale.
  *   5. Takes down (listing_status = 'borrador') what is no longer on their
  *      site — only when the walk reached the end AND saw at least half the
  *      baseline. That is decideDeactivation, the guard that exists because
@@ -28,12 +31,8 @@
 import dotenv from "dotenv";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { COLEGAS, type Colega } from "../lib/colegas";
-import {
-  listingIdsFromPage,
-  normalizeListing,
-  parseListingPage,
-  type ColegaRow,
-} from "../lib/colegas/buscadorprop";
+import type { ColegaRow } from "../lib/colegas/buscadorprop";
+import { readerFor, type ListingEntry } from "../lib/colegas/platforms";
 import { decideDeactivation, type CrawlEnd } from "../lib/services/scrapers/crawl-completeness";
 import { lookupParcel } from "../lib/services/arba";
 import { groupPartnerUnits, type BuildingAssignment, type PartnerUnit } from "../lib/colegas/buildings";
@@ -76,23 +75,24 @@ async function get(url: string, json = false): Promise<string> {
   return res.text();
 }
 
-/** Walks /propiedades?infinito=1&pagina=N until a page comes back empty. */
-async function crawlIds(colega: Colega): Promise<{ ids: string[]; end: CrawlEnd }> {
-  const ids: string[] = [];
+/** Walks the listing, page by page, until a page comes back empty. */
+async function crawlEntries(colega: Colega): Promise<{ entries: ListingEntry[]; end: CrawlEnd }> {
+  const reader = readerFor(colega);
+  const entries: ListingEntry[] = [];
   for (let page = 1; page <= MAX_PAGES; page++) {
     let body: string;
     try {
-      body = await get(`${colega.siteUrl}/propiedades?infinito=1&pagina=${page}`, true);
+      body = await get(reader.listingUrl(colega, page), reader.listingIsJson);
     } catch (err) {
       console.warn(`  ⚠ página ${page}: ${err instanceof Error ? err.message : err}`);
-      return { ids, end: "page_error" };
+      return { entries, end: "page_error" };
     }
-    const found = listingIdsFromPage(body);
-    if (found.length === 0) return { ids, end: "exhausted" };
-    for (const id of found) if (!ids.includes(id)) ids.push(id);
+    const found = reader.entries(body, colega);
+    if (found.length === 0) return { entries, end: "exhausted" };
+    for (const e of found) if (!entries.some((x) => x.id === e.id)) entries.push(e);
     await sleep(PAUSE_MS);
   }
-  return { ids, end: "page_cap" };
+  return { entries, end: "page_cap" };
 }
 
 const COMPARED: (keyof ColegaRow)[] = [
@@ -125,19 +125,26 @@ async function syncColega(sb: SupabaseClient, colega: Colega) {
   }
 
   // 2. The listing.
-  const { ids, end } = await crawlIds(colega);
+  const reader = readerFor(colega);
+  const { entries, end } = await crawlEntries(colega);
+  const ids = entries.map((e) => e.id);
   console.log(`  listado  : ${ids.length} propiedades · fin: ${end} · publicadas hoy: ${baseline ?? "no se pudo leer"}`);
 
   // 3. Each property.
   const rows = new Map<string, ColegaRow>();
+  const urls = new Map<string, string>();
+  const sold = new Set<string>();
   const unreadable: string[] = [];
   const rejected: string[] = [];
-  for (const id of ids) {
+  for (const { id, url, sold: soldOnCard } of entries) {
     try {
-      const html = await get(`${colega.siteUrl}/propiedad/${id}`);
-      const n = normalizeListing(parseListingPage(html, id), LOCALIDADES);
-      if (n.row) rows.set(id, n.row);
-      else rejected.push(`${id}: ${n.errors.join("; ")}`);
+      const html = await get(url);
+      const n = reader.read(html, id, colega, LOCALIDADES);
+      if (n.row) {
+        rows.set(id, n.row);
+        urls.set(id, url);
+        if (n.sold || soldOnCard) sold.add(id);
+      } else rejected.push(`${id}: ${n.errors.join("; ")}`);
       for (const w of n.warnings) console.log(`  ⚠ ${id}: ${w}`);
     } catch (err) {
       unreadable.push(`${id}: ${err instanceof Error ? err.message : err}`);
@@ -149,8 +156,10 @@ async function syncColega(sb: SupabaseClient, colega: Colega) {
   //     arba_lookups, so a daily run asks almost nothing), and the units of
   //     one building get one parcel and one address (lib/colegas/buildings).
   //     If the cadastre fails, grouping is left exactly as it is this run.
+  //     A partner outside the province of Buenos Aires gets no grouping: the
+  //     cadastre does not know its ground (Colega.cadastre).
   let grouping: Map<string, BuildingAssignment> | null = null;
-  try {
+  if (colega.cadastre) try {
     const units: PartnerUnit[] = [];
     for (const [id, row] of rows) {
       const parcel = row.lat !== null && row.lng !== null ? await lookupParcel(row.lat, row.lng) : null;
@@ -197,11 +206,13 @@ async function syncColega(sb: SupabaseClient, colega: Colega) {
       row.nomenclatura_catastral = (site.nomenclatura_catastral as string | null) ?? null;
     }
     const fields = COMPARED.filter((k) => !same(site[k], row[k]));
-    const republish = site.listing_status !== "publicada";
-    if (fields.length || republish) {
+    const status = sold.has(id) ? "vendida" : "publicada";
+    const restatus = site.listing_status !== status;
+    if (fields.length || restatus) {
       const patch: Record<string, unknown> = Object.fromEntries(fields.map((k) => [k, row[k]]));
-      if (republish) Object.assign(patch, { listing_status: "publicada", is_active: true });
-      updates.push({ id: site.id, externalId: id, patch, fields: republish ? [...fields, "re-publicada"] : fields });
+      if (restatus) Object.assign(patch, { listing_status: status, is_active: status === "publicada" });
+      const note = status === "vendida" ? "vendida" : "re-publicada";
+      updates.push({ id: site.id, externalId: id, patch, fields: restatus ? [...fields, note] : fields });
     }
   }
 
@@ -211,7 +222,7 @@ async function syncColega(sb: SupabaseClient, colega: Colega) {
   );
   const decision = decideDeactivation(end, ids.length, baseline);
 
-  console.log(`  nuevas   : ${inserts.length}`);
+  console.log(`  nuevas   : ${inserts.length}${sold.size ? ` · vendidas en su sitio: ${sold.size}` : ""}`);
   console.log(`  cambios  : ${updates.length}${updates.length ? " — " + updates.slice(0, 8).map((u) => `${u.externalId} (${u.fields.join(", ")})`).join(" · ") : ""}`);
   console.log(`  a bajar  : ${gone.length}${gone.length ? (decision.allowed ? "" : ` — NO se bajan: ${decision.reason}`) : ""}`);
   if (rejected.length) console.log(`  sin publicar (no se pudieron traducir): ${rejected.length}\n    ${rejected.join("\n    ")}`);
@@ -222,13 +233,14 @@ async function syncColega(sb: SupabaseClient, colega: Colega) {
   // 5. Writes.
   const now = new Date().toISOString();
   for (const row of inserts) {
+    const forSale = !sold.has(row.external_id);
     const { error: e } = await sb.from("properties").insert({
       ...row,
       source: "colega",
       partner: colega.key,
-      url: `${colega.siteUrl}/propiedad/${row.external_id}`,
-      listing_status: "publicada",
-      is_active: true,
+      url: urls.get(row.external_id) ?? null,
+      listing_status: forSale ? "publicada" : "vendida",
+      is_active: forSale,
       first_seen_at: now,
       last_seen_at: now,
     });
