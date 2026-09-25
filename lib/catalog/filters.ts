@@ -4,6 +4,7 @@ import { hasAnyPreference, toSearchProfile, type MatchPreferences } from "@/lib/
 import type { MatchableProperty } from "@/lib/matching/types";
 import { propertyTypeLabel } from "@/lib/property/types";
 import { isInside, type Bounds } from "@/lib/market/geo";
+import { zonaByKey } from "@/lib/zonas";
 
 /**
  * What /propiedades does with the catalog once it is in the browser: narrow
@@ -38,6 +39,11 @@ export type CatalogOperation = "venta" | "alquiler";
 export interface CatalogFilters {
   /** Free text — address, zone, a word from the description. */
   q: string;
+  /**
+   * One of the landing's zones (lib/zonas: Buenos Aires, Córdoba, La Costa),
+   * by key. What a zone cover links to. Null = anywhere.
+   */
+  zona: string | null;
   partido: string | null;
   /**
    * Towns within the partido — any of them. What the intro asks as
@@ -58,6 +64,7 @@ export interface CatalogFilters {
 
 export const EMPTY_CATALOG_FILTERS: CatalogFilters = {
   q: "",
+  zona: null,
   partido: null,
   localidades: [],
   operations: [],
@@ -68,6 +75,7 @@ export const EMPTY_CATALOG_FILTERS: CatalogFilters = {
 export function hasAnyFilter(f: CatalogFilters): boolean {
   return (
     f.q.trim() !== "" ||
+    f.zona !== null ||
     f.partido !== null ||
     f.localidades.length > 0 ||
     f.operations.length > 0 ||
@@ -112,6 +120,7 @@ export function normalizeText(text: string): string {
 
 const PARAM = {
   q: "q",
+  zona: "zona",
   partido: "partido",
   localidades: "loc",
   operations: "op",
@@ -131,6 +140,8 @@ function listParam(raw: string | null): string[] {
 export function filtersFromParams(params: URLSearchParams): CatalogFilters {
   return {
     q: params.get(PARAM.q) ?? "",
+    // An unknown zone is no zone, not an empty catalog.
+    zona: zonaByKey(params.get(PARAM.zona))?.key ?? null,
     partido: params.get(PARAM.partido) || null,
     localidades: listParam(params.get(PARAM.localidades)),
     operations: listParam(params.get(PARAM.operations)).filter(
@@ -144,6 +155,7 @@ export function filtersFromParams(params: URLSearchParams): CatalogFilters {
 export function filtersToParams(f: CatalogFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (f.q.trim()) params.set(PARAM.q, f.q.trim());
+  if (f.zona) params.set(PARAM.zona, f.zona);
   if (f.partido) params.set(PARAM.partido, f.partido);
   if (f.localidades.length > 0) params.set(PARAM.localidades, f.localidades.join(","));
   if (f.operations.length > 0) params.set(PARAM.operations, f.operations.join(","));
@@ -199,7 +211,9 @@ export function applyFilters<T extends CatalogProperty>(
   f: CatalogFilters,
 ): T[] {
   const words = normalizeText(f.q).split(/\s+/).filter(Boolean);
+  const zona = zonaByKey(f.zona);
   return list.filter((p) => {
+    if (zona && !(p.partido && zona.partidos.includes(p.partido))) return false;
     if (f.partido && p.partido !== f.partido) return false;
     if (f.localidades.length > 0 && !(p.localidad && f.localidades.includes(p.localidad))) return false;
     if (f.operations.length > 0 && !(p.operation_type && (f.operations as string[]).includes(p.operation_type)))

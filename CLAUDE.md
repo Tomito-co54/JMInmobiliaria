@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (24-sep-2026):** Deployado y funcionando en producción en
-**https://www.jminmobiliaria.com.ar**, con auto-deploy desde `main`. **562 tests
+**https://www.jminmobiliaria.com.ar**, con auto-deploy desde `main`. **567 tests
 passing** (+7 skipped a propósito), `npm run build` verde, **34 rutas** (contadas
 en el build del 24-sep: las 33 de antes más `/servicios`). Catálogo: **15 propias
 + 113 de Laudani + 37 de Villa del Dique = 165 publicadas** (25-sep).
@@ -97,11 +97,11 @@ Lo que queda es de contenido:
    única fuente de la cartera: 25 unidades en `Publicar = Sí`, de las que 8
    tienen material (ver *La cartera se sincroniza*). La lista que Tomy le
    dictó a Claude el 3-sep quedó archivada en su carpeta y ya no se usa.
-2. **La protagonista de la portada es Belgrano 1287 1°A, porque está en
-   oferta.** Desde el 16-sep **una oferta le gana a la destacada**: si hay
-   alguna publicada con la etiqueta `oferta`, la portada muestra la más
-   barata (`cheapestOffer`). Sin ofertas, vuelve la rotación de siempre entre
-   las marcadas con ★, que hoy es sólo la 2°A.
+2. **La portada son las zonas** (25-sep): un slide por zona —Buenos Aires,
+   Córdoba, La Costa— con su mejor propiedad. En Buenos Aires **una oferta
+   le gana a la destacada**: si hay alguna publicada con la etiqueta
+   `oferta`, muestra la más barata (`cheapestOffer`, hoy Alsina 3°Q). Sin
+   ofertas, la rotación entre las marcadas con ★. Ver *Las portadas de zona*.
 3. **El scraping corre a mano** — pero ojo, ver abajo: **GitHub Actions
    también corre solo desde el 27-ago** y escribe en la misma base.
 
@@ -422,6 +422,57 @@ propias **primero** y como protagonistas.
   **matrícula** (`hasMatricula`): cuando llegue el número, hay que darle otro.
   `HomeGuaranteesClient.tsx` (el dibujo de la cobertura y un `ScoreRingViz`
   huérfano) se borró; `lib/zona-sur/coverage.ts` queda, sin uso.
+
+### Las portadas de zona: el slider (25-sep)
+
+Tomy vio el slider de la home de la inmobiliaria de Villa del Dique y le gustó
+"estéticamente". No como carrusel de propiedades: **como portada de cada
+zona** donde publica — *"como ahora se van agregando Villa del Dique, la
+costa, etc., agregar ese slider como portada de la zona"*. Va **en el lugar de
+la protagonista**, y las zonas son, "para simplificar", **Buenos Aires,
+Córdoba y La Costa**.
+
+- **`lib/zonas.ts`** (puro, con tests): una zona es un nombre sobre un
+  conjunto de partidos (`ZONAS`). `zoneCovers(rows)` da una portada por zona
+  que tenga algo publicado, en ese orden, y `pickCover` elige la propiedad
+  con la misma escalera que tenía la protagonista, un escalón más larga
+  porque una zona puede no tener nada de la familia: (1) la oferta propia más
+  barata, (2) la ★ propia rotando por día, (3) la oferta más barata de
+  cualquiera, (4) **la más cara en dólares con tres fotos o más** —el primer
+  día de Córdoba, "la más nueva" eligió un lote pelado con dos fotos y sin
+  precio, y la portada de una zona es su mejor casa—, (5) la más nueva. Sin
+  fotos no se es portada de nada.
+- **`HomeZonas`** (server) arma cada slide y **`HomeZonasSlider`** (cliente)
+  lo dibuja: scroll-snap como la galería, flechas de 44px sólo en escritorio,
+  puntos de 44px con el nombre de la zona como etiqueta, flechas del teclado
+  con el foco adentro. **Sin rotación automática**: es navegación, espera.
+  La tarjeta: eyebrow "Zona · N propiedades", el nombre de la zona en
+  Fraunces, la línea de la zona, y abajo la propiedad (etiqueta "Oportunidad
+  en oferta" o "Propiedad destacada", dirección, precio con placa si es
+  oferta, specs), "Ver propiedad" y "Ver todo en Córdoba". La foto grande a
+  la derecha; en el celular arriba. La barra dorada en el borde es lo único
+  de la tarjeta que no es la propiedad.
+- **Detrás, el suelo de la zona.** `Zona.photo` cuando haya una foto aérea
+  propia (hoy ninguna: **falta la de Banfield, la de Villa del Dique —la
+  familia tiene dron— y la de la costa**). Hasta entonces, **el mapa de
+  donde están sus propiedades**, desenfocado y teñido de navy: suelo real,
+  nunca una foto de stock (§2.5, §6). Se calcula con `lib/map/frame.ts`
+  (`frameForPins`, extraído del recuadro del mapa de la home, que ahora lo
+  comparte) sobre una caja de 400×225: **seis teselas por slide** como
+  máximo, porque cada una cuenta contra la cuota de MapTiler.
+- **`?zona=<key>` es un filtro del catálogo** (`CatalogFilters.zona`, en la
+  URL como los demás): partido ∈ zona. El tablero "Tu búsqueda" lo muestra
+  como fila "Zona" con "Cualquiera" para sacarlo. Una clave desconocida no
+  filtra nada.
+- **`getZoneCoverRows`** reemplaza a `getFeaturedProperty`: todo lo
+  publicado, columnas con nombre, cacheado bajo `PUBLIC_CATALOG_TAG`. El
+  slide de Buenos Aires muestra lo mismo que mostraba la protagonista (hoy
+  la 3°Q en oferta); `HomeProtagonist` y `HomeProtagonistShowpiece` se
+  borraron con ella.
+- **Medido en dev a 1280 y a 375**: tres slides de ancho completo, la pista
+  desplaza y los puntos siguen al scroll, flechas ocultas en el celular y
+  sin overflow horizontal del documento. **Lo visual lo mira Tomy**: el panel
+  estaba oculto y no hay captura.
 
 ### La cartera de Villa del Dique: la otra inmobiliaria de la familia (25-sep)
 
@@ -953,6 +1004,7 @@ visual.
 | Fase 53 — La guía de compra, en la voz del sitio | Siete etapas dictadas por Tomy: impersonal, sobria, sin porcentajes salvo los que él pidió; boleto y escritura separados y abiertos en su etapa; reserva distinta de seña; se van los restos de servicios pagos y la voz de agencia compradora; la guía usa `PublicHeader`. | `34d77d5` … `77f9479` |
 | Fase 54 — El buscador entra en tres pasos | `CatalogIntro` (operación → tipo → localidad, filtran), `CatalogSearchBoard` con el match y lo que falta, orden por precio y antigüedad. Migraciones **00022** (`localidad`, desde la maestra) y **00023** (depósito, oficina, galpón, campo). **499 → 522 tests.** | `4dd292c` `9ad09c5` `e70b0bc` |
 | Fase 55 — El catálogo de un colega | Laudani & Cía: 113 propiedades sincronizadas cada día desde su sitio BuscadorProp, estandarizadas, con sello y sin links. Migraciones **00024** (`colega`) y **00025** (`partner`, CHECKs). **522 → 544 tests.** | `18e04ce` `e7879fe` |
+| Fase 57 — Las portadas de zona | El slider que Tomy vio en el sitio de Villa del Dique, como portada de cada zona (Buenos Aires · Córdoba · La Costa) en el lugar de la protagonista: `lib/zonas.ts`, `HomeZonas` + `HomeZonasSlider`, `?zona=` como filtro del catálogo, el suelo de la zona como mapa hasta que haya foto aérea. `HomeProtagonist` se va. **562 → 567 tests.** | ver git |
 | Fase 56 — La cartera de Villa del Dique | José Martino Inmobiliaria, la de la familia en Córdoba, entra como `colega` **sin sello**: lector para Pixel Inmobiliario (`lib/colegas/pixel-inmobiliario.ts`), despacho por plataforma (`platforms.ts`), vendidas → `vendida`, localidades de Calamuchita, y el mapa de la portada encuadra el grupo mayor y no la Argentina. **549 → 562 tests.** 128 → **165 publicadas**. | `a05865c` |
 | Fase 41 — La unidad de PH se ancla al lote por nomenclatura | Alsina 1639 4°Y trajo la primera partida de **unidad funcional**, y ARBA devolvió `partida_not_found`: la capa `Parcela` sólo conoce la partida del lote y `Subparcela` no tiene `pda`. Tercera vía de lookup por atributo, `by_nomenclatura` (migración 00018): `getParcelByNomenclatura`, `ensurePropertyCadastralByNomenclatura` —que **no pisa la partida de la unidad**— y `validateNomenclatura`; la persistencia común se extrajo a `persistParcel`. El cargador CLI acepta `nomenclatura_catastral`. Con eso la premisa de `lib/buildings` (agrupar por nomenclatura porque la partida se rompe con la PH) por fin se cumple en un PH real. | `8e6cbb3` |
 
@@ -2350,6 +2402,7 @@ servicios pagos el 2-sep.)
 56. **Fase 54 — El buscador entra en tres pasos** ✅ 23-sep (migraciones 00022 y 00023)
 57. **Fase 55 — El catálogo de un colega (Laudani & Cía)** ✅ 23-sep (00024, 00025; 128 publicadas)
 58. **Fase 56 — La cartera de Villa del Dique, sin sello** ✅ 25-sep (165 publicadas)
+59. **Fase 57 — Las portadas de zona (el slider)** ✅ 25-sep
 
 Detalles de cada fase en **Current progress** más arriba.
 
@@ -2789,6 +2842,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.48 | Sep 25, 2026 | **Las portadas de zona.** El slider que Tomy vio en el sitio de Villa del Dique entra como portada de cada zona donde publica —Buenos Aires, Córdoba, La Costa— en el lugar de la protagonista. Cada slide es una zona, no una propiedad: el suelo de la zona detrás (su mapa, hasta que haya foto aérea), una tarjeta con su mejor propiedad y la salida al catálogo filtrado por zona. Sin rotación automática. La regla que elige la propiedad es la de la protagonista, un escalón más larga: en una zona sin nada de la familia, la más cara con galería. **562 → 567 tests.** |
 | 2.47 | Sep 25, 2026 | **La otra inmobiliaria de la familia entra sin sello.** José Martino Inmobiliaria (Villa del Dique, Córdoba) es de la familia, y Tomy pidió *"lo mismo que con Laudani, pero sin sello"*. Su sitio corre en otra plataforma (Pixel Inmobiliario), así que hay un segundo lector y un despacho por plataforma; el sello es opcional por colega; lo que su sitio muestra vendido se escribe `vendida`; Calamuchita entra a las localidades. Su carga trae errores que el lector rechaza en vez de publicar (un lote a $13.000, una casa de 3 m²) y dos tipos sin equivalente que quedan afuera hasta que Tomy decida. Y 39 pins a 700 km destaparon que el recorte de percentiles del mapa no alcanza: ahora encuadra el grupo alrededor de la mediana. **549 → 562 tests**, catálogo 128 → **165**. |
 | 2.46 | Sep 24, 2026 | **La portada, en la voz de Tomy.** Título nuevo: **"Vos decidís, / nuestra experiencia te acompaña"** (sin punto; "te acompaña" no se separa, porque a 375 px dejaba "ayuda" sola en un renglón y `text-balance` no actúa a través de un `<br />`; la columna se ensancha en `lg` para que la segunda línea entre entera). Los 70 años pasaron a un **sello "+70 años" fijo abajo a la izquierda**, espejo del botón de WhatsApp y centrado a su misma altura, sólo en la landing. Arriba del título: el **isotipo** (el logo completo decía "Oportunidades inmobiliarias"), **"INMOBILIARIA"** como texto con el tratamiento de ese tagline, y **"MARTINO"** en la línea dorada, que antes decía "Inmobiliaria · Zona Sur GBA". El botón "Ver propiedades" sigue entrando en la primera pantalla, medido de 320 a 1905 px. |
 | 2.45 | Sep 24, 2026 | **Dominio propio, y el sitio queda funcional.** Tomy registró `jminmobiliaria.com.ar` en NIC Argentina (con CUIL y clave fiscal; vence el 24-sep-2027) y lo delegó a `ns1/ns2.vercel-dns.com`. NIC publicó en ~15 min; Vercel tardó ~1 h en habilitar la zona ("DNS zone not enabled … dns-01" mientras tanto) y se destrabó solo. El pelado redirige al `www`, el `.vercel.app` redirige 308 al dominio conservando ruta y parámetros, MapTiler autoriza el origen nuevo (verificado mirando la tesela), Supabase Auth tiene el dominio como Site URL, y `SITE_URL` en `lib/brand/contact.ts` reemplaza los respaldos que nombraban el `.vercel.app` y el proyecto original. `NEXT_PUBLIC_APP_URL` no se cargó en Vercel —su panel rechazó el prefijo público— y no hace falta. Quinta corrida del protocolo: Alsina 4°Y 89.000 → 88.000 (decisión del 24-sep en `CONTEXTO.md`); segunda pasada en seco sin diferencias en las 14, y el colega sin cambios. |

@@ -7,12 +7,10 @@ import {
   createPublicClient,
 } from "@/lib/supabase/server";
 import type { QualityBreakdown } from "@/lib/scoring";
-import { cheapestOffer } from "@/lib/property/offers";
 import type { MatchableProperty } from "@/lib/matching";
 import {
   PUBLIC_CATALOG_TAG,
   PUBLIC_LISTING_STATUS,
-  OWNER_PROPERTY_SOURCES,
   PUBLIC_PROPERTY_SOURCES,
 } from "@/lib/db/property-sources";
 
@@ -391,14 +389,18 @@ export const getPublicCatalog = cache(async function getPublicCatalog() {
 // ============================================================================
 
 /**
- * Tight row for the home's "propiedad destacada" showpiece. Only the
- * columns the protagonist component actually paints — keeps the payload
- * small for a surface that renders on every public home hit.
+ * A published listing as the landing's zone covers need it: what the cover
+ * paints (address, price, specs, photos) plus what picks it (source, tags,
+ * ★, created_at) and where it is (partido → zone, lat/lng → the map behind
+ * it). Named columns, cached under the public tag like every other public
+ * read: it changes when something is published, and not otherwise.
  */
-export interface FeaturedPropertyRow {
+export interface ZoneCoverRow {
   id: string;
+  source: string;
   address: string | null;
   partido: string | null;
+  localidad: string | null;
   property_type: string | null;
   operation_type: "venta" | "alquiler" | null;
   price_amount: number | null;
@@ -407,18 +409,21 @@ export interface FeaturedPropertyRow {
   bedrooms: number | null;
   bathrooms: number | null;
   surface_total: number | null;
-  surface_arba: number | null;
   tags: string[];
   extras: unknown;
   photos: string[];
-  partida: string | null;
-  quality_score_breakdown: QualityBreakdown | null;
+  is_featured: boolean | null;
+  created_at: string;
+  lat: number | null;
+  lng: number | null;
 }
 
-const FEATURED_PROPERTY_COLS = [
+const ZONE_COVER_COLS = [
   "id",
+  "source",
   "address",
   "partido",
+  "localidad",
   "property_type",
   "operation_type",
   "price_amount",
@@ -427,67 +432,44 @@ const FEATURED_PROPERTY_COLS = [
   "bedrooms",
   "bathrooms",
   "surface_total",
-  "surface_arba",
   "tags",
   "extras",
   "photos",
-  "partida",
-  "quality_score_breakdown",
+  "is_featured",
   "created_at",
+  "lat",
+  "lng",
 ].join(", ");
 
 /**
- * Picks the home's protagonista — the single editorial centerpiece that
- * gets the "recorte que sobresale del cuadrante" treatment (DIRECCION_DE_
- * ARTE §2.6). The broker curates the eligible pool by flipping is_featured
- * from /admin/properties; the same two-gate public filter still applies
- * (must be mine + publicada) so a featured-but-unpublished row never leaks.
- *
- * Rotation: when more than one property is featured, we rotate one per
- * calendar day. The index is derived from the day number so it is stable
- * within a single day (no hydration drift on a Server Component, no churn
- * between requests) but the showpiece changes daily. With a single
- * featured property the rotation is a no-op and it always shows.
- *
- * Returns null when nothing is eligible — the caller drops the section.
+ * Every published listing, for the landing's zone covers (lib/zonas picks
+ * one per zone). Replaces the single protagonist of before, which read owner
+ * rows only: a zone may hold no family listing at all — Córdoba is the
+ * family's other agency, published as a partner — so the pool is the whole
+ * public catalog and the owner preference lives in the picking rule.
  */
-export async function getFeaturedProperty(): Promise<FeaturedPropertyRow | null> {
-  const supabase = await createClient();
+const loadZoneCoverRows = unstable_cache(
+  async function loadZoneCoverRows(): Promise<ZoneCoverRow[]> {
+    try {
+      const supabase = createPublicClient();
+      const { data } = await supabase
+        .from("properties")
+        .select(ZONE_COVER_COLS)
+        .in("source", PUBLIC_PROPERTY_SOURCES as unknown as string[])
+        .eq("listing_status", PUBLIC_LISTING_STATUS);
+      return (data ?? []) as unknown as ZoneCoverRow[];
+    } catch {
+      // No covers rather than a crash on the landing.
+      return [];
+    }
+  },
+  ["zone-cover-rows"],
+  { tags: [PUBLIC_CATALOG_TAG], revalidate: 300 },
+);
 
-  // An offer outranks the curated pick (Tomy, 16-sep-2026): the landing's
-  // one property is the cheapest listing on offer while any exists. Owner
-  // rows only: a partner's price cut is an `oferta` too (00025), but the
-  // home's protagonist is always the family's (Tomy, 23-sep-2026). Ordered
-  // by price so a tie falls to the same row every request.
-  const { data: offerRows, error: offerErr } = await supabase
-    .from("properties")
-    .select(FEATURED_PROPERTY_COLS)
-    .contains("tags", ["oferta"])
-    .in("source", OWNER_PROPERTY_SOURCES as unknown as string[])
-    .eq("listing_status", PUBLIC_LISTING_STATUS)
-    .order("price_amount", { ascending: true, nullsFirst: false });
-  if (offerErr) throw offerErr;
-  const offer = cheapestOffer((offerRows ?? []) as unknown as FeaturedPropertyRow[]);
-  if (offer) return offer;
-
-  const { data, error } = await supabase
-    .from("properties")
-    .select(FEATURED_PROPERTY_COLS)
-    .eq("is_featured", true)
-    // Owner sources only — the is_featured CHECK already says so, but the
-    // rule lives here too so it is obvious (lib/db/property-sources.ts).
-    .in("source", OWNER_PROPERTY_SOURCES as unknown as string[])
-    .eq("listing_status", PUBLIC_LISTING_STATUS)
-    // Deterministic base order so the daily rotation index is stable.
-    .order("created_at", { ascending: true });
-
-  if (error) throw error;
-  const rows = (data ?? []) as unknown as FeaturedPropertyRow[];
-  if (rows.length === 0) return null;
-
-  const dayIndex = Math.floor(Date.now() / 86_400_000) % rows.length;
-  return rows[dayIndex];
-}
+export const getZoneCoverRows = cache(async function getZoneCoverRows(): Promise<ZoneCoverRow[]> {
+  return loadZoneCoverRows();
+});
 
 /**
  * Counts properties by status (for admin dashboard).

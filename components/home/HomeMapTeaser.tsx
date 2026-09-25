@@ -7,14 +7,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getCatalogPins, type CatalogPin } from "@/lib/db/properties";
 import { pointsNearMedian } from "@/lib/market/geo";
-import {
-  BASEMAP_ATTRIBUTION,
-  BASEMAP_SUPERSAMPLE,
-  BASEMAP_TILE_PIXELS,
-  placedTilesForBox,
-  projectToView,
-  zoomForSpan,
-} from "@/lib/map/tiles";
+import { BASEMAP_ATTRIBUTION, BASEMAP_TILE_PIXELS } from "@/lib/map/tiles";
+import { frameForPins } from "@/lib/map/frame";
 
 /**
  * The landing's window onto the map: the published listings as pins on real
@@ -39,42 +33,11 @@ import {
  */
 
 const BOX = { width: 320, height: 200 };
-const METERS_PER_DEGREE = 111_320;
-/** Never tighter than this, so one building does not become a satellite photo of itself. */
-const MIN_SPAN_METERS = 1200;
-const PADDING = 1.6;
-const MAX_ZOOM = 16;
 
 function frame(pins: CatalogPin[]) {
-  const lats = pins.map((p) => p.lat);
-  const lngs = pins.map((p) => p.lng);
-  const center = {
-    lat: (Math.max(...lats) + Math.min(...lats)) / 2,
-    lng: (Math.max(...lngs) + Math.min(...lngs)) / 2,
-  };
-  const cos = Math.cos((center.lat * Math.PI) / 180);
-  const latSpan = Math.max((Math.max(...lats) - Math.min(...lats)) * METERS_PER_DEGREE, MIN_SPAN_METERS);
-  const lngSpan = Math.max((Math.max(...lngs) - Math.min(...lngs)) * METERS_PER_DEGREE * cos, MIN_SPAN_METERS);
-
-  // Ground taken at supersample scale and drawn at box size — see
-  // BASEMAP_SUPERSAMPLE and the coverage block, which does the same.
-  const s = BASEMAP_SUPERSAMPLE;
-  const zoom = Math.min(
-    zoomForSpan(center.lat, lngSpan * PADDING, BOX.width * s),
-    zoomForSpan(center.lat, latSpan * PADDING, BOX.height * s),
-    MAX_ZOOM,
-  );
-  const tiles = placedTilesForBox(center, zoom, BOX);
-  const dots = pins.map((p) => {
-    const q = projectToView(p, center, zoom, BOX.width * s, BOX.height * s);
-    return {
-      id: p.id,
-      address: p.address,
-      left: `${((q.x / s / BOX.width) * 100).toFixed(2)}%`,
-      top: `${((q.y / s / BOX.height) * 100).toFixed(2)}%`,
-    };
-  });
-  return { tiles, dots };
+  const f = frameForPins(pins, BOX)!;
+  const dots = pins.map((p) => ({ id: p.id, address: p.address, ...f.place(p) }));
+  return { tiles: f.tiles, dots };
 }
 
 export async function HomeMapTeaser() {

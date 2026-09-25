@@ -1,16 +1,16 @@
 import { PublicHeader } from "@/components/shared/PublicHeader";
-import { getFeaturedProperty, getTopLocalidades } from "@/lib/db/properties";
+import { getTopLocalidades } from "@/lib/db/properties";
 import { HomeHero } from "@/components/home/HomeHero";
-import { HomeProtagonist } from "@/components/home/HomeProtagonist";
+import { HomeZonas } from "@/components/home/HomeZonas";
 import { HomeMapTeaser } from "@/components/home/HomeMapTeaser";
 import { HomeGuarantees } from "@/components/home/HomeGuarantees";
 import { WhatsAppFloat } from "@/components/home/WhatsAppFloat";
 
 export default async function Home() {
-  // The catalog moved to /propiedades. The landing keeps the one property it
-  // actually needs — the protagonista, which is a showpiece and not a listing
-  // — and sends everyone to the catalog from the hero and the header.
-  const [featured, zonas] = await Promise.all([getFeaturedProperty(), getTopLocalidades()]);
+  // The catalog moved to /propiedades. The landing keeps one property per
+  // zone — the covers, which are showpieces and not a listing — and sends
+  // everyone to the catalog from the hero, the covers and the header.
+  const zonas = await getTopLocalidades();
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -18,10 +18,10 @@ export default async function Home() {
 
       <HomeHero zonas={zonas} />
 
-      {/* Protagonista — the brand-signature showpiece (§2.6). Renders only
-          when there's a curated is_featured + publicada property; otherwise
-          it returns null and the home flows straight into the guarantees. */}
-      <HomeProtagonist property={featured} />
+      {/* The zone covers — one slide per zone the agency publishes in, each
+          fronted by one property (lib/zonas). Took the protagonist's place on
+          25-sep-2026. Returns null while nothing is published. */}
+      <HomeZonas />
 
       {/* The map as a still, with the pins on their parcels. One tap opens
           the real map on /propiedades. Returns null while nothing published

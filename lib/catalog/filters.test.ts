@@ -79,6 +79,13 @@ describe("applyFilters", () => {
   it("the selectors are exact", () => {
     expect(applyFilters(all, { ...EMPTY_CATALOG_FILTERS, operations: ["alquiler"] }).map((p) => p.id)).toEqual(["b"]);
     expect(applyFilters(all, { ...EMPTY_CATALOG_FILTERS, partido: "Lanús" }).map((p) => p.id)).toEqual(["c"]);
+    // A zone is its partidos (lib/zonas); an unknown key filters nothing.
+    const cordoba = row({ id: "z", address: "Av. de los Navegantes", partido: "Calamuchita" });
+    expect(applyFilters([...all, cordoba], { ...EMPTY_CATALOG_FILTERS, zona: "cordoba" }).map((p) => p.id)).toEqual(["z"]);
+    expect(applyFilters([...all, cordoba], { ...EMPTY_CATALOG_FILTERS, zona: "buenos-aires" }).map((p) => p.id)).not.toContain("z");
+    expect(filtersFromParams(new URLSearchParams("zona=cordoba")).zona).toBe("cordoba");
+    expect(filtersFromParams(new URLSearchParams("zona=marte")).zona).toBeNull();
+    expect(filtersToParams({ ...EMPTY_CATALOG_FILTERS, zona: "cordoba" }).get("zona")).toBe("cordoba");
     expect(applyFilters(all, { ...EMPTY_CATALOG_FILTERS, types: ["departamento"] }).map((p) => p.id)).toEqual(["a"]);
   });
 
@@ -92,6 +99,7 @@ describe("applyFilters", () => {
   it("combines them", () => {
     const out = applyFilters(all, {
       q: "belgrano",
+      zona: null,
       partido: "Lomas de Zamora",
       localidades: [],
       operations: ["venta"],

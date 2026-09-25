@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, RotateCcw, SlidersHorizontal } from "lucide-react";
+import { zonaByKey } from "@/lib/zonas";
 import { cn } from "@/lib/utils";
 import { propertyTypeLabel } from "@/lib/property/types";
 import { MatchPreferencesForm } from "@/components/matching/MatchPreferencesForm";
@@ -66,6 +67,7 @@ export function CatalogSearchBoard({
   const [open, setOpen] = useState(false);
   const set = (patch: Partial<CatalogFilters>) => onFiltersChange({ ...filters, ...patch });
   const missing = missingCriteria(preferences);
+  const zona = zonaByKey(filters.zona);
 
   // Every row takes several answers at once (Tomy, 24-sep-2026: "Banfield o
   // Temperley", and then the same for operation and type). A tap adds or
@@ -140,6 +142,23 @@ export function CatalogSearchBoard({
           >
             Tu búsqueda
           </p>
+          {/* A zone comes from the landing's covers and has no row of its
+              own: it is shown, and it can be taken off. */}
+          {zona && (
+            <fieldset className="min-w-0">
+              <legend className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Zona
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                <Chip on onClick={() => set({ zona: null })}>
+                  {zona.name}
+                </Chip>
+                <Chip on={false} onClick={() => set({ zona: null })}>
+                  Cualquiera
+                </Chip>
+              </div>
+            </fieldset>
+          )}
           {rows.map((row) => (
             <fieldset key={row.label} className="min-w-0">
               <legend className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
