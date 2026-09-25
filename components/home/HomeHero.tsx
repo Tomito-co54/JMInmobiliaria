@@ -31,8 +31,8 @@ import { cn } from "@/lib/utils";
  *   4. Propio ✓ — la combinación Fraunces protagónico + eyebrow caps en
  *      dorado + zonas con middle-dot no es de plantilla.
  *
- * El headline es de Tomy (24-sep-2026): "Vos decidís / nuestra experiencia
- * te ayuda". Reemplazó a "70 años de trayectoria para acompañarte", cuyo dato
+ * El headline es de Tomy (24-sep-2026): "Vos decidís, / nuestra experiencia
+ * te acompaña". Reemplazó a "70 años de trayectoria para acompañarte", cuyo dato
  * vive ahora en el sello +70 de la esquina.
  */
 export function HomeHero({ zonas }: { zonas: string[] }) {
@@ -62,7 +62,7 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
         }}
       />
 
-      <div className="max-w-2xl lg:max-w-4xl mx-auto text-center space-y-7 sm:space-y-9 lg:space-y-[clamp(0.9rem,3.2vh,2.25rem)]">
+      <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto text-center space-y-7 sm:space-y-9 lg:space-y-[clamp(0.9rem,3.2vh,2.25rem)]">
         {/* The mark, and under it the logo's own tagline cut to one word.
             The full logo image says "Oportunidades inmobiliarias"; on
             24-sep-2026 Tomy kept only "Inmobiliaria", so the tagline is text
@@ -112,12 +112,12 @@ export function HomeHero({ zonas }: { zonas: string[] }) {
             animationDelay: "260ms",
           }}
         >
-          Vos decidís
+          Vos decidís,
           <br />
-          {/* "te ayuda" travels together: at 375px the line broke before
-              "ayuda" and left it alone on a third line. text-balance does not
-              help across a forced <br />. */}
-          nuestra experiencia <span className="whitespace-nowrap">te ayuda</span>
+          {/* "te acompaña" travels together: at 375px the line broke before
+              the verb and left it alone on a third line. text-balance does
+              not help across a forced <br />. */}
+          nuestra experiencia <span className="whitespace-nowrap">te acompaña</span>
         </h1>
 
         {/* Zonas con middle-dot, sin caja final con coma — más editorial. */}
