@@ -58,7 +58,7 @@ trajo HEAD `e64b474` del upstream.
 ## Current progress
 
 **Status (24-sep-2026):** Deployado y funcionando en producción en
-**https://www.jminmobiliaria.com.ar**, con auto-deploy desde `main`. **567 tests
+**https://www.jminmobiliaria.com.ar**, con auto-deploy desde `main`. **571 tests
 passing** (+7 skipped a propósito), `npm run build` verde, **34 rutas** (contadas
 en el build del 24-sep: las 33 de antes más `/servicios`). Catálogo: **15 propias
 + 113 de Laudani + 37 de Villa del Dique = 165 publicadas** (25-sep).
@@ -423,6 +423,31 @@ propias **primero** y como protagonistas.
   `HomeGuaranteesClient.tsx` (el dibujo de la cobertura y un `ScoreRingViz`
   huérfano) se borró; `lib/zona-sur/coverage.ts` queda, sin uso.
 
+### `/arranque`: empezar una sesión sin explicar nada (1-oct)
+
+Tomy quería *"automatizar el inicio de sesiones con un prompt que simplifique
+y agilice todo para arrancar a trabajar"*, sin horario. No es una tarea
+programada: es un **comando propio del repo**, `.claude/skills/arranque/SKILL.md`.
+En una sesión nueva escribe **`/arranque`**, o `/arranque <tema del día>`, y
+Claude se pone en contexto solo y devuelve un parte de diez líneas.
+
+- **Sólo lectura.** Lee lo que cambia entre sesiones (`git log`, el «Estado»
+  y la última «Sesión» de `CONTEXTO.md`; `PUBLICACION.md` sólo si cambió) y
+  corre cuatro chequeos contra la base: la cartera en seco, la fecha del
+  último pipeline, la fecha de la última sincronización de cada colega, y
+  cuánto hay publicado.
+- **El parte**: dónde quedó, publicadas, si la maestra tiene algo que el sitio
+  no (*decí «actualizá el sitio»*), hace cuántos días corrió el pipeline, si
+  los colegas están al día, qué espera una decisión de Tomy, y cualquier
+  número que no cierre contra este documento.
+- **Con tema**, después del parte lee lo que ese tema necesita y propone por
+  dónde empezar, sin tocar nada hasta que él diga.
+- **Sólo lo dispara Tomy** (`disable-model-invocation`): no es algo que Claude
+  decida correr a mitad de una conversación.
+- **Sirvió antes de estrenarse**: probando sus consultas el 1-oct apareció que
+  **Villa del Dique no se sincronizaba desde el 25-sep**, el día que se cargó,
+  mientras Laudani seguía al día. Es exactamente el chequeo 3. Ver abajo.
+
 ### Las portadas de zona: el slider (25-sep)
 
 Tomy vio el slider de la home de la inmobiliaria de Villa del Dique y le gustó
@@ -540,6 +565,21 @@ card ni en la ficha: `Colega.seal = null` y `PartnerSeal` no dibuja nada.
   un fallo de red, y la segunda las trajo: el "sin leer se deja como está"
   funcionó como estaba pensado. Corrida final en seco: cero diferencias. El
   catálogo pasa de 128 a **165 publicadas**.
+- **No se sincronizó sola desde el 25-sep, y nadie lo vio hasta el 1-oct.**
+  El workflow diario corrió seis veces en verde (`489cc2d`, 26 al 30-sep) y
+  Laudani quedó al día, pero `last_seen_at` de Villa del Dique siguió clavado
+  en el 25. **Desde la PC de Tomy su sitio se lee bien** (1-oct, en seco: 44
+  avisos, cero cambios), así que no se perdió nada; lo que falla es la
+  lectura desde los runners de GitHub, y el motivo exacto está en el log del
+  run, que sin sesión no se puede leer (la API pública da los pasos y su
+  duración —261 s el de sincronización, lo que tarda Laudani solo—, no el
+  texto). Lo que sí se arregló es que pasara en silencio: `lib/colegas/health.ts`
+  (`unreadReason`) decide si una corrida cuenta como sincronización, y si un
+  colega no se pudo leer **el script termina los demás y sale con error**: el
+  workflow queda en rojo y GitHub manda el mail. **Pendiente:** mirar el log
+  del próximo run rojo; si su hosting no contesta a GitHub, Villa del Dique
+  se sincroniza desde la PC de Tomy, como el pipeline, y el workflow se queda
+  con Laudani.
 - **Ojo con el nombre**: su pestaña dice "Martino Inmobiliaria", su Instagram es
   `@martinoinmobiliaria`, y su logo es "MARTINO" grande con "INMOBILIARIA"
   chico sobre azul oscuro —casi lo mismo que la portada de este sitio desde el
@@ -2850,6 +2890,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.49 | Oct 1, 2026 | **`/arranque`, y lo que encontró antes de estrenarse.** Tomy quería empezar las sesiones sin explicar nada: ahora hay un comando del repo (`.claude/skills/arranque`) que lee lo que cambió, corre cuatro chequeos de sólo lectura y devuelve un parte de diez líneas. Probando sus consultas apareció que **Villa del Dique no se sincronizaba desde el día que se cargó**: seis corridas diarias en verde, Laudani al día y Villa del Dique sin tocar. Desde la PC de Tomy su sitio se lee bien y no cambió nada, así que no se perdió dato; el arreglo es que no vuelva a pasar callado: un colega que no se pudo leer ahora hace fallar la corrida (`lib/colegas/health.ts`). Es la familia de siempre —"no pude leer" pasando por "no cambió nada"—, esta vez en un proceso que nadie mira. **567 → 571 tests.** |
 | 2.48 | Sep 25, 2026 | **Las portadas de zona.** El slider que Tomy vio en el sitio de Villa del Dique entra como portada de cada zona donde publica —Buenos Aires, Córdoba, La Costa— en el lugar de la protagonista. Cada slide es una zona, no una propiedad: el suelo de la zona detrás (su mapa, hasta que haya foto aérea), una tarjeta con su mejor propiedad y la salida al catálogo filtrado por zona. Se desliza solo cada 6 s, con guardas y botón de pausa. La regla que elige la propiedad es la de la protagonista, un escalón más larga: en una zona sin nada de la familia, la más cara con galería. **562 → 567 tests.** |
 | 2.47 | Sep 25, 2026 | **La otra inmobiliaria de la familia entra sin sello.** José Martino Inmobiliaria (Villa del Dique, Córdoba) es de la familia, y Tomy pidió *"lo mismo que con Laudani, pero sin sello"*. Su sitio corre en otra plataforma (Pixel Inmobiliario), así que hay un segundo lector y un despacho por plataforma; el sello es opcional por colega; lo que su sitio muestra vendido se escribe `vendida`; Calamuchita entra a las localidades. Su carga trae errores que el lector rechaza en vez de publicar (un lote a $13.000, una casa de 3 m²) y dos tipos sin equivalente que quedan afuera hasta que Tomy decida. Y 39 pins a 700 km destaparon que el recorte de percentiles del mapa no alcanza: ahora encuadra el grupo alrededor de la mediana. **549 → 562 tests**, catálogo 128 → **165**. |
 | 2.46 | Sep 24, 2026 | **La portada, en la voz de Tomy.** Título nuevo: **"Vos decidís, / nuestra experiencia te acompaña"** (sin punto; "te acompaña" no se separa, porque a 375 px dejaba "ayuda" sola en un renglón y `text-balance` no actúa a través de un `<br />`; la columna se ensancha en `lg` para que la segunda línea entre entera). Los 70 años pasaron a un **sello "+70 años" fijo abajo a la izquierda**, espejo del botón de WhatsApp y centrado a su misma altura, sólo en la landing. Arriba del título: el **isotipo** (el logo completo decía "Oportunidades inmobiliarias"), **"INMOBILIARIA"** como texto con el tratamiento de ese tagline, y **"MARTINO"** en la línea dorada, que antes decía "Inmobiliaria · Zona Sur GBA". El botón "Ver propiedades" sigue entrando en la primera pantalla, medido de 320 a 1905 px. |

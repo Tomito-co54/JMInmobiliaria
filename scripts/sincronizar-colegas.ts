@@ -27,12 +27,17 @@
  *
  * Plain HTTP with a pause between requests: the partner's site is small and
  * it is a friend's.
+ *
+ * A partner whose site could not be read is a FAILED run, said out loud: the
+ * script finishes the other partners and then exits non-zero, so the daily
+ * workflow goes red (lib/colegas/health). It used to end green.
  */
 import dotenv from "dotenv";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { COLEGAS, type Colega } from "../lib/colegas";
 import type { ColegaRow } from "../lib/colegas/buscadorprop";
 import { readerFor, type ListingEntry } from "../lib/colegas/platforms";
+import { unreadReason } from "../lib/colegas/health";
 import { decideDeactivation, type CrawlEnd } from "../lib/services/scrapers/crawl-completeness";
 import { lookupParcel } from "../lib/services/arba";
 import { groupPartnerUnits, type BuildingAssignment, type PartnerUnit } from "../lib/colegas/buildings";
@@ -108,7 +113,7 @@ function same(a: unknown, b: unknown): boolean {
   return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
 }
 
-async function syncColega(sb: SupabaseClient, colega: Colega) {
+async function syncColega(sb: SupabaseClient, colega: Colega): Promise<string | null> {
   console.log(`\n── ${colega.name} (${colega.key}) · ${colega.siteUrl}`);
 
   // 1. Baseline, before anything is touched. Null means "could not read",
@@ -228,7 +233,9 @@ async function syncColega(sb: SupabaseClient, colega: Colega) {
   if (rejected.length) console.log(`  sin publicar (no se pudieron traducir): ${rejected.length}\n    ${rejected.join("\n    ")}`);
   if (unreadable.length) console.log(`  sin leer (se dejan como están): ${unreadable.length}\n    ${unreadable.join("\n    ")}`);
 
-  if (!APLICAR) return;
+  const unread = unreadReason(end, ids.length, baseline, unreadable.length);
+  if (unread) console.error(`  ✗ ${colega.name}: ${unread}`);
+  if (!APLICAR) return unread;
 
   // 5. Writes.
   const now = new Date().toISOString();
@@ -268,6 +275,7 @@ async function syncColega(sb: SupabaseClient, colega: Colega) {
     if (e) console.error(`  ✗ bajas: ${e.message}`);
   }
   console.log(`  ✓ aplicado`);
+  return unread;
 }
 
 async function main() {
@@ -275,8 +283,13 @@ async function main() {
   if (targets.length === 0) fail(`No hay un colega "${ONLY}". Conocidos: ${Object.keys(COLEGAS).join(", ")}`);
   console.log(`Modo: ${APLICAR ? "APLICAR" : "prueba (no escribe nada)"}`);
   const sb = admin();
-  for (const c of targets) await syncColega(sb, c);
+  const failed: string[] = [];
+  for (const c of targets) {
+    const unread = await syncColega(sb, c);
+    if (unread) failed.push(`${c.name}: ${unread}`);
+  }
   if (APLICAR) console.log("\nLa caché pública del catálogo se renueva sola en ≤5 minutos.");
+  if (failed.length > 0) fail(`No se pudo sincronizar a ${failed.length === 1 ? "un colega" : `${failed.length} colegas`}:\n  ${failed.join("\n  ")}`);
 }
 
 main().catch((err) => fail(err instanceof Error ? err.message : String(err)));
