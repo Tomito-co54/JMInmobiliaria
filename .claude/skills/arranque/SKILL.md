@@ -26,7 +26,7 @@ que cambia entre sesiones, en paralelo:
 
 ## 2. Los chequeos del estado real
 
-Corré estos cuatro, en paralelo cuando se pueda. Son lecturas; si alguno
+Corré estos cinco, en paralelo cuando se pueda. Son lecturas; si alguno
 falla, decilo en el parte y seguí con el resto.
 
 1. **¿La maestra tiene algo que el sitio no?** `npm run sincronizar-cartera`
@@ -41,6 +41,13 @@ falla, decilo en el parte y seguí con el resto.
 4. **¿Cuánto hay publicado?**
    `node scripts/db-query.mjs "select coalesce(partner, 'propias') as de_quien, count(*) from properties where source in ('owner_direct','agency','colega') and listing_status = 'publicada' group by 1 order by 1"`
 
+5. **¿Cómo salió la tarea diaria de Windows?** Leé `.logs/ultima-corrida.txt`
+   del repo (lo escribe `scripts/tarea-diaria.ps1`: Villa del Dique y el
+   pipeline de mercado, que corren desde esta PC). Si dice «con errores», o
+   si su fecha tiene más de dos días, va en el parte; el detalle está en el
+   log que nombra. Si el archivo no existe en esta PC, la tarea vive en otra:
+   guiate por las fechas de los chequeos 2 y 3.
+
 No corras `sincronizar-colegas` ni el pipeline acá: tardan minutos y no son
 parte del arranque.
 
@@ -53,8 +60,9 @@ preámbulo (así lo pide `TOMY.md`). Diez líneas como mucho:
 - **Sitio**: cuántas publicadas (propias · Laudani · Villa del Dique).
 - **Cartera**: «sin diferencias», o qué tiene la maestra que el sitio no. Si
   hay diferencias, cerrá esa línea con: *decí «actualizá el sitio»*.
-- **Mercado**: hace cuántos días corrió el pipeline. Si son más de dos,
-  recordale que corre sólo a mano: `npm run pipeline`.
+- **Mercado**: hace cuántos días corrió el pipeline. Corre solo en la tarea
+  diaria de Windows; si son más de dos días, decile que la tarea no está
+  corriendo y que a mano es `npm run pipeline`.
 - **Colegas**: al día, o desde cuándo no se sincronizan.
 - **Pendiente de decisión suya**: lo que `CLAUDE.md` y la última sesión de
   `CONTEXTO.md` dejan esperando una respuesta de él. Sólo lo que le toca a él.

@@ -55,3 +55,5 @@ next-env.d.ts
 
 # Backups de reparaciones de datos: no van al repo
 .backups/
+# Logs de la tarea diaria de Windows (scripts/tarea-diaria.ps1)
+.logs/

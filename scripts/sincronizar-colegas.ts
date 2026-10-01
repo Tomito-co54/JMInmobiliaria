@@ -5,6 +5,8 @@
  *   npm run sincronizar-colegas                 # dry run: reads, compares, writes nothing
  *   npm run sincronizar-colegas -- --aplicar    # inserts, updates and takes down
  *   npm run sincronizar-colegas -- --colega laudani
+ *   npm run sincronizar-colegas -- --runner github   # only the partners that sync from there
+ *                                                    # (the workflow), or `pc` (the daily task)
  *
  * What it does, per partner:
  *   1. Reads how many of their listings are published now (the baseline).
@@ -49,6 +51,11 @@ const args = process.argv.slice(2);
 const APLICAR = args.includes("--aplicar");
 const ONLY = (() => {
   const i = args.indexOf("--colega");
+  return i >= 0 ? args[i + 1] : null;
+})();
+/** Limits the run to the partners that sync from one place (Colega.runner). */
+const RUNNER = (() => {
+  const i = args.indexOf("--runner");
   return i >= 0 ? args[i + 1] : null;
 })();
 const MAX_PAGES = 40;
@@ -279,8 +286,13 @@ async function syncColega(sb: SupabaseClient, colega: Colega): Promise<string | 
 }
 
 async function main() {
-  const targets = Object.values(COLEGAS).filter((c) => !ONLY || c.key === ONLY);
-  if (targets.length === 0) fail(`No hay un colega "${ONLY}". Conocidos: ${Object.keys(COLEGAS).join(", ")}`);
+  if (RUNNER !== null && RUNNER !== "github" && RUNNER !== "pc") fail(`--runner es "github" o "pc", no "${RUNNER}".`);
+  const targets = Object.values(COLEGAS).filter((c) => (!ONLY || c.key === ONLY) && (!RUNNER || c.runner === RUNNER));
+  if (targets.length === 0 && ONLY) fail(`No hay un colega "${ONLY}". Conocidos: ${Object.keys(COLEGAS).join(", ")}`);
+  if (targets.length === 0) {
+    console.log(`Ningún colega se sincroniza desde "${RUNNER}".`);
+    return;
+  }
   console.log(`Modo: ${APLICAR ? "APLICAR" : "prueba (no escribe nada)"}`);
   const sb = admin();
   const failed: string[] = [];

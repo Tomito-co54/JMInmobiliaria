@@ -60,8 +60,9 @@ trajo HEAD `e64b474` del upstream.
 **Status (24-sep-2026):** Deployado y funcionando en producción en
 **https://www.jminmobiliaria.com.ar**, con auto-deploy desde `main`. **571 tests
 passing** (+7 skipped a propósito), `npm run build` verde, **34 rutas** (contadas
-en el build del 24-sep: las 33 de antes más `/servicios`). Catálogo: **15 propias
-+ 113 de Laudani + 37 de Villa del Dique = 165 publicadas** (25-sep).
+en el build del 24-sep: las 33 de antes más `/servicios`). Catálogo: **14 propias
++ 111 de Laudani + 37 de Villa del Dique = 162 publicadas** (1-oct; Alsina 4°X
+se vendió y Laudani se mueve sola).
 
 *(Los tres números de arriba se verificaron contra el build y los tests el
 3-sep, no se copiaron del párrafo anterior. El build lista 33 rutas contadas
@@ -423,6 +424,43 @@ propias **primero** y como protagonistas.
   `HomeGuaranteesClient.tsx` (el dibujo de la cobertura y un `ScoreRingViz`
   huérfano) se borró; `lib/zona-sur/coverage.ts` queda, sin uso.
 
+### La tarea diaria de Windows: lo que tiene que correr desde la PC de Tomy (1-oct)
+
+Dos cosas no pueden correr desde GitHub, por el mismo motivo —la fuente le
+contesta a una conexión de casa y no a un datacenter—: **el pipeline de
+mercado** (Zonaprop bloquea esas IPs; desde el 1-sep corría a mano, o sea
+cuando alguien se acordaba) y **la sincronización de Villa del Dique** (su
+hosting no les contesta a los runners; ver su sección). Tomy: *"voy a tener
+que acordarme de correrlo, ¿no?"*. No: las dos van en una tarea programada.
+
+- **Tarea de Windows, no de Claude.** Son dos comandos fijos; no hace falta
+  un modelo, ni la app abierta, ni gastar uso. Se llama **"JM Inmobiliaria -
+  tarea diaria"**, todos los días a las **10:00**, en la PC **HP** (la
+  notebook, que es donde está el repo), con el usuario logueado. **Si la PC
+  estaba apagada a esa hora, corre apenas se prende** (`StartWhenAvailable`);
+  corre con batería y sólo con red.
+- **`scripts/tarea-diaria.ps1`**: primero `sincronizar-colegas -- --runner pc
+  --aplicar`, después `npm run pipeline`. **Un paso que falla no saltea al
+  otro**, y el código de salida es la cantidad de pasos que fallaron. Escribe
+  `.logs/tarea-diaria-<fecha>.log` y `.logs/ultima-corrida.txt` (ignorados
+  por git; treinta días de logs). ASCII puro a propósito: PowerShell 5.1 lee
+  un `.ps1` sin BOM como ANSI, y el tercer byte de una raya "—" es una
+  comilla de cierre para su parser.
+- **`Colega.runner`** (`"github"` | `"pc"`) dice desde dónde se sincroniza
+  cada colega, y `--runner` filtra: el workflow corre `--runner github`
+  (Laudani) y la tarea `--runner pc` (Villa del Dique). Sumar un colega es
+  decidir ese campo.
+- **Corre el código que esté en la carpeta**, sin `git pull`: actualizar el
+  repo debajo de una sesión de trabajo abierta es peor que correr con el
+  código de ayer.
+- **Si deja de correr, lo dice `/arranque`**: lee `ultima-corrida.txt` y las
+  fechas de último visto en la base. No depende de la memoria de nadie.
+- **Para verla o tocarla**: Programador de tareas de Windows → "JM
+  Inmobiliaria - tarea diaria". A mano:
+  `powershell -ExecutionPolicy Bypass -File scripts\tarea-diaria.ps1`.
+- **Si el repo se muda a la PC de la oficina**, la tarea hay que crearla
+  allá: vive en Windows, no en el repo.
+
 ### `/arranque`: empezar una sesión sin explicar nada (1-oct)
 
 Tomy quería *"automatizar el inicio de sesiones con un prompt que simplifique
@@ -576,10 +614,11 @@ card ni en la ficha: `Colega.seal = null` y `PartnerSeal` no dibuja nada.
   texto). Lo que sí se arregló es que pasara en silencio: `lib/colegas/health.ts`
   (`unreadReason`) decide si una corrida cuenta como sincronización, y si un
   colega no se pudo leer **el script termina los demás y sale con error**: el
-  workflow queda en rojo y GitHub manda el mail. **Pendiente:** mirar el log
-  del próximo run rojo; si su hosting no contesta a GitHub, Villa del Dique
-  se sincroniza desde la PC de Tomy, como el pipeline, y el workflow se queda
-  con Laudani.
+  workflow queda en rojo y GitHub manda el mail. **Confirmado el 1-oct**: el
+  primer run con ese cambio (#8) salió en rojo, con Laudani sincronizada y
+  Villa del Dique sin leer. Desde ese día Villa del Dique se sincroniza
+  **desde la PC de Tomy**, en la tarea diaria de Windows (`runner: "pc"`), y
+  el workflow se queda con Laudani (`--runner github`).
 - **Ojo con el nombre**: su pestaña dice "Martino Inmobiliaria", su Instagram es
   `@martinoinmobiliaria`, y su logo es "MARTINO" grande con "INMOBILIARIA"
   chico sobre azul oscuro —casi lo mismo que la portada de este sitio desde el
@@ -989,7 +1028,9 @@ Tomy** — decirlo, y no pasar una medición numérica por una confirmación
 visual.
 
 
-**Recordarle correr el pipeline** cada vez que retome trabajo.
+**El pipeline corre solo desde el 1-oct**, en la tarea diaria de Windows (ver
+*La tarea diaria de Windows*). Ya no hace falta recordárselo a Tomy: hace
+falta mirar, al retomar, que la tarea haya corrido (`/arranque` lo hace).
 
 ### Hitos (este fork)
 
@@ -2492,7 +2533,7 @@ tiene que decirlo), y **cubierto vs descubierto** — el punto 4 de abajo: hoy
 el USD/m² divide por la superficie total, y en una casa eso mide el lote. Una
 tasación seria necesita ese desglose, o por lo menos avisar qué superficie usó.
 
-**2. Correr `npm run pipeline` seguido** ← ahora es la única forma en que corre
+**2. Correr `npm run pipeline` seguido** ← desde el 1-oct corre solo, todos los días
 
 Cada corrida acumula historial que no se puede reconstruir después.
 Además, dos features del centro de datos están construidas y **esperando
@@ -2662,9 +2703,9 @@ sitio le mande un mail a alguien que no sea Tomy: hoy `smtp_admin_email` es
 `onboarding@resend.dev`, el dominio sandbox de Resend, que sólo entrega al
 dueño de la cuenta. Los leads van por WhatsApp, así que no bloquea nada.
 
-**11. Automatizar el pipeline**
+**11. Automatizar el pipeline** ← hecho el 1-oct (tarea diaria de Windows)
 
-Tarea programada de Windows, diferida a propósito. Ojo con la premisa: desde
+Tarea programada de Windows, diferida a propósito hasta el 1-oct. Ojo con la premisa: desde
 el 27-ago **GitHub Actions corrió solo todos los días**, hasta que el 1-sep se
 apagó el cron justamente porque no puede traer volumen: Zonaprop bloquea sus
 IPs. Automatizar significa hoy **automatizarlo en la PC de Tomy**, que es la
@@ -2890,6 +2931,7 @@ decisiones, no solo el **cómo**.
 
 | Version | Date | Changes |
 |---|---|---|
+| 2.50 | Oct 1, 2026 | **Lo que tiene que correr desde la PC de Tomy, corre solo.** El primer run del workflow con el chequeo nuevo salió en rojo y confirmó que el sitio de Villa del Dique no les contesta a los servidores de GitHub. Y el pipeline de mercado llevaba una semana sin correr porque dependía de que alguien se acordara. Las dos cosas van ahora en una **tarea programada de Windows** (`scripts/tarea-diaria.ps1`, 10:00, corre al prender si se perdió la hora): sin Claude, sin la app abierta. `Colega.runner` dice desde dónde se sincroniza cada colega; el workflow se queda con Laudani. Cierra el punto 11 del Build map. De paso: Alsina 4°X se archivó como vendida desde la maestra (boleto del 30-sep); quedan **14 propias, 162 publicadas**. |
 | 2.49 | Oct 1, 2026 | **`/arranque`, y lo que encontró antes de estrenarse.** Tomy quería empezar las sesiones sin explicar nada: ahora hay un comando del repo (`.claude/skills/arranque`) que lee lo que cambió, corre cuatro chequeos de sólo lectura y devuelve un parte de diez líneas. Probando sus consultas apareció que **Villa del Dique no se sincronizaba desde el día que se cargó**: seis corridas diarias en verde, Laudani al día y Villa del Dique sin tocar. Desde la PC de Tomy su sitio se lee bien y no cambió nada, así que no se perdió dato; el arreglo es que no vuelva a pasar callado: un colega que no se pudo leer ahora hace fallar la corrida (`lib/colegas/health.ts`). Es la familia de siempre —"no pude leer" pasando por "no cambió nada"—, esta vez en un proceso que nadie mira. **567 → 571 tests.** |
 | 2.48 | Sep 25, 2026 | **Las portadas de zona.** El slider que Tomy vio en el sitio de Villa del Dique entra como portada de cada zona donde publica —Buenos Aires, Córdoba, La Costa— en el lugar de la protagonista. Cada slide es una zona, no una propiedad: el suelo de la zona detrás (su mapa, hasta que haya foto aérea), una tarjeta con su mejor propiedad y la salida al catálogo filtrado por zona. Se desliza solo cada 6 s, con guardas y botón de pausa. La regla que elige la propiedad es la de la protagonista, un escalón más larga: en una zona sin nada de la familia, la más cara con galería. **562 → 567 tests.** |
 | 2.47 | Sep 25, 2026 | **La otra inmobiliaria de la familia entra sin sello.** José Martino Inmobiliaria (Villa del Dique, Córdoba) es de la familia, y Tomy pidió *"lo mismo que con Laudani, pero sin sello"*. Su sitio corre en otra plataforma (Pixel Inmobiliario), así que hay un segundo lector y un despacho por plataforma; el sello es opcional por colega; lo que su sitio muestra vendido se escribe `vendida`; Calamuchita entra a las localidades. Su carga trae errores que el lector rechaza en vez de publicar (un lote a $13.000, una casa de 3 m²) y dos tipos sin equivalente que quedan afuera hasta que Tomy decida. Y 39 pins a 700 km destaparon que el recorte de percentiles del mapa no alcanza: ahora encuadra el grupo alrededor de la mediana. **549 → 562 tests**, catálogo 128 → **165**. |

@@ -10,7 +10,13 @@ name: Catálogo de colegas
 # sitios son de inmobiliarias amigas (BuscadorProp y Pixel Inmobiliario), sin
 # bloqueo por IP, y se leen con pedidos simples (sin navegador).
 #
-# Si algún día el sitio no contesta, la corrida no baja nada: las bajas
+# Villa del Dique NO corre desde acá: su hosting no les contesta a estos
+# runners (1-oct-2026). Se sincroniza desde la PC de Tomy, en la tarea diaria
+# de Windows (scripts/tarea-diaria.ps1), junto con el pipeline de mercado.
+#
+# Si algún día el sitio no contesta, la corrida no baja nada y TERMINA EN
+# ROJO (lib/colegas/health): un colega que no se pudo leer no es un éxito.
+# Además, la corrida no baja nada: las bajas
 # exigen haber recorrido el listado hasta el final y haber visto al menos la
 # mitad de lo publicado (decideDeactivation). Un colega caído no vacía el
 # catálogo.
@@ -49,4 +55,6 @@ jobs:
         run: npm ci
 
       - name: Sync partner catalogs
-        run: npm run sincronizar-colegas -- --aplicar
+        # Sólo los colegas que se sincronizan desde acá (Colega.runner). Los
+        # que no le contestan a GitHub corren desde la PC de Tomy.
+        run: npm run sincronizar-colegas -- --runner github --aplicar

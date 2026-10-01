@@ -20,12 +20,24 @@
  */
 export type ColegaPlatform = "buscadorprop" | "pixel-inmobiliario";
 
+/**
+ * Where a partner's daily sync runs.
+ *   "github" — the workflow (.github/workflows/colegas.yml). The default
+ *              place: nobody has to keep a PC on.
+ *   "pc"     — Tomy's PC, from the Windows scheduled task
+ *              (scripts/tarea-diaria.ps1). For a site that does not answer
+ *              GitHub's runners but answers a home connection.
+ */
+export type ColegaRunner = "github" | "pc";
+
 export interface Colega {
   /** The value of `properties.partner`. */
   key: string;
   name: string;
   /** Which reader turns their site into rows (lib/colegas/platforms). */
   platform: ColegaPlatform;
+  /** Where its daily sync runs: `sincronizar-colegas -- --runner <this>`. */
+  runner: ColegaRunner;
   /**
    * The seal on their listings: their logo, served from /public so it never
    * depends on the partner's CDN. Absent for a partner whose listings are
@@ -59,6 +71,7 @@ export const COLEGAS: Record<string, Colega> = {
     key: "laudani",
     name: "Laudani & Cía",
     platform: "buscadorprop",
+    runner: "github",
     seal: { logo: "/partners/laudani.png", width: 300, height: 150 },
     siteUrl: "https://laudaniycia.com.ar",
     scrubWords: ["laudani"],
@@ -68,6 +81,10 @@ export const COLEGAS: Record<string, Colega> = {
     key: "martino_villa_del_dique",
     name: "José Martino Inmobiliaria (Villa del Dique)",
     platform: "pixel-inmobiliario",
+    // Their host does not answer GitHub's runners: the workflow of 1-oct-2026,
+    // the first that reports an unread partner, went red on this one while a
+    // run from Tomy's PC read all 44 listings.
+    runner: "pc",
     seal: null,
     siteUrl: "https://www.josemartinoinmobiliaria.com.ar",
     account: "1742",
