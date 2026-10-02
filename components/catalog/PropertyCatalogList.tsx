@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Reveal } from "@/components/shared/Reveal";
+import { arrivedByHistory } from "@/lib/navigation/in-app-history";
 import { buildingKey, type BuildingSummary } from "@/lib/buildings";
 import { useMatchPreferences } from "@/hooks/use-match-preferences";
 import { hasAnyPreference, type MatchPreferences } from "@/lib/matching/preferences";
@@ -45,6 +46,13 @@ const LAST_SEARCH_KEY = "jm.catalog-search.v1";
  * match is card 1 whether or not card 100 exists yet — only the drawing waits.
  */
 const PAGE_SIZE = 24;
+
+/**
+ * Where the visitor was in the list when they left it: the query string it
+ * belongs to, how far down, how many cards were drawn. Module memory, because
+ * it only has to survive a client-side trip to a listing and back.
+ */
+let leftAt: { search: string; y: number; shown: number } | null = null;
 
 function readLastSearch(): Filters | null {
   try {
@@ -111,12 +119,26 @@ export function PropertyCatalogList({
   // landing, or a shared one, lands with the map already open.
   const [mapOpen, setMapOpen] = useState(false);
   const [lastSearch, setLastSearch] = useState<Filters | null>(null);
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+  const [shown, setShown] = useState(PAGE_SIZE);
+  // Read before the first paint, not after. Coming back from a listing, Next
+  // re-renders this page from the payload it fetched on arrival — the bare
+  // `/propiedades`, which says "open the intro" — while the URL already holds
+  // the search. Trusting the payload reopened the three questions over a
+  // search the visitor had made (Tomy, 2-oct-2026). The URL is the truth:
+  // any query string means results.
+  const restoreTo = useRef<{ y: number; shown: number } | null>(null);
+  useLayoutEffect(() => {
+    const search = window.location.search;
+    const params = new URLSearchParams(search);
     setFilters(filtersFromParams(params));
     setSort(sortFromParams(params));
     setMapOpen(params.get(MAP_PARAM) === "1");
     setLastSearch(readLastSearch());
+    if (search !== "") setIntroOpen(false);
+    if (arrivedByHistory() && leftAt && leftAt.search === search) {
+      restoreTo.current = { y: leftAt.y, shown: leftAt.shown };
+      setShown(leftAt.shown);
+    }
   }, []);
   const { preferences, setPreferences, ready } = useMatchPreferences();
 
@@ -216,9 +238,37 @@ export function PropertyCatalogList({
     [mapOpen, order, properties, filters],
   );
 
-  // A new search, order or match starts again from the top of the list.
-  const [shown, setShown] = useState(PAGE_SIZE);
-  useEffect(() => setShown(PAGE_SIZE), [ordered]);
+  // A new search, order or match starts again from the top of the list —
+  // except while a trip back from a listing is putting the visitor where they
+  // were, which has to survive the reorders of the first renders (the
+  // filters land, then the match preferences).
+  useEffect(() => setShown(Math.max(PAGE_SIZE, restoreTo.current?.shown ?? 0)), [ordered]);
+  // Only once the cards it scrolled past are drawn again: earlier, the page
+  // is shorter than the spot and the browser clamps the scroll to its end.
+  useEffect(() => {
+    const target = restoreTo.current;
+    if (!target || !ready || introOpen || shown < target.shown) return;
+    restoreTo.current = null;
+    window.scrollTo(0, target.y);
+  }, [ready, ordered, shown, introOpen]);
+  // Remember the spot on every scroll, and once more on the click that leaves
+  // (a scroll event waits for the next frame, which a hidden tab never
+  // paints). Not at unmount: by then the page coming in can have clamped it.
+  const shownRef = useRef(shown);
+  shownRef.current = shown;
+  useEffect(() => {
+    if (introOpen) return;
+    const remember = () => {
+      leftAt = { search: window.location.search, y: window.scrollY, shown: shownRef.current };
+    };
+    remember();
+    window.addEventListener("scroll", remember, { passive: true });
+    document.addEventListener("click", remember, true);
+    return () => {
+      window.removeEventListener("scroll", remember);
+      document.removeEventListener("click", remember, true);
+    };
+  }, [introOpen]);
   const more = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = more.current;
